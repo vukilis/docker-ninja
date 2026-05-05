@@ -170,6 +170,46 @@ const ThemeSwitcher = ({ collapsed }: { collapsed?: boolean }) => {
   );
 };
 
+{/* Updated Helper Component with Session Intelligence */}
+const Counter = ({ value, delay = 0 }) => {
+  const [count, setCount] = React.useState(0);
+  React.useEffect(() => {
+    // Check if the preloader has already finished in this session
+    const isFirstLoad = !window.__dn_preloader_finished;
+    const actualDelay = isFirstLoad ? delay : 100;
+
+    let timer;
+    const startTimeout = setTimeout(() => {
+      window.__dn_preloader_finished = true;
+
+      let start = 0;
+      const end = parseInt(value);
+      if (isNaN(end) || end <= 0) {
+        setCount(value);
+        return;
+      }
+
+      const totalMiliseconds = 800;
+      const incrementTime = Math.max(totalMiliseconds / end, 10);
+
+      timer = setInterval(() => {
+        start += 1;
+        setCount(start);
+        if (start >= end) {
+          clearInterval(timer);
+        }
+      }, incrementTime);
+    }, actualDelay);
+
+    return () => {
+      clearTimeout(startTimeout);
+      if (timer) clearInterval(timer);
+    };
+  }, [value, delay]);
+
+  return <>{count}</>;
+};
+
 // MAIN DASHBOARD
 export default function Home() {
   const { 
@@ -269,22 +309,94 @@ export default function Home() {
           <h1 className="text-7xl md:text-9xl font-black text-slate-900 dark:text-white tracking-tighter">
             DOCKER<br/><span className="text-blue-600">NINJA</span>
           </h1>
-          <p className="text-xl md:text-2xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto font-medium">
-            Master your self-hosted universe with curated, production-ready stack templates.
-          </p>
-          <div className="pt-10">
+          <div className="relative group max-w-2xl mx-auto">
+            <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 font-medium leading-relaxed tracking-tight transition-colors duration-500">
+              Master your <span className="relative inline-block text-slate-900 dark:text-white font-bold group-hover:text-blue-600 transition-colors duration-300">
+                containerization universe
+                <span className="absolute bottom-0 left-0 w-full h-[2px] bg-blue-600/20 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
+              </span> with official <span className="italic font-serif text-blue-500/80">compose</span> stacks for any application, <span className="relative inline-block text-slate-900 dark:text-white font-bold group-hover:text-blue-600 transition-colors duration-300">all in one place
+                <span className="absolute bottom-0 left-0 w-full h-[2px] bg-blue-600/20 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
+              </span>
+            </p>
+            
+            {/* Subtle accent underline */}
+            <div className="mt-8 flex justify-center gap-1.5 opacity-50">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-600/40" />
+              <div className="w-12 h-1.5 rounded-full bg-gradient-to-r from-blue-600/40 to-transparent" />
+            </div>
+          </div>
+          <div className="pt-10 flex flex-col items-center gap-4">
             <button 
               onClick={() => navigateTo('dashboard')}
-              className="px-16 py-5 bg-blue-600 text-white font-black text-xl rounded-2xl shadow-2xl shadow-blue-500/40 hover:bg-blue-700 hover:-translate-y-1 transition-all cursor-pointer uppercase tracking-widest"
+              className="group relative px-10 py-5 bg-blue-600 text-white font-black text-xl rounded-2xl shadow-2xl shadow-blue-500/40 hover:bg-blue-700 hover:-translate-y-1 active:scale-95 transition-all cursor-pointer uppercase tracking-[0.2em] overflow-hidden"
             >
-              Let's Start
+              <div className="relative z-10 flex items-center gap-4">
+                <span>Initiate Warp</span>
+                <svg 
+                  className="w-6 h-6 transform transition-transform duration-300 group-hover:translate-x-2" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="3" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                >
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </div>
+              
+              {/* Animated Sweep Effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
             </button>
+            
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-500 animate-pulse">
+              Explore the Infinite Stack
+            </p>
           </div>
+
+          <style jsx>{`
+            @keyframes shimmer {
+              100% {
+                transform: translateX(100%);
+              }
+            }
+          `}</style>
         </div>
-        <div className="mt-20 flex gap-12 text-slate-400 dark:text-slate-600 uppercase text-[10px] font-bold tracking-widest">
-            <div className="text-center"><div className="text-slate-900 dark:text-white text-xl mb-1">{apps.length}</div>Apps</div>
-            <div className="text-center"><div className="text-slate-900 dark:text-white text-xl mb-1">{categories.length - 2}</div>Categories</div>
-            <div className="text-center"><div className="text-slate-900 dark:text-white text-xl mb-1">∞</div>Templates</div>
+        <div className="mt-20 flex flex-wrap justify-center gap-12 lg:gap-20 uppercase text-[10px] font-black tracking-[0.3em]">
+          {/* Apps Counter */}
+          <div className="group relative text-center">
+            <div className="text-slate-900 dark:text-white text-3xl mb-1 tabular-nums animate-in fade-in slide-in-from-bottom-4 duration-1000">
+              <Counter value={apps.length} delay={3200} />
+            </div>
+            <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Total Stacks</div>
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-blue-600 group-hover:w-full transition-all duration-500" />
+          </div>
+
+          {/* Categories Counter */}
+          <div className="group relative text-center">
+            <div className="text-slate-900 dark:text-white text-3xl mb-1 tabular-nums animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-100">
+              <Counter value={categories.length - 2} delay={3300} />
+            </div>
+            <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Categories</div>
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-blue-600 group-hover:w-full transition-all duration-500" />
+          </div>
+
+          {/* Status / Uptime */}
+          <div className="group relative text-center">
+            <div className="relative flex items-center justify-center text-blue-600 text-3xl mb-1 font-black animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-200">
+              <span className="relative">
+                ONLINE
+                <span className="absolute -top-1 -right-4 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+              </span>
+            </div>
+            <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Systems Ready</div>
+            
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-20 bg-blue-600/10 blur-2xl rounded-full -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+          </div>
         </div>
       </div>
     );
