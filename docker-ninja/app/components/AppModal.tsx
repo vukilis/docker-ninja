@@ -11,7 +11,6 @@ export default function AppModal({ app, onClose }: { app: any; onClose: () => vo
             <div className="grid grid-cols-2 gap-8 text-sm">
             <div>
                 <h3 className="text-gray-500 mb-2 underline">App Details</h3>
-                <p>Version: <span className="text-green-300">{app.version || '4.117.0'}</span></p>
                 <p>Website: <a href={app.website} className="text-blue-400 hover:underline">Link</a></p>
                 <p>Docs: <a href={app.docs} className="text-blue-400 hover:underline">Link</a></p>
                 <p>GitHub: <a href={app.github} className="text-blue-400 hover:underline">Repo</a></p>
@@ -21,7 +20,6 @@ export default function AppModal({ app, onClose }: { app: any; onClose: () => vo
                 <p>Category: <span className="text-green-300">{app.category}</span></p>
                 <p>Source: <a href="#" className="text-blue-400 hover:underline">View</a></p>
                 <p>Runs in: <span className="text-green-300">{app.runsIn || 'PVE/LXC'}</span></p>
-                <p>Last change: <span className="text-green-300">{app.lastChange || 'Mar 22, 2026'}</span></p>
             </div>
             </div>
         </div>
