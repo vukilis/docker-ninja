@@ -1,39 +1,63 @@
 import { useState, useMemo, useEffect } from 'react';
 import { fetchAllApps } from '../actions';
+import { supabase } from '../../lib/supabase'; 
 
-/**
- * useApps Hook
- * * Manages the state and filtering for the Docker Ninja dashboard.
- * Now interfaces with Supabase via Server Actions to provide a scalable
- * source of truth for all application metadata.
- */
 export function useApps() {
     const [apps, setApps] = useState<any[]>([]);
     const [search, setSearch] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [loading, setLoading] = useState(true);
 
+    // 1. Initial Data Fetch
     useEffect(() => {
-        /**
-         * Fetches the full list of applications from Supabase.
-         * This replaces the local apps.json dependency.
-         */
         const loadApps = async () => {
             try {
                 setLoading(true);
                 const data = await fetchAllApps();
                 setApps(data || []);
             } catch (error) {
-                console.error("Failed to load apps from Supabase:", error);
+                console.error("Failed to load apps:", error);
             } finally {
                 setLoading(false);
             }
         };
-
         loadApps();
     }, []);
 
-    // Derived state for unique categories found in the database
+    // 2. Realtime Subscription
+    useEffect(() => {
+        // Generate a unique ID for this specific hook instance
+        const channelId = `realtime-apps-${Math.random()}`;
+        const channel = supabase.channel(channelId);
+
+        channel
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'apps' },
+                (payload) => {
+                    setApps((current) => {
+                        if (payload.eventType === 'INSERT') return [...current, payload.new];
+                        if (payload.eventType === 'UPDATE') {
+                            return current.map((app) => app.id === payload.new.id ? payload.new : app);
+                        }
+                        if (payload.eventType === 'DELETE') {
+                            return current.filter((app) => app.id !== payload.old.id);
+                        }
+                        return current;
+                    });
+                }
+            )
+            .subscribe((status) => {
+                if (status !== 'SUBSCRIBED') {
+                    // console.warn("Realtime status:", status);
+                }
+            });
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
+
     const categories = useMemo(() => 
         ["All", ...Array.from(new Set(apps.map(a => a.category)))], 
     [apps]);
@@ -46,9 +70,8 @@ export function useApps() {
         );
     }, [search, selectedCategory, apps]);
 
-    /**
-     * Helper to get count for a specific category
-     */
+
+    // Helper to get count for a specific category
     const getCountByCategory = (category: string) => {
         return apps.filter(app => app.category === category).length;
     };
@@ -60,7 +83,7 @@ export function useApps() {
         search, 
         setSearch, 
         selectedCategory, 
-        setSelectedCategory, 
+        setSelectedCategory,
         getCountByCategory,
         loading 
     };

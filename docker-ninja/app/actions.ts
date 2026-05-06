@@ -45,9 +45,9 @@ export async function getComposeContent(app: any) {
             if (response.ok) {
                 return await response.text();
             }
-            console.warn(`Remote fetch returned status ${response.status} for ${app.slug}. Using fallback.`);
+            // console.warn(`Remote fetch returned status ${response.status} for ${app.slug}. Using fallback.`);
         } catch (e) {
-            console.error(`Remote fetch request failed for ${app.slug}. Using fallback.`);
+            // console.error(`Remote fetch request failed for ${app.slug}. Using fallback.`);
         }
     }
 
