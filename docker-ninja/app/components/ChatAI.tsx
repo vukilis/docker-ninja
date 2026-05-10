@@ -85,7 +85,7 @@ export const AISuggestor = ({ onAppSelect }: { onAppSelect: (app: any) => void }
     };
 
     return (
-        <div style={{ display: "block" }} className="group relative bg-[#0f172a] rounded-[2.5rem] p-1 mb-10 overflow-hidden shadow-2xl shadow-blue-500/10">
+        <div style={{ display: "block" }} className="group relative bg-[#0f172a] rounded-[2.5rem] p-1 mb-10 overflow-hidden shadow-2xl shadow-blue-500/10 z-1">
             {/* Animated Background Mesh */}
             <div className="absolute inset-0 opacity-20 pointer-events-none">
                 <div className="absolute inset-[-100%] bg-[radial-gradient(circle_at_center,_#2563eb_0%,_transparent_20%)] animate-[pulse_8s_infinite] mix-blend-screen" />

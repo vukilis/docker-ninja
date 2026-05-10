@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { fetchAllApps } from '../actions';
-import { supabase } from '../../lib/supabase'; 
+import { supabase } from '../../lib/supabase';
 
 export function useApps() {
     const [apps, setApps] = useState<any[]>([]);
@@ -26,7 +26,6 @@ export function useApps() {
 
     // 2. Realtime Subscription
     useEffect(() => {
-        // Generate a unique ID for this specific hook instance
         const channelId = `realtime-apps-${Math.random()}`;
         const channel = supabase.channel(channelId);
 
@@ -47,11 +46,7 @@ export function useApps() {
                     });
                 }
             )
-            .subscribe((status) => {
-                if (status !== 'SUBSCRIBED') {
-                    // console.warn("Realtime status:", status);
-                }
-            });
+            .subscribe();
 
         return () => {
             supabase.removeChannel(channel);
@@ -59,19 +54,60 @@ export function useApps() {
     }, []);
 
     const categories = useMemo(() => 
-        ["All", ...Array.from(new Set(apps.map(a => a.category)))], 
+        Array.from(new Set(apps.map(a => a.category))), 
     [apps]);
-    
-    // Filtered list based on search query and category selection
+
+    // 3. Smart Search Logic (Weighted & Fuzzy)
     const filteredApps = useMemo(() => {
-        return apps.filter((app) =>
-            (selectedCategory === "All" || app.category === selectedCategory || selectedCategory === "ShowCategories") &&
-            app.name.toLowerCase().includes(search.toLowerCase())
-        );
+        if (!search.trim()) {
+            return apps.filter(app => (selectedCategory === "All" || app.category === selectedCategory || selectedCategory === "ShowCategories"));
+        }
+
+        const query = search.toLowerCase().trim();
+        const queryWords = query.split(/\s+/);
+
+        return apps
+            .map(app => {
+                let score = 0;
+                const name = (app.name || "").toLowerCase();
+                const category = (app.category || "").toLowerCase();
+
+                // Exact Name Match (Highest priority)
+                if (name === query) score += 200;
+                if (name.includes(query)) score += 100;
+                if (name.startsWith(query)) score += 50;
+
+                // Keyword scoring across multiple fields
+                queryWords.forEach(word => {
+                    if (name === word) score += 30;
+                    else if (name.includes(word)) score += 10;
+                    
+                    if (category.includes(word)) score += 5;
+                });
+
+                // Simple sequence matching (Typo tolerance)
+                if (query.length > 3 && !name.includes(query)) {
+                    let matches = 0;
+                    let lastIdx = -1;
+                    for (const char of query) {
+                        const idx = name.indexOf(char, lastIdx + 1);
+                        if (idx > -1) { matches++; lastIdx = idx; }
+                    }
+                    if (matches / query.length > 0.8) score += 10;
+                }
+
+                return { ...app, searchScore: score };
+            })
+            .filter(app => {
+                const categoryMatch = (selectedCategory === "All" || app.category === selectedCategory || selectedCategory === "ShowCategories");
+                const minThreshold = queryWords.length > 1 ? 25 : 1;
+                return categoryMatch && app.searchScore >= minThreshold;
+            })
+            // Sort by score (best matches first)
+            .sort((a, b) => (b.searchScore || 0) - (a.searchScore || 0));
+            
     }, [search, selectedCategory, apps]);
 
-
-    // Helper to get count for a specific category
     const getCountByCategory = (category: string) => {
         return apps.filter(app => app.category === category).length;
     };

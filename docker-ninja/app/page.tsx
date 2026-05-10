@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
-import { useTheme } from 'next-themes';
 import { useApps } from './hooks/useApps';
 import './style/globals.css';
 import { AppModal } from './components/AppModal';
@@ -8,6 +7,11 @@ import { AppCard } from './components/AppCard';
 import { Counter } from './components/Counter';
 import { AISuggestor} from './components/ChatAI';
 import { ThemeSwitcher} from './components/ThemeSwitcher';
+import { RotatingMessage} from './components/RotatingMessage';
+import { NetworkBackground } from './components/NetworkMap';
+import SearchInput from './components/SearchInput';
+import AboutPage from './components/AboutPage';
+import { Sponsoring } from './components/Sponsoring';
 
 // MAIN DASHBOARD
 export default function Home() {
@@ -20,12 +24,15 @@ export default function Home() {
   const [isMounted, setIsMounted] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
   
+  // View Management
+  const [currentView, setCurrentView] = useState<'dashboard' | 'about' | 'Sponsoring'>('dashboard');
+  
   const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile Drawer
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Desktop Toggle
-  const [selectedApp, setSelectedApp] = useState<any | null>(null);
-  const [activeSubCategory, setActiveSubCategory] = useState<string | null>(null);
+  const [selectedApp, setSelectedApp] = useState(null);
+  const [activeSubCategory, setActiveSubCategory] = useState(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const scrollContainerRef = useRef<HTMLElement>(null);
+  const scrollContainerRef = useRef(null);
 
   // 1. Handle Initialization (Hydration)
   useEffect(() => {
@@ -51,12 +58,6 @@ export default function Home() {
     }
   }, [sidebarCollapsed, isMounted]);
 
-  const navigateTo = (path: 'landing' | 'dashboard') => {
-    setSidebarOpen(false);
-    if (path === 'landing') setIsStarted(false);
-    else setIsStarted(true);
-  };
-
   useEffect(() => {
     if (selectedCategory === "ShowCategories" && !activeSubCategory) {
       const firstCat = categories.find(c => c !== "All" && c !== "ShowCategories");
@@ -78,10 +79,29 @@ export default function Home() {
 
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [isStarted]);
+  }, [isStarted, currentView]);
 
   const scrollToTop = () => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const navigateTo = (path) => {
+    setSidebarOpen(false);
+    if (path === 'landing') {
+      setIsStarted(false);
+    } else {
+      setIsStarted(true);
+      setCurrentView('dashboard');
+    }
+  };
+
+  const handleAppSelect = (app) => {
+    setSelectedApp(app);
+    setCurrentView('dashboard'); 
+    if (selectedCategory !== 'All') {
+      setSelectedCategory("ShowCategories");
+      setActiveSubCategory(app.category);
+    }
   };
 
   const renderDashboard = () => {
@@ -97,20 +117,41 @@ export default function Home() {
     const categoryApps = filteredApps.filter(a => a.category === activeSubCategory);
     return (
       <div className="space-y-8">
-        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
+        <div 
+          className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide cursor-grab active:cursor-grabbing scroll-smooth"
+          onWheel={(e) => {
+            if (e.deltaY !== 0) {
+              e.preventDefault();
+              const container = e.currentTarget;
+              const scrollAmount = e.deltaY * 2;
+              container.scrollTo({
+                left: container.scrollLeft + scrollAmount,
+                behavior: 'smooth'
+              });
+            }
+          }}
+        >
           {categories.filter(c => c !== "All" && c !== "ShowCategories").map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveSubCategory(cat)}
-              className={`px-5 py-2.5 text-[12px] font-sans font-bold uppercase tracking-wider whitespace-nowrap border rounded-xl transition-all flex items-center gap-3 cursor-pointer ${activeSubCategory === cat ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20' : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:border-blue-500'}`}
+              className={`px-5 py-2.5 text-[12px] font-sans font-bold uppercase tracking-wider whitespace-nowrap border rounded-xl transition-all flex items-center gap-3 cursor-pointer select-none ${
+                activeSubCategory === cat 
+                  ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20' 
+                  : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:border-blue-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+              }`}
             >
               {cat}
-              <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${activeSubCategory === cat ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800'}`}>
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${
+                activeSubCategory === cat ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800'
+              }`}>
                 {getCountByCategory(cat)}
               </span>
             </button>
           ))}
         </div>
+
+        {/* App Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
           {categoryApps.map((app) => (
             <AppCard key={app.id} app={app} onClick={() => setSelectedApp(app)} />
@@ -120,13 +161,13 @@ export default function Home() {
     );
   };
 
-  // Prevent flash of wrong content during hydration
   if (!isMounted) return <div className="min-h-screen bg-white dark:bg-[#0d1117]" />;
 
   if (!isStarted) {
     return (
       <div className="min-h-screen bg-white dark:bg-[#0d1117] flex flex-col items-center justify-center p-6 transition-colors duration-700">
-        <div className="max-w-4xl w-full text-center space-y-8">
+        <NetworkBackground apps={apps} />
+        <div className="max-w-4xl w-full text-center space-y-8 z-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-xs font-bold tracking-widest uppercase">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
@@ -138,15 +179,7 @@ export default function Home() {
             DOCKER<br/><span className="text-blue-600">NINJA</span>
           </h1>
           <div className="relative group max-w-2xl mx-auto">
-            <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 font-medium leading-relaxed tracking-tight transition-colors duration-500">
-              Master your <span className="relative inline-block text-slate-900 dark:text-white font-bold group-hover:text-blue-600 transition-colors duration-300">
-                containerization universe
-                <span className="absolute bottom-0 left-0 w-full h-[2px] bg-blue-600/20 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
-              </span> with official <span className="italic font-serif text-blue-500/80">compose</span> stacks for any application, <span className="relative inline-block text-slate-900 dark:text-white font-bold group-hover:text-blue-600 transition-colors duration-300">all in one place
-                <span className="absolute bottom-0 left-0 w-full h-[2px] bg-blue-600/20 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
-              </span>
-            </p>
-            
+            <RotatingMessage/>
             <div className="mt-8 flex justify-center gap-1.5 opacity-50">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-600/40" />
               <div className="w-12 h-1.5 rounded-full bg-gradient-to-r from-blue-600/40 to-transparent" />
@@ -166,19 +199,10 @@ export default function Home() {
               </div>
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
             </button>
-            
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-500 animate-pulse">
               Explore the Infinite Stack
             </p>
           </div>
-
-          <style jsx>{`
-            @keyframes shimmer {
-              100% {
-                transform: translateX(100%);
-              }
-            }
-          `}</style>
         </div>
         <div className="mt-20 flex flex-wrap justify-center gap-12 lg:gap-20 uppercase text-[10px] font-black tracking-[0.3em]">
           <div className="group relative text-center">
@@ -186,29 +210,18 @@ export default function Home() {
               <Counter value={apps.length} delay={3200} />
             </div>
             <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Total Stacks</div>
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-blue-600 group-hover:w-full transition-all duration-500" />
           </div>
-
           <div className="group relative text-center">
             <div className="text-slate-900 dark:text-white text-3xl mb-1 tabular-nums">
-              <Counter value={categories.length - 2} delay={3300} />
+              <Counter value={categories.length} delay={3300} />
             </div>
             <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Categories</div>
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-blue-600 group-hover:w-full transition-all duration-500" />
           </div>
-
           <div className="group relative text-center">
-            <div className="relative flex items-center justify-center text-blue-600 text-3xl mb-1 font-black">
-              <span className="relative">
-                ONLINE
-                <span className="absolute -top-1 -right-4 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                </span>
-              </span>
+            <div className="relative flex items-center justify-center text-blue-600 text-3xl mb-1 font-black text-center">
+              <span>ONLINE</span>
             </div>
             <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Systems Ready</div>
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-20 bg-blue-600/10 blur-2xl rounded-full -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
           </div>
         </div>
       </div>
@@ -238,40 +251,45 @@ export default function Home() {
           
           <nav className="flex-1 flex flex-col h-full space-y-2 overflow-y-auto scrollbar-hide">
             <button 
-              onClick={() => { setSelectedCategory("All"); setSidebarOpen(false); }}
-              className={`w-full flex items-center px-4 py-3 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${sidebarCollapsed ? 'justify-center' : 'justify-between'} ${selectedCategory === "All" ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800'}`}
+              onClick={() => { setSelectedCategory("All"); setCurrentView('dashboard'); setSidebarOpen(false); }}
+              className={`w-full flex items-center px-4 py-3 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${sidebarCollapsed ? 'justify-center' : 'justify-between'} ${selectedCategory === "All" && currentView === 'dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800'}`}
             >
               <div className={`flex items-center ${sidebarCollapsed ? '' : 'gap-3'}`}>
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
-                {!sidebarCollapsed && <span>All Applications</span>}
+                {!sidebarCollapsed && <span>All Containers</span>}
               </div>
-              {!sidebarCollapsed && <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${selectedCategory === "All" ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800'}`}>{apps.length}</span>}
             </button>
 
             <button 
-              onClick={() => { setSelectedCategory("ShowCategories"); setSidebarOpen(false); }}
-              className={`w-full flex items-center px-4 py-3 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${sidebarCollapsed ? 'justify-center' : 'justify-between'} ${selectedCategory === "ShowCategories" ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800'}`}
+              onClick={() => { setSelectedCategory("ShowCategories"); setCurrentView('dashboard'); setSidebarOpen(false); }}
+              className={`w-full flex items-center px-4 py-3 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${sidebarCollapsed ? 'justify-center' : 'justify-between'} ${selectedCategory === "ShowCategories" && currentView === 'dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800'}`}
             >
               <div className={`flex items-center ${sidebarCollapsed ? '' : 'gap-3'}`}>
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
                 {!sidebarCollapsed && <span>Categories</span>}
               </div>
-              {!sidebarCollapsed && <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${selectedCategory === "ShowCategories" ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800'}`}>{categories.length - 2}</span>}
             </button>
 
             <div className="pt-6 mt-6 border-t border-slate-200 dark:border-slate-800 space-y-2">
-              <a href="#" className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
+              <button 
+                onClick={() => { setCurrentView('about'); setSidebarOpen(false); }}
+                className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${currentView === 'about' ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'} ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
+              >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
                 {!sidebarCollapsed && <span>About</span>}
-              </a>
-              <a href="https://github.com/vukilis" target="_blank" className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" /></svg>
-                {!sidebarCollapsed && <span>GitHub</span>}
-              </a>
-              <a href="#" className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`} title={sidebarCollapsed ? "Sponsoring" : ""}
+              </button>
+              
+              <button 
+                onClick={() => { setCurrentView('Sponsoring'); setSidebarOpen(false); }}
+                className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${currentView === 'Sponsoring' ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'} ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
               >
                 <span className="w-4 h-4 flex items-center justify-center shrink-0">❤️</span>
                 {!sidebarCollapsed && <span>Sponsoring</span>}
+              </button>
+
+              <a href="https://github.com/vukilis" target="_blank" className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" /></svg>
+                {!sidebarCollapsed && <span>GitHub</span>}
               </a>
             </div>
 
@@ -283,17 +301,10 @@ export default function Home() {
                 className="group relative w-full flex items-center justify-center gap-3 px-4 py-4 rounded-2xl cursor-pointer bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600/0 via-blue-600/10 to-blue-600/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
-                <svg 
-                  className="w-3 h-3 transform group-hover:-translate-x-1 transition-transform duration-300 flex-shrink-0" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="3"
-                >
+                <svg className="w-3 h-3 transform group-hover:-translate-x-1 transition-transform duration-300 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                   <path d="M19 12H5M12 19l-7-7 7-7" />
                 </svg>
                 <span className={`relative z-10 transition-all duration-300 ${sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden hidden' : 'w-auto opacity-100'}`}>Back to Landing</span>
-                <div className="absolute inset-0 border border-blue-500/0 group-hover:border-blue-500/30 rounded-2xl transition-colors duration-300" />
               </button>
             </div>
           </nav>
@@ -305,35 +316,46 @@ export default function Home() {
         <header className="h-16 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800 shrink-0 bg-white/50 dark:bg-[#0d1117]/50 backdrop-blur-md z-10">
           <div className="flex items-center gap-4">
             <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="hidden lg:flex p-2 text-slate-500 hover:text-blue-600 transition-colors bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={sidebarCollapsed ? "rotate-180 transition-transform" : "transition-transform"}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={sidebarCollapsed ? "rotate-180" : ""}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
             </button>
             <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 text-slate-500"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
           </div>
           
           <div className="flex-1 max-w-xl mx-4">
-            <div className="relative">
-              <input type="text" placeholder="Search stacks..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-slate-100 dark:bg-slate-900 border-none rounded-xl px-10 py-2.5 text-sm focus:ring-2 ring-blue-500 transition-all outline-none" />
-              <svg className="absolute left-3 top-3 text-slate-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            </div>
+            <SearchInput apps={apps} search={search} setSearch={setSearch} onAppSelect={handleAppSelect} />
           </div>
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 shrink-0" />
         </header>
 
-        <section ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 lg:p-10 scroll-smooth">
-          <div className="max-w-7xl mx-auto">
-            
-            {/* ✨ AI Suggestor Tool */}
-            <AISuggestor onAppSelect={setSelectedApp} />
-          </div>
-          <div className="mb-10 flex items-center justify-between">
-            <div>
-              <h2 className="text-3xl font-black tracking-tight mb-2">
-                {selectedCategory === "ShowCategories" ? "Explore Categories" : "Explore Containers"}
-              </h2>
-              <div className="h-1 w-12 bg-blue-600 rounded-full" />
+        <section ref={scrollContainerRef} className="flex-1 overflow-y-auto p-0 scroll-smooth">
+          {currentView === 'about' ? (
+            <AboutPage />
+          ) : currentView === 'Sponsoring' ? (
+            <Sponsoring />
+          ) : (
+            <div className="p-6 lg:p-10">
+              <div className="max-w-10xl mx-auto">
+                <AISuggestor onAppSelect={setSelectedApp} />
+                <div className="mb-10 mt-10 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-3xl font-black tracking-tight mb-2">
+                      {selectedCategory === "ShowCategories" ? "Explore Categories" : "Explore Containers"}
+                    </h2>
+                    <div className="flex items-center gap-4">
+                      <div className="h-1 w-12 bg-blue-600 rounded-full" />
+                      <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-black uppercase tracking-widest rounded-full">
+                        {selectedCategory === "ShowCategories" 
+                          ? `${categories.length} categories · ${apps.length} Containers`
+                          : `${apps.length} Containers`
+                        }
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                {renderDashboard()}
+              </div>
             </div>
-          </div>
-          {renderDashboard()}
+          )}
         </section>
 
         <button
@@ -342,7 +364,7 @@ export default function Home() {
             showScrollTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0 pointer-events-none'
           }`}
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 15l-6-6-6 6"/></svg>
         </button>
       </main>
 
