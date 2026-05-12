@@ -5,7 +5,9 @@ import {
     ShieldCheck,
     QrCode,
     ExternalLink,
-    Lock
+    Lock,
+    Copy,
+    Check
 } from 'lucide-react';
 
 const PayPalIcon = ({ size = 18 }) => (
@@ -23,63 +25,93 @@ const MoneroIcon = ({ size = 24 }) => (
 );
 
 export const Sponsoring = () => {
+    const [copied, setCopied] = useState(false);
     const [amount, setAmount] = useState('10');
     const [customAmount, setCustomAmount] = useState('');
     
-    const XMR_ADDRESS = "44AFFq5kSiGBoZ4NMD2... (your address here)";
+    const XMR_ADDRESS = "44AFFq5kSiGBoZ4NMD244AFFq5kSiGBoZ4NMD244AFFq5kSiGBoZ4NMD2";
     const KOFI_USERNAME = "yourusername";
     const PAYPAL_EMAIL = "your@email.com";
+
+    const handleCopy = (text) => {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            document.execCommand('copy');
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Fallback copy failed', err);
+        }
+        
+        document.body.removeChild(textArea);
+    };
 
     const handleAction = (platform) => {
         const final = amount === 'custom' ? customAmount : amount;
         if (platform === 'kofi') window.open(`https://ko-fi.com/${KOFI_USERNAME}/?amount=${final}`, '_blank');
         if (platform === 'paypal') window.open(`https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=${encodeURIComponent(PAYPAL_EMAIL)}&amount=${final}`, '_blank');
-        if (platform === 'copy_xmr') {
-            navigator.clipboard.writeText(XMR_ADDRESS);
-            // In real app, trigger a toast notification here
-        }
     };
 
     return (
-        <div className="min-h-screen bg-white dark:bg-[#0d1117] dark:text-slate-300 text-slate-300 font-sans p-4 md:p-8">
-            <div className="max-w-5xl mx-auto space-y-8">
+        <div className="min-h-screen bg-white dark:bg-[#0d1117] dark:text-slate-300 text-slate-300 font-sans p-4 md:p-20">
+            <div className="max-w-5xl mx-auto space-y-8 pt-10 md:pt-0">
                 {/* Header */}
                 <div className="text-center mb-16">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 text-[10px] font-mono font-bold tracking-[0.2em] text-red-500 bg-red-500/10 border border-red-500/20 rounded-full uppercase">
+                    <div className="inline-flex gap-2 px-3 py-1 mb-6 text-[10px] font-mono font-bold tracking-[0.2em] text-red-500 bg-red-500/10 border border-red-500/20 rounded-full uppercase">
                         <Heart size={12} className="fill-red-500" /> System Heartbeat: Healthy
                     </div>
                     <h1 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white mb-6 tracking-tighter uppercase italic">
-                        Fuel the <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-400">Project</span>
+                        Fuel the <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-400">Project </span>🚀
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 max-w-xl mx-auto font-mono text-xs uppercase tracking-[0.15em] leading-relaxed">
+                    <p className="text-slate-500 dark:text-slate-400 max-w-xl mx-auto font-mono text-xs tracking-[0.15em] leading-relaxed">
                         $ ./initiate-support --mode=independent-creator
                     </p>
                 </div>
                 
                 {/* 1. CONTRIBUTION MANIFEST */}
-                <section className="bg-[#0d1117] rounded-2xl border border-slate-800 overflow-hidden shadow-2xl">
-                    <div className="p-6 md:p-8 font-mono text-sm leading-relaxed flex gap-4">
-                            <div className="space-y-4">
-                                <p>
-                                    <span className="text-pink-400">support_type:</span>{' '}
-                                    <span className="text-emerald-400">'voluntary-donation'</span>
+                <section className="grid grid-cols-1 md:grid-cols-1 gap-4">
+                    <div className="bg-slate-900 dark:bg-slate-950 rounded-3xl p-6 md:p-10 mb-16 shadow-2xl border border-slate-800 relative overflow-hidden group">
+                        {/* Decorative Background Icon */}
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
+                            <svg className="w-48 h-48 text-pink-500" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                            </svg>
+                        </div>
+
+                        <div className="relative z-10 font-mono text-sm leading-relaxed">
+                            <div className="flex items-center gap-2 mb-6 border-b border-slate-800 pb-4">
+                                <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                <span className="ml-2 text-slate-500">funding.lock</span>
+                            </div>
+                            
+                            <p className="text-pink-400">"fuel_source": <span className="text-emerald-400">"community_sponsorship"</span></p>                            
+                            <p className="text-pink-400 mt-4 text-xs uppercase tracking-widest opacity-50 underline">deployment_notes:</p>
+
+                            <div className="ml-4 space-y-3 mt-2 text-slate-300">
+                                <p className="max-w-3xl">
+                                    If these <span className="text-blue-400">compose files</span> saved you hours of debugging or 
+                                    helped you learn something new, consider sending a one-time 
+                                    donation to keep the lights on and the registry growing.
                                 </p>
-                                <p className="text-pink-400 mt-4 text-xs uppercase tracking-widest opacity-50 underline">message:</p>
-                                <div className="ml-4 space-y-3 mt-2 text-slate-300">
-                                    <p className="max-w-3xl">
-                                        Containerization redefined my reality, yet I constantly hit a ceiling. I grew tired of the fragmented search for reliable infrastructure code and the endless scouring for inspiration.
-                                    </p>
-                                    <p className="max-w-3xl">
-                                        If these <span className="text-blue-400">compose files</span> saved you hours of debugging or 
-                                        helped you learn something new, consider sending a one-time 
-                                        donation to keep the lights on and the registry growing.
-                                    </p>
-                                    <p className="text-pink-400 font-bold italic border-l-2 border-pink-400 pl-4 mt-6">
-                                        "Individual contributions ensure a decentralized future for self-hosters."
-                                    </p>
-                                </div>
+                                <p className="max-w-3xl">
+                                    Your support keeps the <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-400">servers running</span> and the code open source. Choose your preferred method below.
+                                </p>
+                                <p className="text-pink-400 font-bold italic border-l-2 border-pink-400 pl-4 mt-6">
+                                    "Individual contributions ensure a decentralized future for self-hosters."
+                                </p>
                             </div>
                         </div>
+                    </div>
                 </section>
 
                 {/* 2. KOFI AND PAYPAL */}
@@ -102,7 +134,7 @@ export const Sponsoring = () => {
                             <div className="bg-white p-2 rounded-lg">
                                 <Coffee size={24} className="text-orange-600" />
                             </div>
-                            <ExternalLink size={18} className="text-white/80 group-hover:text-orange-800 transition-colors" />
+                            <ExternalLink size={18} className="text-slate-500 group-hover:text-orange-800 transition-colors" />
                         </div>
                         <div>
                             <h3 className="text-orange-800 font-black text-xl uppercase italic">Ko-fi</h3>
@@ -123,7 +155,7 @@ export const Sponsoring = () => {
                             <div className="w-40 h-40 bg-slate-100 flex items-center justify-center relative overflow-hidden rounded-lg">
                                 <QrCode size={120} className="text-slate-900 opacity-20" />
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                     <MoneroIcon size={48} />
+                                        <MoneroIcon size={48} />
                                 </div>
                             </div>
                             <div className="absolute inset-0 bg-orange-500/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
@@ -131,23 +163,34 @@ export const Sponsoring = () => {
                             </div>
                         </div>
 
-                        <div className="flex-grow space-y-4 text-center md:text-left">
+                        <div className="flex-grow min-w-0 space-y-4 w-full text-center md:text-left">
                             <div className="flex items-center justify-center md:justify-start gap-3">
                                 <MoneroIcon size={32} />
                                 <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Monero (XMR)</h2>
                             </div>
-                            <p className="text-slate-400 font-mono text-xs leading-relaxed max-w-md">
+                            
+                            <p className="text-slate-400 font-mono text-xs leading-relaxed max-w-md mx-auto md:mx-0">
                                 The gold standard for private transactions. Supports the project without leaving a digital footprint.
                             </p>
-                            <div className="bg-black/40 border border-slate-800 rounded-xl p-3 flex items-center justify-between group">
-                                <code className="text-[10px] text-orange-500/80 truncate mr-4">
-                                    {XMR_ADDRESS}
-                                </code>
+
+                            <div className="bg-black/40 border border-slate-800 rounded-2xl p-2 pl-4 flex items-left gap-2 group max-w-full items-center">
+                                <div className="flex-grow min-w-0 wrap-break-word custom-scrollbar py-2 text-left">
+                                    <code className="text-[12px] md:text-xs text-orange-500 font-mono pr-4">
+                                        {XMR_ADDRESS}
+                                    </code>
+                                </div>
                                 <button 
-                                    onClick={() => handleAction('copy_xmr')}
-                                    className="bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+                                    onClick={() => handleCopy(XMR_ADDRESS)}
+                                    className={`
+                                        flex-shrink-0 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 h-10
+                                        ${copied 
+                                            ? 'bg-emerald-500 text-white' 
+                                            : 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20'
+                                        }
+                                    `}
                                 >
-                                    COPY ADDRESS
+                                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                                    <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy'}</span>
                                 </button>
                             </div>
                         </div>

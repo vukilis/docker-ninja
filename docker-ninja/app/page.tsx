@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useApps } from './hooks/useApps';
 import './style/globals.css';
 import { AppModal } from './components/AppModal';
@@ -26,6 +26,12 @@ export default function Home() {
   
   // View Management
   const [currentView, setCurrentView] = useState<'dashboard' | 'about' | 'Sponsoring'>('dashboard');
+
+  const sortedCategories = useMemo(() => {
+    return categories
+      .filter(c => c !== "All" && c !== "ShowCategories")
+      .sort((a, b) => a.localeCompare(b));
+  }, [categories]);
   
   const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile Drawer
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Desktop Toggle
@@ -33,6 +39,7 @@ export default function Home() {
   const [activeSubCategory, setActiveSubCategory] = useState(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const scrollContainerRef = useRef(null);
+  const [recentlyViewed, setRecentlyViewed] = useState([]);
 
   // 1. Handle Initialization (Hydration)
   useEffect(() => {
@@ -60,10 +67,10 @@ export default function Home() {
 
   useEffect(() => {
     if (selectedCategory === "ShowCategories" && !activeSubCategory) {
-      const firstCat = categories.find(c => c !== "All" && c !== "ShowCategories");
+      const firstCat = sortedCategories[0]; 
       if (firstCat) setActiveSubCategory(firstCat);
     }
-  }, [selectedCategory, categories, activeSubCategory]);
+  }, [selectedCategory, sortedCategories, activeSubCategory]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -80,6 +87,29 @@ export default function Home() {
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
   }, [isStarted, currentView]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('docker_ninja_recently_viewed');
+    if (saved) {
+      try {
+        setRecentlyViewed(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse recent apps", e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedApp) {
+      setRecentlyViewed(prev => {
+        // Remove the app if it already exists to move it to the front
+        const filtered = prev.filter(a => a.id !== selectedApp.id);
+        const updated = [selectedApp, ...filtered].slice(0, 8); // Keep last 8
+        localStorage.setItem('docker_ninja_recently_viewed', JSON.stringify(updated));
+        return updated;
+      });
+    }
+  }, [selectedApp]);
 
   const scrollToTop = () => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -104,6 +134,68 @@ export default function Home() {
     }
   };
 
+  const renderRecentlyViewed = () => {
+    if (recentlyViewed.length === 0 || selectedCategory === "ShowCategories") {
+      return null;
+    }
+
+    return (
+      <div className="mb-12 relative group/section">
+        {/* Header with static neon accent */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="relative">
+            <div className="p-2 bg-blue-600/5 dark:bg-blue-600/10 rounded-lg border border-blue-500/20">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-blue-500">
+                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full blur-[2px] shadow-[0_0_8px_#3b82f6]" />
+          </div>
+          <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+            Recent Activity
+          </h3>
+        </div>
+
+        {/* Apps Grid - for smaller mobile cards */}
+        <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 md:gap-4 relative">
+          {recentlyViewed.map((app, index) => (
+            <div key={`recent-${app.id}`} className="relative group">
+              {/* Subtle Connection Line */}
+              {index < recentlyViewed.length - 1 && (
+                <div className="hidden md:block absolute top-1/2 -right-4 w-4 h-[1px] bg-slate-200 dark:bg-slate-800 group-hover:bg-blue-500/50 transition-colors duration-500" />
+              )}
+              
+              <div 
+                className="
+                  relative z-10 transition-transform duration-300 active:scale-95 cursor-pointer transform scale-95 md:scale-100 origin-top
+                  
+                  /* HIDE TEXT ONLY ON MOBILE: Target common text elements inside AppCard */
+                  max-md:[&_h3]:hidden 
+                  max-md:[&_p]:hidden 
+                  max-md:[&_span:not(.icon-span)]:hidden
+                  
+                  /* ADJUST GRID SPACING: Center icons on mobile when text is gone */
+                  max-md:flex max-md:justify-center
+                "
+                onClick={() => setSelectedApp(app)}
+              >
+                <AppCard 
+                  app={app} 
+                  onClick={() => setSelectedApp(app)} 
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Thin Circuit Divider */}
+        <div className="mt-6 md:mt-10 relative">
+          <div className="h-[1px] w-full bg-slate-100 dark:bg-slate-800/50" />
+        </div>
+      </div>
+    );
+  };
+
   const renderDashboard = () => {
     if (selectedCategory !== "ShowCategories") {
       return (
@@ -117,38 +209,42 @@ export default function Home() {
     const categoryApps = filteredApps.filter(a => a.category === activeSubCategory);
     return (
       <div className="space-y-8">
-        <div 
-          className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide cursor-grab active:cursor-grabbing scroll-smooth"
-          onWheel={(e) => {
-            if (e.deltaY !== 0) {
-              e.preventDefault();
-              const container = e.currentTarget;
-              const scrollAmount = e.deltaY * 2;
-              container.scrollTo({
-                left: container.scrollLeft + scrollAmount,
-                behavior: 'smooth'
-              });
-            }
-          }}
-        >
-          {categories.filter(c => c !== "All" && c !== "ShowCategories").map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveSubCategory(cat)}
-              className={`px-5 py-2.5 text-[12px] font-sans font-bold uppercase tracking-wider whitespace-nowrap border rounded-xl transition-all flex items-center gap-3 cursor-pointer select-none ${
-                activeSubCategory === cat 
-                  ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20' 
-                  : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:border-blue-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-              }`}
-            >
-              {cat}
-              <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${
-                activeSubCategory === cat ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800'
-              }`}>
-                {getCountByCategory(cat)}
-              </span>
-            </button>
-          ))}
+        {/* Category Navigation */}
+        <div className="relative">
+          <div 
+            className="
+              /* Mobile: Horizontal scroll with exactly 3 rows */
+              flex flex-col flex-wrap h-[145px] overflow-x-auto gap-2 pb-2 scrollbar-hide
+              /* Desktop: Switch to standard multi-row wrapping */
+              md:flex-row md:h-auto md:flex-wrap md:overflow-visible
+            "
+          >
+            {sortedCategories.map((cat) => {
+              const isActive = activeSubCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setActiveSubCategory(cat)}
+                  className={`
+                    flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-200 
+                    cursor-pointer select-none whitespace-nowrap text-[11px] font-bold uppercase tracking-wider
+                    ${isActive 
+                      ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/30' 
+                      : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:border-blue-500 hover:bg-white dark:hover:bg-slate-800'
+                    }
+                  `}
+                >
+                  {cat}
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${isActive ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-800'}`}>
+                    {getCountByCategory(cat)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          
+          {/* Mobile Right-side Fade (indicates horizontal scroll) */}
+          <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white dark:from-[#0d1117] to-transparent pointer-events-none md:hidden" />
         </div>
 
         {/* App Grid */}
@@ -257,6 +353,11 @@ export default function Home() {
               <div className={`flex items-center ${sidebarCollapsed ? '' : 'gap-3'}`}>
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
                 {!sidebarCollapsed && <span>All Containers</span>}
+                {!sidebarCollapsed && (
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${selectedCategory === "All" ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800'}`}>
+                  {apps.length}
+                </span>
+              )}
               </div>
             </button>
 
@@ -267,6 +368,11 @@ export default function Home() {
               <div className={`flex items-center ${sidebarCollapsed ? '' : 'gap-3'}`}>
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
                 {!sidebarCollapsed && <span>Categories</span>}
+                {!sidebarCollapsed && (
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${selectedCategory === "ShowCategories" ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800'}`}>
+                  {categories.length}
+                </span>
+              )}
               </div>
             </button>
 
@@ -336,7 +442,8 @@ export default function Home() {
             <div className="p-6 lg:p-10">
               <div className="max-w-10xl mx-auto">
                 <AISuggestor onAppSelect={setSelectedApp} />
-                <div className="mb-10 mt-10 flex items-center justify-between">
+                {renderRecentlyViewed()}
+                <div className="mb-10 mt-5 flex items-center justify-between">
                   <div>
                     <h2 className="text-3xl font-black tracking-tight mb-2">
                       {selectedCategory === "ShowCategories" ? "Explore Categories" : "Explore Containers"}
@@ -368,7 +475,14 @@ export default function Home() {
         </button>
       </main>
 
-      {selectedApp && <AppModal app={selectedApp} onClose={() => setSelectedApp(null)} />}
+      {selectedApp && (
+          <AppModal 
+              app={selectedApp} 
+              allApps={apps} // Pass your full array of app objects here
+              onAppChange={setSelectedApp} 
+              onClose={() => setSelectedApp(null)} 
+          />
+      )}
     </div>
   );
 }

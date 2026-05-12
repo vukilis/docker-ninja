@@ -1,7 +1,13 @@
 import React from 'react';
+import { useApps } from '../hooks/useApps';
 
 // AboutPage Component
 export default function AboutPage() {
+
+    const { 
+        apps
+    } = useApps();
+    
     const initiatives = [
         {
             service: "central-registry",
@@ -27,17 +33,17 @@ export default function AboutPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-white dark:bg-[#0d1117] text-slate-900 dark:text-slate-100 pt-20 pb-12 px-4 sm:px-6 lg:px-8 font-sans">
-            <div className="max-w-5xl mx-auto">
+        <div className="min-h-screen bg-white dark:bg-[#0d1117] text-slate-900 dark:text-slate-100 p-4 md:p-20 pb-12 px-4 sm:px-6 lg:px-8 font-sans">
+            <div className="max-w-5xl mx-auto pt-10 md:pt-0">
                 {/* Header Section */}
                 <div className="text-center mb-16">
-                    <div className="inline-block px-3 py-1 mb-4 text-xs font-mono font-medium text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-full">
-                        maintainer: "Vuk1lis"
+                    <div className="inline-block px-3 py-1 mb-4 text-xs font-mono uppercase font-medium text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-full border border-blue-500/20">
+                        maintainer: Vuk1lis
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-4 tracking-tight uppercase">
+                    <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white mb-4 tracking-tight uppercase italic">
                         The <span className="text-blue-600 dark:text-blue-400">Compose</span> Commons
                     </h1>
-                    <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-mono text-sm">
+                    <p className="text-slate-500 dark:text-slate-400 max-w-xl mx-auto font-mono text-xs tracking-[0.15em] leading-relaxed">
                         $ cat ./why-i-built-this.md
                     </p>
                 </div>
@@ -99,30 +105,57 @@ export default function AboutPage() {
                 </div>
 
                 {/* Stats / Impact Board */}
-                <div className="bg-slate-900 rounded-3xl p-8 border border-slate-800 shadow-inner overflow-hidden relative">
+                <div className="bg-slate-900 rounded-[2.5rem] p-8 md:p-12 border border-slate-800 shadow-inner overflow-hidden relative">
                     {/* Decorative Grid background */}
-                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+                    <div 
+                        className="absolute inset-0 opacity-[0.03] pointer-events-none" 
+                        style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+                    ></div>
                     
-                    <div className="flex items-center gap-3 mb-10 relative z-10">
-                        <div className="px-2 py-0.5 rounded bg-green-500/20 text-green-500 font-mono text-[10px]">REAL-TIME_FEED</div>
-                        <h3 className="text-white font-mono text-xs uppercase tracking-widest">Platform Impact</h3>
+                    {/* Header: Centered on mobile */}
+                    <div className="flex flex-col sm:flex-row items-center gap-4 mb-12 relative z-10">
+                        <div className="px-3 py-1 rounded bg-green-500/10 text-green-500 font-mono text-[10px] border border-green-500/20 tracking-tighter">
+                            REAL-TIME-FEED
+                        </div>
+                        <h3 className="text-slate-400 font-mono text-[12px] uppercase tracking-[0.3em]">
+                            Platform Impact
+                        </h3>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 relative z-10">
-                        <div className="group">
-                            <div className="text-5xl font-black text-white group-hover:text-blue-400 transition-colors">50+</div>
-                            <div className="text-[10px] text-slate-500 uppercase font-mono mt-3 tracking-widest">Verified Templates</div>
-                            <div className="mt-2 h-1 w-12 bg-blue-500 rounded-full"></div>
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 sm:gap-8 relative z-10">
+                        <div className="group flex justify-center sm:justify-start">
+                            <div className="inline-flex flex-col items-start">
+                                <div className="text-6xl sm:text-5xl font-black text-white self-center group-hover:text-blue-400 transition-colors tracking-tighter italic uppercase">
+                                    {Math.floor(apps.length / 10) * 10}+
+                                </div>
+                                <div className="text-[10px] text-slate-500 uppercase font-mono mt-3 tracking-[0.2em] font-bold">
+                                    Verified Templates
+                                </div>
+                                <div className="mt-4 h-1.5 w-12 bg-blue-500 rounded-full group-hover:w-20 transition-all duration-500"></div>
+                            </div>
                         </div>
-                        <div className="group">
-                            <div className="text-5xl font-black text-white group-hover:text-purple-400 transition-colors">Zero</div>
-                            <div className="text-[10px] text-slate-500 uppercase font-mono mt-3 tracking-widest">Paywalled Content</div>
-                            <div className="mt-2 h-1 w-12 bg-purple-500 rounded-full"></div>
+                        <div className="group flex justify-center sm:justify-start">
+                            <div className="inline-flex flex-col items-start">
+                                <div className="text-6xl sm:text-5xl font-black text-white self-center group-hover:text-purple-400 transition-colors tracking-tighter italic uppercase">
+                                    Zero
+                                </div>
+                                <div className="text-[10px] text-slate-500 uppercase font-mono mt-3 tracking-[0.2em] font-bold">
+                                    Paywalled Content
+                                </div>
+                                <div className="mt-4 h-1.5 w-12 bg-purple-500 rounded-full group-hover:w-20 transition-all duration-500"></div>
+                            </div>
                         </div>
-                        <div className="group">
-                            <div className="text-5xl font-black text-white group-hover:text-emerald-400 transition-colors">Fast</div>
-                            <div className="text-[10px] text-slate-500 uppercase font-mono mt-3 tracking-widest">Time to 'Up -d'</div>
-                            <div className="mt-2 h-1 w-12 bg-emerald-500 rounded-full"></div>
+                        <div className="group flex justify-center sm:justify-start">
+                            <div className="inline-flex flex-col items-start">
+                                <div className="text-6xl sm:text-5xl font-black text-white self-center group-hover:text-purple-400 transition-colors tracking-tighter italic uppercase">
+                                    Fast
+                                </div>
+                                <div className="text-[10px] text-slate-500 uppercase font-mono mt-3 tracking-[0.2em] font-bold">
+                                    Time to 'Up -d'
+                                </div>
+                                <div className="mt-4 h-1.5 w-12 bg-emerald-500 rounded-full group-hover:w-20 transition-all duration-500"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
