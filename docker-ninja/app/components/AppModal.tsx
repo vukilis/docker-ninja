@@ -13,7 +13,7 @@ interface AppModalProps {
  * NEW OVERLAY COMPONENT
  * Handles the centered search and the logic for Found (Green) vs Request (Yellow)
  */
-function RequestSearchOverlay({ allApps, onClose, onAppSelect }: { allApps: any[], onClose: () => void, onAppSelect: (app: any) => void }) {
+export function RequestSearchOverlay({ allApps, onClose, onAppSelect }: { allApps: any[], onClose: () => void, onAppSelect: (app: any) => void }) {
     const [search, setSearch] = useState("");
 
     const exactMatch = useMemo(() => {
