@@ -13,6 +13,41 @@ import SearchInput from './components/SearchInput';
 import AboutPage from './components/AboutPage';
 import { Sponsoring } from './components/Sponsoring';
 
+// SCROLLBAR ANIMATION
+export function useGlobalScrollbar() {
+  useEffect(() => {
+    let scrollTimeout: NodeJS.Timeout;
+    let activeElement: HTMLElement | null = null;
+
+    const handleGlobalScroll = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (!target || target === document as any) return;
+
+      if (activeElement && activeElement !== target) {
+        activeElement.classList.remove('show-scrollbar');
+      }
+
+      activeElement = target;
+      target.classList.add('show-scrollbar');
+
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        if (activeElement) {
+          activeElement.classList.remove('show-scrollbar');
+          activeElement = null;
+        }
+      }, 1000);
+    };
+
+    window.addEventListener('scroll', handleGlobalScroll, true);
+
+    return () => {
+      window.removeEventListener('scroll', handleGlobalScroll, true);
+      clearTimeout(scrollTimeout);
+    };
+  }, []);
+}
+
 // MAIN DASHBOARD
 export default function Home() {
   const { 
@@ -20,96 +55,135 @@ export default function Home() {
     selectedCategory, setSelectedCategory, apps, getCountByCategory 
   } = useApps();
 
-  // Persistence & Hydration Logic
   const [isMounted, setIsMounted] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
-  
-  // View Management
-  const [currentView, setCurrentView] = useState<'dashboard' | 'about' | 'Sponsoring'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'About' | 'Sponsoring'>('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [selectedApp, setSelectedApp] = useState(null);
+  const [activeSubCategory, setActiveSubCategory] = useState(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [recentlyViewed, setRecentlyViewed] = useState([]);
+  const scrollContainerRef = useRef(null);
+
+  const hasHydrated = useRef(false);
 
   const sortedCategories = useMemo(() => {
     return categories
       .filter(c => c !== "All" && c !== "ShowCategories")
       .sort((a, b) => a.localeCompare(b));
   }, [categories]);
-  
-  const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile Drawer
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Desktop Toggle
-  const [selectedApp, setSelectedApp] = useState(null);
-  const [activeSubCategory, setActiveSubCategory] = useState(null);
-  const [showScrollTop, setShowScrollTop] = useState(false);
-  const scrollContainerRef = useRef(null);
-  const [recentlyViewed, setRecentlyViewed] = useState([]);
 
-  // 1. Handle Initialization (Hydration)
+  // Load basic UI settings
   useEffect(() => {
     const savedStarted = localStorage.getItem('ninja_isStarted');
     const savedCollapsed = localStorage.getItem('ninja_sidebarCollapsed');
+    const savedRecent = localStorage.getItem('docker_ninja_recently_viewed');
     
     if (savedStarted === 'true') setIsStarted(true);
     if (savedCollapsed === 'true') setSidebarCollapsed(true);
+    if (savedRecent) {
+      try { setRecentlyViewed(JSON.parse(savedRecent)); } catch (e) {}
+    }
     
     setIsMounted(true);
   }, []);
 
-  // 2. Handle State Persistence
+  // Handle Shared Links (Ensures background view matches URL)
   useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem('ninja_isStarted', isStarted.toString());
-    }
-  }, [isStarted, isMounted]);
+    if (isMounted && apps.length > 0 && !hasHydrated.current) {
+      const params = new URLSearchParams(window.location.search);
+      
+      // Restore View (About/Sponsoring)
+      const viewParam = params.get('view');
+      if (viewParam === 'About' || viewParam === 'Sponsoring') {
+        setCurrentView(viewParam as any);
+        setIsStarted(true);
+      }
 
-  useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem('ninja_sidebarCollapsed', sidebarCollapsed.toString());
-    }
-  }, [sidebarCollapsed, isMounted]);
+      // Restore Category (Even if app is open)
+      const catParam = params.get('category');
+      if (catParam) {
+        setSelectedCategory('ShowCategories');
+        if (catParam !== 'ShowCategories' && categories.includes(catParam)) {
+            setActiveSubCategory(catParam);
+        }
+        setIsStarted(true);
+      }
 
+      // Restore App Modal
+      const appId = params.get('app') || params.get('id');
+      if (appId) {
+        const foundApp = apps.find(a => 
+            String(a.id) === String(appId) || 
+            String(a.slug) === String(appId)
+        );
+        if (foundApp) {
+          setSelectedApp(foundApp);
+          setIsStarted(true);
+        }
+      }
+      
+      hasHydrated.current = true;
+    }
+  }, [apps, isMounted, categories, setSelectedCategory]);
+
+  // Sync State to URL & Persistence
   useEffect(() => {
-    if (selectedCategory === "ShowCategories" && !activeSubCategory) {
-      const firstCat = sortedCategories[0]; 
-      if (firstCat) setActiveSubCategory(firstCat);
+    if (!isMounted || !hasHydrated.current) return;
+    
+    localStorage.setItem('ninja_isStarted', isStarted.toString());
+    localStorage.setItem('ninja_sidebarCollapsed', sidebarCollapsed.toString());
+
+    const params = new URLSearchParams();
+
+    if (selectedApp) {
+      params.set('app', (selectedApp.slug || selectedApp.id).toString());
+    } 
+
+    if (currentView !== 'dashboard') {
+      params.set('view', currentView);
+    } else if (selectedCategory === 'ShowCategories') {
+      params.set('category', activeSubCategory || 'ShowCategories');
+    }
+
+    const queryString = params.toString();
+    const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname;
+    
+    window.history.replaceState({ path: newUrl }, '', newUrl);
+
+  }, [isStarted, sidebarCollapsed, currentView, selectedApp, selectedCategory, activeSubCategory, isMounted]);
+
+  // UI Handlers
+  useEffect(() => {
+    if (selectedCategory === "ShowCategories" && !activeSubCategory && sortedCategories.length > 0) {
+      setActiveSubCategory(sortedCategories[0]);
     }
   }, [selectedCategory, sortedCategories, activeSubCategory]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
-
-    const handleScroll = () => {
-      if (container.scrollTop > 400) {
-        setShowScrollTop(true);
-      } else {
-        setShowScrollTop(false);
-      }
-    };
-
+    const handleScroll = () => setShowScrollTop(container.scrollTop > 400);
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
   }, [isStarted, currentView]);
 
   useEffect(() => {
-    const saved = localStorage.getItem('docker_ninja_recently_viewed');
-    if (saved) {
-      try {
-        setRecentlyViewed(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse recent apps", e);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
     if (selectedApp) {
+      document.body.style.overflow = 'hidden';
       setRecentlyViewed(prev => {
-        // Remove the app if it already exists to move it to the front
         const filtered = prev.filter(a => a.id !== selectedApp.id);
-        const updated = [selectedApp, ...filtered].slice(0, 8); // Keep last 8
+        const updated = [selectedApp, ...filtered].slice(0, 8);
         localStorage.setItem('docker_ninja_recently_viewed', JSON.stringify(updated));
         return updated;
       });
+    } else {
+      document.body.style.overflow = 'unset';
     }
   }, [selectedApp]);
+
+  useGlobalScrollbar();
 
   const scrollToTop = () => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -126,14 +200,15 @@ export default function Home() {
   };
 
   const handleAppSelect = (app) => {
+    if (!app) return;
     setSelectedApp(app);
-    setCurrentView('dashboard'); 
-    if (selectedCategory !== 'All') {
-      setSelectedCategory("ShowCategories");
+    if (currentView !== 'dashboard') setCurrentView('dashboard');
+    // If the user selects an app, we don't force a category change unless they are already in category mode
+    if (selectedCategory === 'ShowCategories') {
       setActiveSubCategory(app.category);
     }
   };
-
+  
   const renderRecentlyViewed = () => {
     if (recentlyViewed.length === 0 || selectedCategory === "ShowCategories") {
       return null;
@@ -141,7 +216,6 @@ export default function Home() {
 
     return (
       <div className="mb-12 relative group/section">
-        {/* Header with static neon accent */}
         <div className="flex items-center gap-3 mb-6">
           <div className="relative">
             <div className="p-2 bg-blue-600/5 dark:bg-blue-600/10 rounded-lg border border-blue-500/20">
@@ -156,39 +230,22 @@ export default function Home() {
           </h3>
         </div>
 
-        {/* Apps Grid - for smaller mobile cards */}
         <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 md:gap-4 relative">
           {recentlyViewed.map((app, index) => (
             <div key={`recent-${app.id}`} className="relative group">
-              {/* Subtle Connection Line */}
               {index < recentlyViewed.length - 1 && (
                 <div className="hidden md:block absolute top-1/2 -right-4 w-4 h-[1px] bg-slate-200 dark:bg-slate-800 group-hover:bg-blue-500/50 transition-colors duration-500" />
               )}
               
               <div 
-                className="
-                  relative z-10 transition-transform duration-300 active:scale-95 cursor-pointer transform scale-95 md:scale-100 origin-top
-                  
-                  /* HIDE TEXT ONLY ON MOBILE: Target common text elements inside AppCard */
-                  max-md:[&_h3]:hidden 
-                  max-md:[&_p]:hidden 
-                  max-md:[&_span:not(.icon-span)]:hidden
-                  
-                  /* ADJUST GRID SPACING: Center icons on mobile when text is gone */
-                  max-md:flex max-md:justify-center
-                "
+                className="relative z-10 transition-transform duration-300 active:scale-95 cursor-pointer transform scale-95 md:scale-100 origin-top max-md:[&_h3]:hidden max-md:[&_p]:hidden max-md:[&_span:not(.icon-span)]:hidden max-md:flex max-md:justify-center"
                 onClick={() => setSelectedApp(app)}
               >
-                <AppCard 
-                  app={app} 
-                  onClick={() => setSelectedApp(app)} 
-                />
+                <AppCard app={app} onClick={() => setSelectedApp(app)} />
               </div>
             </div>
           ))}
         </div>
-
-        {/* Thin Circuit Divider */}
         <div className="mt-6 md:mt-10 relative">
           <div className="h-[1px] w-full bg-slate-100 dark:bg-slate-800/50" />
         </div>
@@ -209,30 +266,15 @@ export default function Home() {
     const categoryApps = filteredApps.filter(a => a.category === activeSubCategory);
     return (
       <div className="space-y-8">
-        {/* Category Navigation */}
         <div className="relative">
-          <div 
-            className="
-              /* Mobile: Horizontal scroll with exactly 3 rows */
-              flex flex-col flex-wrap h-[145px] overflow-x-auto gap-2 pb-2 scrollbar-hide
-              /* Desktop: Switch to standard multi-row wrapping */
-              md:flex-row md:h-auto md:flex-wrap md:overflow-visible
-            "
-          >
+          <div className="flex flex-col flex-wrap h-[145px] overflow-x-auto gap-2 pb-2 scrollbar-hide md:flex-row md:h-auto md:flex-wrap md:overflow-visible">
             {sortedCategories.map((cat) => {
               const isActive = activeSubCategory === cat;
               return (
                 <button
                   key={cat}
                   onClick={() => setActiveSubCategory(cat)}
-                  className={`
-                    flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-200 
-                    cursor-pointer select-none whitespace-nowrap text-[11px] font-bold uppercase tracking-wider
-                    ${isActive 
-                      ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/30' 
-                      : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:border-blue-500 hover:bg-white dark:hover:bg-slate-800'
-                    }
-                  `}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-200 cursor-pointer select-none whitespace-nowrap text-[11px] font-bold uppercase tracking-wider ${isActive ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:border-blue-500 hover:bg-white dark:hover:bg-slate-800'}`}
                 >
                   {cat}
                   <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${isActive ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-800'}`}>
@@ -242,12 +284,8 @@ export default function Home() {
               );
             })}
           </div>
-          
-          {/* Mobile Right-side Fade (indicates horizontal scroll) */}
           <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white dark:from-[#0d1117] to-transparent pointer-events-none md:hidden" />
         </div>
-
-        {/* App Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
           {categoryApps.map((app) => (
             <AppCard key={app.id} app={app} onClick={() => setSelectedApp(app)} />
@@ -303,13 +341,13 @@ export default function Home() {
         <div className="mt-20 flex flex-wrap justify-center gap-12 lg:gap-20 uppercase text-[10px] font-black tracking-[0.3em]">
           <div className="group relative text-center">
             <div className="text-slate-900 dark:text-white text-3xl mb-1 tabular-nums">
-              <Counter value={apps.length} delay={3200} />
+              <Counter value={apps.length} delay={2000} />
             </div>
-            <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Total Stacks</div>
+            <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Containers</div>
           </div>
           <div className="group relative text-center">
             <div className="text-slate-900 dark:text-white text-3xl mb-1 tabular-nums">
-              <Counter value={categories.length} delay={3300} />
+              <Counter value={categories.length} delay={2000} />
             </div>
             <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Categories</div>
           </div>
@@ -378,8 +416,8 @@ export default function Home() {
 
             <div className="pt-6 mt-6 border-t border-slate-200 dark:border-slate-800 space-y-2">
               <button 
-                onClick={() => { setCurrentView('about'); setSidebarOpen(false); }}
-                className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${currentView === 'about' ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'} ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
+                onClick={() => { setCurrentView('About'); setSidebarOpen(false); }}
+                className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${currentView === 'About' ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'} ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
                 {!sidebarCollapsed && <span>About</span>}
@@ -433,15 +471,15 @@ export default function Home() {
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 shrink-0" />
         </header>
 
-        <section ref={scrollContainerRef} className="flex-1 overflow-y-auto p-0 scroll-smooth">
-          {currentView === 'about' ? (
+        <section ref={scrollContainerRef} className="flex-1 overflow-y-auto p-0 scroll-smooth" style={{ scrollbarGutter: 'stable' }}>
+          {currentView === 'About' ? (
             <AboutPage />
           ) : currentView === 'Sponsoring' ? (
             <Sponsoring />
           ) : (
             <div className="p-6 lg:p-10">
               <div className="max-w-10xl mx-auto">
-                <AISuggestor onAppSelect={setSelectedApp} />
+                <AISuggestor onAppSelect={handleAppSelect} />
                 {renderRecentlyViewed()}
                 <div className="mb-10 mt-5 flex items-center justify-between">
                   <div>
@@ -478,7 +516,7 @@ export default function Home() {
       {selectedApp && (
           <AppModal 
               app={selectedApp} 
-              allApps={apps} // Pass your full array of app objects here
+              allApps={apps} 
               onAppChange={setSelectedApp} 
               onClose={() => setSelectedApp(null)} 
           />
