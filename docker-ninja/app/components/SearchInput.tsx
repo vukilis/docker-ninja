@@ -1,26 +1,45 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 
-export default function SearchInput({ apps = [], search, setSearch, onAppSelect }) {
+// Interface for type safety
+interface App {
+    id: string | number;
+    slug: string;
+    name: string;
+    category: string;
+    icon_url?: string;
+}
+
+interface SearchInputProps {
+    apps: App[];
+    search: string;
+    setSearch: (val: string) => void;
+    onAppSelect?: (app: App) => void;
+}
+
+export default function SearchInput({ apps = [], search, setSearch, onAppSelect }: SearchInputProps) {
     const [isFocused, setIsFocused] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(-1);
-    const containerRef = useRef(null);
-    // Create a ref for the active item to handle scrolling
-    const activeItemRef = useRef(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const activeItemRef = useRef<HTMLButtonElement>(null);
 
+    // Optimized filtering: only recalculates when apps or search string changes
     const dropdownMatches = useMemo(() => {
-        if (!search.trim()) return [];
-        return apps.filter(app => 
-            app.name.toLowerCase().includes(search.toLowerCase()) ||
-            app.category?.toLowerCase().includes(search.toLowerCase())
-        ).slice(0, 15); // Increased slice to demonstrate scrolling
+        const query = search.trim().toLowerCase();
+        if (!query) return [];
+        return apps
+            .filter(app => 
+                app.name.toLowerCase().includes(query) ||
+                app.category?.toLowerCase().includes(query)
+            )
+            .slice(0, 15);
     }, [apps, search]);
 
-    // Reset selection index when search query changes
+    // Reset keyboard selection index when query changes
     useEffect(() => {
         setSelectedIndex(-1);
     }, [search]);
 
-    // SCROLL LOGIC: Bring the highlighted item into view
+    // Handle smooth scrolling for keyboard navigation
     useEffect(() => {
         if (selectedIndex !== -1 && activeItemRef.current) {
             activeItemRef.current.scrollIntoView({
@@ -30,9 +49,10 @@ export default function SearchInput({ apps = [], search, setSearch, onAppSelect 
         }
     }, [selectedIndex]);
 
+    // Close dropdown on click-outside
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (containerRef.current && !containerRef.current.contains(event.target)) {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
                 setIsFocused(false);
             }
         };
@@ -40,41 +60,56 @@ export default function SearchInput({ apps = [], search, setSearch, onAppSelect 
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const showResults = isFocused && search.trim().length > 0;
-
-    const handleSelectApp = (app) => {
+    // Memoized selection handler to prevent closure staleness
+    const handleSelectApp = useCallback((app: App) => {
         setSearch(app.name);
         setIsFocused(false);
         setSelectedIndex(-1);
-        if (onAppSelect) onAppSelect(app);
-    };
+        onAppSelect?.(app);
+    }, [onAppSelect, setSearch]);
 
-    const triggerSearch = () => {
+    const triggerSearch = useCallback(() => {
         if (selectedIndex >= 0 && dropdownMatches[selectedIndex]) {
             handleSelectApp(dropdownMatches[selectedIndex]);
-        } else if (dropdownMatches.length > 0) {
+            return;
+        } 
+        if (dropdownMatches.length > 0) {
             handleSelectApp(dropdownMatches[0]);
-        } else if (search.trim()) {
-            const exactMatch = apps.find(a => a.name.toLowerCase() === search.toLowerCase().trim());
+            return;
+        } 
+        if (search.trim()) {
+            const exactMatch = apps.find(a => 
+                a.name.toLowerCase() === search.toLowerCase().trim()
+            );
             if (exactMatch) handleSelectApp(exactMatch);
+        }
+    }, [dropdownMatches, handleSelectApp, search, apps, selectedIndex]);
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        switch (e.key) {
+            case 'Enter':
+                e.preventDefault();
+                triggerSearch();
+                break;
+            case 'ArrowDown':
+                e.preventDefault();
+                setSelectedIndex(prev => (prev < dropdownMatches.length - 1 ? prev + 1 : prev));
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                setSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
+                break;
+            case 'Escape':
+                e.preventDefault();
+                setIsFocused(false);
+                break;
+            case 'Tab':
+                setIsFocused(false);
+                break;
         }
     };
 
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter') {
-            triggerSearch();
-        } else if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            setSelectedIndex(prev => 
-                prev < dropdownMatches.length - 1 ? prev + 1 : prev
-            );
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            setSelectedIndex(prev => (prev > 0 ? prev - 1 : 0));
-        } else if (e.key === 'Escape') {
-            setIsFocused(false);
-        }
-    };
+    const showResults = isFocused && search.trim().length > 0;
 
     return (
         <div className="w-full max-w-md mx-auto relative" ref={containerRef}>
@@ -86,7 +121,10 @@ export default function SearchInput({ apps = [], search, setSearch, onAppSelect 
                         placeholder="Search container..." 
                         value={search} 
                         onFocus={() => setIsFocused(true)}
-                        onChange={(e) => setSearch(e.target.value)} 
+                        onChange={(e) => {
+                            setSearch(e.target.value);
+                            if (!isFocused) setIsFocused(true);
+                        }} 
                         onKeyDown={handleKeyDown}
                         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-blue-600/30 hover:border-blue-500/60 rounded-full border px-10 py-2 text-sm focus:ring-2 ring-blue-500 transition-all outline-none text-slate-900 dark:text-white" 
                     />
@@ -120,7 +158,6 @@ export default function SearchInput({ apps = [], search, setSearch, onAppSelect 
                                 {dropdownMatches.map((app, index) => (
                                     <button
                                         key={app.id || app.name}
-                                        // Assign the ref only to the currently selected item
                                         ref={selectedIndex === index ? activeItemRef : null}
                                         onClick={() => handleSelectApp(app)}
                                         className={`flex items-center gap-3 p-2 rounded-lg transition-colors group text-left w-full ${

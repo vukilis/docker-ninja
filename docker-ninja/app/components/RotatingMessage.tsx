@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 export const RotatingMessage = () => {
     const [index, setIndex] = useState(0);
@@ -13,7 +13,7 @@ export const RotatingMessage = () => {
             </span>
         </p>,
 
-        <p key={1} className="text-xl md:text-2xl text-slate-600 dark:text-slate-400 font-medium leading-relaxed tracking-tight transition-all duration-500">
+        <p key={1} className="text-[18px] md:text-2xl text-slate-600 dark:text-slate-400 font-medium leading-relaxed tracking-tight transition-all duration-500">
         Dive into a <span className="relative inline-block text-slate-900 dark:text-white font-bold group-hover:text-blue-600 transition-colors duration-300">hub perfectly crafted</span> for both absolute beginners and <span className="italic font-serif text-blue-500/80">seasoned experts</span> in the vast <span className="relative inline-block text-slate-900 dark:text-white font-bold group-hover:text-blue-600 transition-colors duration-300">containerization ecosystem</span>
         </p>
     ];

@@ -26,7 +26,7 @@ export default function AboutPage() {
         {
             service: "edge-optimization",
             image: "homelab-core:optimized",
-            description: "Precision configurations for the self-hosted ecosystem. Architected specifically for low-resource environments like Raspberry Pi clusters and home servers without sacrificing performance.",
+            description: "Precision configurations for the self-hosted ecosystem. Architected specifically for low-resource environments like Raspberry Pi clusters and homelab servers without sacrificing performance.",
             volumes: ["arch: arm64/x64", "footprint: light"],
             color: "text-emerald-500"
         }
@@ -56,7 +56,7 @@ export default function AboutPage() {
                         </svg>
                     </div>
 
-                    <div className="relative z-10 font-mono text-sm leading-relaxed">
+                    <div className="relative font-mono text-sm leading-relaxed">
                         <div className="flex items-center gap-2 mb-6 border-b border-slate-800 pb-4">
                             <div className="w-3 h-3 rounded-full bg-red-500"></div>
                             <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
@@ -113,7 +113,7 @@ export default function AboutPage() {
                     ></div>
                     
                     {/* Header: Centered on mobile */}
-                    <div className="flex flex-col sm:flex-row items-center gap-4 mb-12 relative z-10">
+                    <div className="flex flex-col sm:flex-row items-center gap-4 mb-12 relative">
                         <div className="px-3 py-1 rounded bg-green-500/10 text-green-500 font-mono text-[10px] border border-green-500/20 tracking-tighter">
                             REAL-TIME-FEED
                         </div>
@@ -123,7 +123,7 @@ export default function AboutPage() {
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 sm:gap-8 relative z-10">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 sm:gap-8 relative">
                         <div className="group flex justify-center sm:justify-start">
                             <div className="inline-flex flex-col items-start">
                                 <div className="text-6xl sm:text-5xl font-black text-white self-center group-hover:text-blue-400 transition-colors tracking-tighter italic uppercase">
@@ -163,7 +163,7 @@ export default function AboutPage() {
                 {/* Personal Signature */}
                 <div className="mt-20 text-center font-mono">
                     <p className="text-slate-400 dark:text-slate-500 text-xs italic mb-4">
-                        "If you find this useful, share a compose file or buy me a coffee"
+                        "If you find this useful, share a compose file or fuel the project"
                     </p>
                     <div className="inline-flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] text-slate-500 uppercase tracking-tighter">
                         <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>

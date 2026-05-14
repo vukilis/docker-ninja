@@ -2,21 +2,34 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { getComposeContent, incrementCopyCount, getGlobalStats } from '../actions';
 import SearchInput from './SearchInput';
 import { Counter } from './Counter';
+import { getIcon } from '../hooks/icons';
+
+// --- SHARED TYPES ---
+interface App {
+    id: string | number;
+    slug: string;
+    name: string;
+    category: string;
+    icon_url?: string;
+    website?: string;
+    github?: string;
+    docs?: string;
+    source?: string;
+    description?: string;
+    run_command?: string;
+}
 
 interface AppModalProps {
-    app: any;
-    allApps: any[];
-    onAppChange: (app: any) => void;
+    app: App;
+    allApps: App[];
+    onAppChange: (app: App) => void;
     onClose: () => void;
     setIsRequesting?: (val: boolean) => void; 
     onRandom?: () => void;
 }
 
-/**
- * NEW OVERLAY COMPONENT
- * Handles the centered search and the logic for Found (Green) vs Request (Yellow)
- */
-export function RequestSearchOverlay({ allApps, onClose, onAppSelect }: { allApps: any[], onClose: () => void, onAppSelect: (app: any) => void }) {
+// --- OVERLAY COMPONENT ---
+export function RequestSearchOverlay({ allApps, onClose, onAppSelect }: { allApps: App[], onClose: () => void, onAppSelect: (app: App) => void }) {
     const [search, setSearch] = useState("");
 
     const exactMatch = useMemo(() => {
@@ -42,7 +55,6 @@ export function RequestSearchOverlay({ allApps, onClose, onAppSelect }: { allApp
                 className="relative w-full max-w-xl animate-in zoom-in-95 duration-300 px-2 mt-10 md:mt-50 h-[30vh]"
                 onClick={(e) => e.stopPropagation()} 
             >
-                {/* Header */}
                 <div className="text-center mb-10 select-none">
                     <h2 className="text-3xl font-black text-white tracking-tighter uppercase mb-2">Request App</h2>
                     <p className="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em]">Verify availability in database</p>
@@ -56,7 +68,6 @@ export function RequestSearchOverlay({ allApps, onClose, onAppSelect }: { allApp
                     <div className={`relative flex items-center gap-2 md:gap-4 p-2 bg-white dark:bg-slate-900 border-2 transition-all duration-500 rounded-2xl shadow-2xl ${
                         search ? (exactMatch ? 'border-green-500/50' : 'border-amber-500/50') : 'border-white/10'
                     }`}>
-                        
                         <div className="flex-1 min-w-0 [&_input]:border-none [&_input]:focus:ring-0 [&_div]:border-none">
                             <SearchInput 
                                 apps={allApps} 
@@ -113,10 +124,7 @@ export function RequestSearchOverlay({ allApps, onClose, onAppSelect }: { allApp
                 </div>
 
                 <button 
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onClose();
-                    }}
+                    onClick={(e) => { e.stopPropagation(); onClose(); }}
                     className="mt-12 mx-auto block text-slate-500 hover:text-white text-[10px] font-black uppercase tracking-[0.3em] transition-colors cursor-pointer"
                 >
                     [ ESC to Close ]
@@ -125,8 +133,10 @@ export function RequestSearchOverlay({ allApps, onClose, onAppSelect }: { allApp
         </div>
     );
 }
+
+// --- MODAL CONTENT COMPONENT ---
 function ModalContent({ 
-    app, composeCode, loading, categoryApps, allApps,
+    app, composeCode, loading, categoryApps,
     copiedYaml, setCopiedYaml, copiedComposeCmd, setCopiedComposeCmd,
     copiedRunCmd, setCopiedRunCmd, copyToClipboard,
     handlePrev, handleNext, onClose, stopPropagation,
@@ -134,14 +144,14 @@ function ModalContent({
 }: any) {
     if (!app) return null;
 
-    const currentIndex = categoryApps.findIndex((a: any) => a.id === app.id) + 1;
+    const currentIndex = categoryApps.findIndex((a: App) => a.id === app.id) + 1;
     const totalApps = categoryApps.length;
+    const icon = getIcon(app.slug, app.icon_url);
 
     return (
         <div className="flex flex-col h-full">
             {/* HEADER */}
             <div className="flex flex-col md:flex-row md:justify-between md:items-center p-4 md:p-8 pb-4 border-b border-slate-100 dark:border-slate-800/50 z-30 bg-white dark:bg-[#0d1117] select-none gap-4">
-                
                 <div className="flex justify-between items-start md:block">
                     <div className="flex flex-col gap-1 min-w-0">
                         <h2 className="text-xl md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter truncate">{app.name}</h2>
@@ -152,7 +162,6 @@ function ModalContent({
                             </span>
                         </div>
                     </div>
-                    
                     <button onClick={onClose} className="md:hidden group relative flex items-center justify-center w-10 h-10 rounded-full border border-slate-200 dark:border-red-950">
                         <svg className="w-4 h-4 text-slate-500 dark:text-red-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -165,13 +174,11 @@ function ModalContent({
                         <button onClick={handlePrev} className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all text-slate-500 hover:text-blue-600 cursor-pointer">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path d="M15 19l-7-7 7-7" /></svg>
                         </button>
-                        
                         <div className="px-1 flex items-center justify-center min-w-[3.5rem] pt-0.5 font-mono">
                             <span className="text-[12px] font-black text-slate-600 dark:text-slate-400 tabular-nums">
                                 {currentIndex} <span className="text-slate-300 dark:text-slate-700 mx-0.5">/</span> {totalApps}
                             </span>
                         </div>
-
                         <button onClick={handleNext} className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all text-slate-500 hover:text-blue-600 cursor-pointer">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path d="M9 5l7 7-7 7" /></svg>
                         </button>
@@ -214,9 +221,7 @@ function ModalContent({
                                     <path d="M20 6L9 17l-5-5" />
                                 </svg>
                             ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" 
-                                    className="w-4 h-4 text-blue-500 md:text-slate-500 md:group-hover:text-blue-500"
-                                >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-blue-500 md:text-slate-500 md:group-hover:text-blue-500">
                                     <path d="M3 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path>
                                     <path d="M15 6a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path>
                                     <path d="M15 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path>
@@ -225,7 +230,6 @@ function ModalContent({
                                 </svg>
                             )}
                         </button>
-
                         <button onClick={onClose} className="hidden md:flex group relative items-center justify-center w-10 h-10 rounded-full border border-slate-200 dark:border-slate-800 hover:border-red-500/50 hover:bg-red-500/5 transition-all duration-300 cursor-pointer">
                             <svg className="w-4 h-4 text-slate-500 group-hover:text-red-500 group-hover:rotate-90 transition-all duration-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -240,8 +244,23 @@ function ModalContent({
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-slate-900 dark:text-slate-200">
                     <div className="space-y-4 text-xs md:text-sm">
                         <div className="flex flex-row-reverse items-start justify-between bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-blue-900/30 p-4 rounded-md">
-                            <div className="w-24 h-24 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 ml-4">
-                                {app.icon_url ? <img src={app.icon_url} alt="" className="w-full h-full object-cover" /> : <span className="text-sm font-bold text-slate-400">{app.name.charAt(0)}</span>}
+                            <div className="relative w-24 h-24 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 ml-4">
+                                {icon?.type === 'url' && icon.src ? (
+                                    <img 
+                                        src={icon.src} 
+                                        alt={app.name} 
+                                        width={96} 
+                                        height={96} 
+                                        className="w-full h-full object-contain filter dark:drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]" 
+                                    />
+                                ) : icon?.svg ? (
+                                    <div 
+                                        dangerouslySetInnerHTML={{ __html: icon.svg }} 
+                                        className="w-full h-full fill-slate-400 dark:fill-slate-500" 
+                                    />
+                                ) : (
+                                    <span className="text-sm font-bold text-slate-400">{app.name.charAt(0)}</span>
+                                )}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h3 className="text-slate-500 dark:text-slate-400 uppercase text-xs mb-2 font-black tracking-widest">App Details</h3>
@@ -290,44 +309,20 @@ function ModalContent({
                                 onClick={onRandom}
                                 className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-emerald-600/30 hover:border-emerald-500/60 bg-white/5 dark:bg-emerald-950/5 backdrop-blur-sm cursor-pointer"
                             >
-                                {/* Animated Shimmer Background */}
                                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-600/20 via-green-900/5 to-transparent" />
                                 <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent" />
-                                
                                 <div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-emerald-400 group-hover:text-emerald-300 transition-colors duration-300">
                                     <div className="relative shrink-0 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
-                                        <svg 
-                                            width="14" 
-                                            height="14" 
-                                            viewBox="0 0 24 24" 
-                                            fill="none" 
-                                            stroke="currentColor" 
-                                            strokeWidth="2.5" 
-                                            strokeLinecap="round" 
-                                            strokeLinejoin="round" 
-                                            className="drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]"
-                                        >
-                                            {/* Magic Wand */}
-                                            <path d="m15 5 4 4" />
-                                            <path d="M11 9 2 18l4 4 9-9" />
-                                            {/* Magic Sparkles */}
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]">
+                                            <path d="m15 5 4 4" /><path d="M11 9 2 18l4 4 9-9" />
                                             <path className="animate-pulse" d="M15 1l.5 1.5L17 3l-1.5.5L15 5l-.5-1.5L13 3l1.5-.5L15 1z" />
                                             <path className="animate-pulse delay-75" d="M22 10l.5 1.5L24 12l-1.5.5L22 14l-.5-1.5L20 12l1.5-.5L22 10z" />
                                         </svg>
-                                        {/* Mobile-only sparkle ping */}
-                                        <span className="absolute -top-1 -right-1 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                            <span className="relative inline-flex rounded-full h-1 w-1 bg-emerald-300"></span>
-                                        </span>
                                     </div>
-                                    
-                                    {/* Desktop Text */}
                                     <span className="hidden md:inline tracking-[0.2em] whitespace-nowrap">Surprise Me</span>
                                 </div>
-
-                                {/* Inset Border Glow */}
-                                <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(16,185,129,0.15)]" />
                             </button>
+
                             <a 
                                 href={`https://github.com/vukilis/docker-ninja/issues?q=is%3Aissue+is%3Aopen+${encodeURIComponent(app.name)}`}
                                 target="_blank"
@@ -351,12 +346,9 @@ function ModalContent({
                                 </div>
                                 <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(168,85,247,0.15)]" />
                             </a>
-
+                            
                             <button 
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    setIsRequesting(true);
-                                }}
+                                onClick={(e) => { e.preventDefault(); setIsRequesting(true); }}
                                 className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-amber-600/30 hover:border-amber-500/60 bg-white/5 dark:bg-amber-950/5 backdrop-blur-sm cursor-pointer"
                             >
                                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-600/20 via-yellow-900/5 to-transparent" />
@@ -364,18 +356,11 @@ function ModalContent({
                                     <div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-amber-400 group-hover:text-yellow-400 transition-colors duration-300">
                                         <div className="relative shrink-0">
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]">
-                                                <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" />
-                                                <path d="M9 18h6" />
-                                                <path d="M10 22h4" />
+                                                <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" /><path d="M9 18h6" /><path d="M10 22h4" />
                                             </svg>
-                                            <span className="absolute -top-1 -right-1 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                                                <span className="relative inline-flex rounded-full h-1 w-1 bg-yellow-300"></span>
-                                            </span>
                                         </div>
                                         <span className="hidden md:inline tracking-[0.2em] whitespace-nowrap">Request App</span>
                                     </div>
-                                <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(245,158,11,0.15)]" />
                             </button>
                         </div>
                     </div>
@@ -385,6 +370,7 @@ function ModalContent({
     );
 }
 
+// --- MAIN EXPORT ---
 export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppModalProps) {
     const [composeCode, setComposeCode] = useState("Loading...");
     const [copiedYaml, setCopiedYaml] = useState(false);
@@ -402,12 +388,12 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
     const touchStartPos = useRef({ x: 0, y: 0 });
     const isScrolling = useRef(false);
 
-    const categoryApps = allApps.filter(a => a.category === app.category);
+    const categoryApps = useMemo(() => allApps.filter(a => a.category === app.category), [allApps, app.category]);
     const currentIndex = categoryApps.findIndex(a => a.id === app.id);
     const nextApp = categoryApps[(currentIndex + 1) % categoryApps.length];
     const prevApp = categoryApps[(currentIndex - 1 + categoryApps.length) % categoryApps.length];
 
-    const navigate = useCallback((dir: 'left' | 'right', targetApp: any) => {
+    const navigate = useCallback((dir: 'left' | 'right', targetApp: App) => {
         if (status !== 'idle') return;
         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
         if (!isMobile) {
@@ -480,13 +466,8 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
         getComposeContent(app).then(setComposeCode).finally(() => setLoading(false));
     }, [app]);
 
-    const copyToClipboard = async (
-        text: string, 
-        setCopied: (val: boolean) => void, 
-        shouldTrack: boolean = false
-    ) => {
+    const copyToClipboard = async (text: string, setCopied: (val: boolean) => void, shouldTrack: boolean = false) => {
         try {
-            // Core Copy Logic
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 await navigator.clipboard.writeText(text);
             } else {
@@ -497,15 +478,9 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
             }
-
-            // UI Feedback
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
-
-            // Conditional Analytics
-            if (shouldTrack) {
-                await incrementCopyCount();
-            }
+            if (shouldTrack) await incrementCopyCount();
         } catch (err) {
             console.error("Failed to copy: ", err);
         }
@@ -514,13 +489,7 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
     const handleShare = () => {
         const shareUrl = `${window.location.origin}/?app=${app.slug || app.id}`;
         if (navigator.share) {
-            navigator.share({
-                title: app.name,
-                text: `Check out ${app.name} on the App Store`,
-                url: shareUrl,
-            }).catch(() => {
-                copyToClipboard(shareUrl, setCopiedLink);
-            });
+            navigator.share({ title: app.name, text: `Check out ${app.name}`, url: shareUrl }).catch(() => copyToClipboard(shareUrl, setCopiedLink));
         } else {
             copyToClipboard(shareUrl, setCopiedLink);
         }
@@ -555,8 +524,7 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
             >
                 <ModalContent 
                     app={app} composeCode={composeCode} loading={loading} categoryApps={categoryApps}
-                    allApps={allApps} // Passed down
-                    copiedYaml={copiedYaml} setCopiedYaml={setCopiedYaml}
+                    allApps={allApps} copiedYaml={copiedYaml} setCopiedYaml={setCopiedYaml}
                     copiedComposeCmd={copiedComposeCmd} setCopiedComposeCmd={setCopiedComposeCmd}
                     copiedRunCmd={copiedRunCmd} setCopiedRunCmd={setCopiedRunCmd}
                     copyToClipboard={copyToClipboard} handlePrev={handlePrev} handleNext={handleNext}
@@ -567,14 +535,8 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
                     DeployedCounter={DeployedCounter}
                 />
             </div>
-
-            {/* NEW REQUEST SEARCH OVERLAY */}
             {isRequesting && (
-                <RequestSearchOverlay 
-                    allApps={allApps} 
-                    onClose={() => setIsRequesting(false)} 
-                    onAppSelect={onAppChange} 
-                />
+                <RequestSearchOverlay allApps={allApps} onClose={() => setIsRequesting(false)} onAppSelect={onAppChange} />
             )}
         </div>
     );

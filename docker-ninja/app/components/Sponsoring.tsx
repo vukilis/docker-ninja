@@ -86,7 +86,7 @@ export const Sponsoring = () => {
                             </svg>
                         </div>
 
-                        <div className="relative z-10 font-mono text-sm leading-relaxed">
+                        <div className="relative font-mono text-sm leading-relaxed">
                             <div className="flex items-center gap-2 mb-6 border-b border-slate-800 pb-4">
                                 <div className="w-3 h-3 rounded-full bg-red-500"></div>
                                 <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
@@ -149,7 +149,7 @@ export const Sponsoring = () => {
                         <MoneroIcon size={200} />
                     </div>
                     
-                    <div className="flex flex-col md:flex-row items-center gap-10 relative z-10">
+                    <div className="flex flex-col md:flex-row items-center gap-10 relative">
                         <div className="flex-shrink-0 bg-white p-4 rounded-2xl shadow-[0_0_50px_rgba(255,102,0,0.2)] group relative">
                             {/* SVG Placeholder for QR Code */}
                             <div className="w-40 h-40 bg-slate-100 flex items-center justify-center relative overflow-hidden rounded-lg">

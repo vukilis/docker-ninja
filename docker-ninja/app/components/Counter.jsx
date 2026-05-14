@@ -1,7 +1,18 @@
 import React from 'react';
 
+// Helper function for compact format
+const formatCompactNumber = (number) => {
+  if (number < 1000) return number;
+  return new Intl.NumberFormat('en-US', {
+    notation: "compact",
+    compactDisplay: "short",
+    maximumFractionDigits: 1,
+  }).format(number);
+};
+
 export const Counter = ({ value, delay = 0 }) => {
   const [count, setCount] = React.useState(0);
+  const [isFinished, setIsFinished] = React.useState(false);
 
   React.useEffect(() => {
     const isFirstLoad = !window.__dn_preloader_finished;
@@ -17,21 +28,14 @@ export const Counter = ({ value, delay = 0 }) => {
         return;
       }
 
-      // --- DYNAMIC DURATION LOGIC ---
-      // Small numbers (Slower)
-      // Large numbers (Faster)
-      // const duration = end > 10000 ? 800 : 2000; 
-      const duration = Math.max(600, 2000 - Math.log10(end) * 300);
-      
-      const frameRate = 1000 / 60; // 60fps
+      const duration = 2000;
+      const frameRate = 1000 / 60; 
       const totalFrames = Math.round(duration / frameRate);
       let frame = 0;
 
       timer = setInterval(() => {
         frame++;
         const progress = frame / totalFrames;
-        
-        // Ease-out makes it feel polished (starts fast, ends slow)
         const easeOut = 1 - Math.pow(1 - progress, 3); 
         const currentCount = Math.round(easeOut * end);
 
@@ -39,6 +43,7 @@ export const Counter = ({ value, delay = 0 }) => {
 
         if (frame >= totalFrames) {
           setCount(end);
+          setIsFinished(true);
           clearInterval(timer);
         }
       }, frameRate);
@@ -50,5 +55,12 @@ export const Counter = ({ value, delay = 0 }) => {
     };
   }, [value, delay]);
 
-  return <>{count.toLocaleString()}</>;
+  return (
+    <>
+      {isFinished 
+        ? formatCompactNumber(count)
+        : count.toLocaleString()
+      }
+    </>
+  );
 };

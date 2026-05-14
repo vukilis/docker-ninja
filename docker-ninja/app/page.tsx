@@ -1,11 +1,12 @@
 "use client";
 import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useApps } from './hooks/useApps';
 import './style/globals.css';
 import { AppModal, RequestSearchOverlay, DeployedCounter } from './components/AppModal';
 import { AppCard } from './components/AppCard';
 import { Counter } from './components/Counter';
-import { AISuggestor} from './components/ChatAI';
+// import { AISuggestor} from './components/ChatAI';
 import { ThemeSwitcher} from './components/ThemeSwitcher';
 import { RotatingMessage} from './components/RotatingMessage';
 import { NetworkBackground } from './components/NetworkMap';
@@ -13,23 +14,31 @@ import SearchInput from './components/SearchInput';
 import AboutPage from './components/AboutPage';
 import { Sponsoring } from './components/Sponsoring';
 
-// SCROLLBAR ANIMATION
-export function useGlobalScrollbar() {
+// --- TYPES ---
+export type ViewMode = 'dashboard' | 'About' | 'Sponsoring';
+
+export interface AppData {
+  id: string | number;
+  slug?: string;
+  name: string;
+  category: string;
+  image?: string;
+  description?: string;
+  [key: string]: unknown; 
+}
+
+// --- HOOKS ---
+function useGlobalScrollbar() {
   useEffect(() => {
     let scrollTimeout: NodeJS.Timeout;
     let activeElement: HTMLElement | null = null;
 
     const handleGlobalScroll = (e: Event) => {
       const target = e.target as HTMLElement;
-      if (!target || target === document as any) return;
-
-      if (activeElement && activeElement !== target) {
-        activeElement.classList.remove('show-scrollbar');
-      }
-
+      if (!target || target === (document as unknown)) return;
+      if (activeElement && activeElement !== target) activeElement.classList.remove('show-scrollbar');
       activeElement = target;
       target.classList.add('show-scrollbar');
-
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {
         if (activeElement) {
@@ -40,7 +49,6 @@ export function useGlobalScrollbar() {
     };
 
     window.addEventListener('scroll', handleGlobalScroll, true);
-
     return () => {
       window.removeEventListener('scroll', handleGlobalScroll, true);
       clearTimeout(scrollTimeout);
@@ -48,115 +56,116 @@ export function useGlobalScrollbar() {
   }, []);
 }
 
-// MAIN DASHBOARD
+// --- MAIN DASHBOARD ---
 export default function Home() {
   const { 
     filteredApps, categories, search, setSearch, 
     selectedCategory, setSelectedCategory, apps, getCountByCategory 
   } = useApps();
 
-  const [isMounted, setIsMounted] = useState(false);
-  const [isStarted, setIsStarted] = useState(false);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'About' | 'Sponsoring'>('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [selectedApp, setSelectedApp] = useState<any | null>(null);
-  const [isRequesting, setIsRequesting] = useState(false);
-  const [activeSubCategory, setActiveSubCategory] = useState(null);
-  const [showScrollTop, setShowScrollTop] = useState(false);
-  const [recentlyViewed, setRecentlyViewed] = useState([]);
-  const scrollContainerRef = useRef(null);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const searchParams = useSearchParams();
 
+  // STATE INITIALIZATION (Using Lazy Initializers for SSR safety)
+  const [isMounted, setIsMounted] = useState(false);
+  
+  const [isStarted, setIsStarted] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('ninja_isStarted') === 'true';
+  });
+
+  const [currentView, setCurrentView] = useState<ViewMode>(() => {
+    if (typeof window === 'undefined') return 'dashboard';
+    const view = new URLSearchParams(window.location.search).get('view');
+    return (view === 'About' || view === 'Sponsoring') ? view : 'dashboard';
+  });
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('ninja_sidebarCollapsed') === 'true';
+  });
+
+  const [activeSubCategory, setActiveSubCategory] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('ninja_activeSubCategory');
+  });
+
+  const [recentlyViewed, setRecentlyViewed] = useState<AppData[]>(() => {
+    if (typeof window === 'undefined') return [];
+    const saved = localStorage.getItem('docker_ninja_recently_viewed');
+    try { return saved ? JSON.parse(saved) : []; } catch { return []; }
+  });
+
+  // UI States
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedApp, setSelectedApp] = useState<AppData | null>(null);
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const hasHydrated = useRef(false);
 
+  // MOUNT & INITIAL HYDRATION (Sync URL params to state once)
+  useEffect(() => {
+    // 1. Only run this if we haven't hydrated yet and we have apps
+    if (hasHydrated.current || apps.length === 0) return;
+
+    const appId = searchParams.get('app') || searchParams.get('id');
+    const catParam = searchParams.get('category');
+
+    // Handle App Direct Link
+    if (appId) {
+        const found = apps.find(a => String(a.id) === String(appId) || a.slug === appId);
+        if (found) {
+            setSelectedApp(found);
+            // Ensure the background is ready so the modal has a "home"
+            setIsStarted(true); 
+        }
+    }
+
+    // Handle Category Direct Link
+    if (catParam) {
+        setSelectedCategory('ShowCategories');
+        if (catParam !== 'ShowCategories' && categories.includes(catParam)) {
+            setActiveSubCategory(catParam);
+        }
+        setIsStarted(true);
+    }
+
+    setIsMounted(true);
+    hasHydrated.current = true;
+  }, [apps, searchParams, categories]); 
+
+  // URL SYNC & PERSISTENCE
+  useEffect(() => {
+    if (!isMounted) return;
+
+    localStorage.setItem('ninja_isStarted', isStarted.toString());
+    localStorage.setItem('ninja_sidebarCollapsed', sidebarCollapsed.toString());
+    if (activeSubCategory) localStorage.setItem('ninja_activeSubCategory', activeSubCategory);
+
+    if (!isStarted) {
+      window.history.replaceState({}, '', window.location.pathname);
+    } else {
+      const params = new URLSearchParams();
+      if (selectedApp) params.set('app', (selectedApp.slug || selectedApp.id).toString());
+      if (currentView !== 'dashboard') params.set('view', currentView);
+      else if (selectedCategory === 'ShowCategories') {
+        params.set('category', activeSubCategory || 'ShowCategories');
+      }
+      const qs = params.toString();
+      const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+      window.history.replaceState({ path: newUrl }, '', newUrl);
+    }
+  }, [isStarted, sidebarCollapsed, currentView, selectedApp, selectedCategory, activeSubCategory, isMounted]);
+
+  // UI LOGIC & HANDLERS
   const sortedCategories = useMemo(() => {
     return categories
       .filter(c => c !== "All" && c !== "ShowCategories")
       .sort((a, b) => a.localeCompare(b));
   }, [categories]);
 
-  // Load basic UI settings
-  useEffect(() => {
-    const savedStarted = localStorage.getItem('ninja_isStarted');
-    const savedCollapsed = localStorage.getItem('ninja_sidebarCollapsed');
-    const savedRecent = localStorage.getItem('docker_ninja_recently_viewed');
-    
-    if (savedStarted === 'true') setIsStarted(true);
-    if (savedCollapsed === 'true') setSidebarCollapsed(true);
-    if (savedRecent) {
-      try { setRecentlyViewed(JSON.parse(savedRecent)); } catch (e) {}
-    }
-    
-    setIsMounted(true);
-  }, []);
-
-  // Handle Shared Links (Ensures background view matches URL)
-  useEffect(() => {
-    if (isMounted && apps.length > 0 && !hasHydrated.current) {
-      const params = new URLSearchParams(window.location.search);
-      
-      // Restore View (About/Sponsoring)
-      const viewParam = params.get('view');
-      if (viewParam === 'About' || viewParam === 'Sponsoring') {
-        setCurrentView(viewParam as any);
-        setIsStarted(true);
-      }
-
-      // Restore Category (Even if app is open)
-      const catParam = params.get('category');
-      if (catParam) {
-        setSelectedCategory('ShowCategories');
-        if (catParam !== 'ShowCategories' && categories.includes(catParam)) {
-            setActiveSubCategory(catParam);
-        }
-        setIsStarted(true);
-      }
-
-      // Restore App Modal
-      const appId = params.get('app') || params.get('id');
-      if (appId) {
-        const foundApp = apps.find(a => 
-            String(a.id) === String(appId) || 
-            String(a.slug) === String(appId)
-        );
-        if (foundApp) {
-          setSelectedApp(foundApp);
-          setIsStarted(true);
-        }
-      }
-      
-      hasHydrated.current = true;
-    }
-  }, [apps, isMounted, categories, setSelectedCategory]);
-
-  // Sync State to URL & Persistence
-  useEffect(() => {
-    if (!isMounted || !hasHydrated.current) return;
-    
-    localStorage.setItem('ninja_isStarted', isStarted.toString());
-    localStorage.setItem('ninja_sidebarCollapsed', sidebarCollapsed.toString());
-
-    const params = new URLSearchParams();
-
-    if (selectedApp) {
-      params.set('app', (selectedApp.slug || selectedApp.id).toString());
-    } 
-
-    if (currentView !== 'dashboard') {
-      params.set('view', currentView);
-    } else if (selectedCategory === 'ShowCategories') {
-      params.set('category', activeSubCategory || 'ShowCategories');
-    }
-
-    const queryString = params.toString();
-    const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname;
-    
-    window.history.replaceState({ path: newUrl }, '', newUrl);
-
-  }, [isStarted, sidebarCollapsed, currentView, selectedApp, selectedCategory, activeSubCategory, isMounted]);
-
-  // UI Handlers
   useEffect(() => {
     if (selectedCategory === "ShowCategories" && !activeSubCategory && sortedCategories.length > 0) {
       setActiveSubCategory(sortedCategories[0]);
@@ -191,42 +200,34 @@ export default function Home() {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const navigateTo = (path) => {
+  const navigateTo = (path: 'landing' | 'dashboard' | 'About' | 'Sponsoring') => {
     setSidebarOpen(false);
     if (path === 'landing') {
       setIsStarted(false);
+      setSelectedApp(null);
+      setCurrentView('dashboard');
+    } else if (path === 'About' || path === 'Sponsoring') {
+      setIsStarted(true);
+      setCurrentView(path);
     } else {
       setIsStarted(true);
       setCurrentView('dashboard');
     }
   };
 
-  const handleAppSelect = (app) => {
-    if (!app) return;
+  const handleAppSelect = (app: AppData) => {
     setSelectedApp(app);
     if (currentView !== 'dashboard') setCurrentView('dashboard');
-    // If the user selects an app, don't force a category change unless they are already in category mode
-    if (selectedCategory === 'ShowCategories') {
-      setActiveSubCategory(app.category);
-    }
+    if (selectedCategory === 'ShowCategories') setActiveSubCategory(app.category);
   };
 
   const handleRandomApp = () => {
     if (apps.length === 0) return;
-    
-    // Pick a random index
-    const randomIndex = Math.floor(Math.random() * apps.length);
-    const randomApp = apps[randomIndex];
-    
-    // Open the modal
-    setSelectedApp(randomApp);
-    
-    // Ensure dashboard view
-    if (currentView !== 'dashboard') setCurrentView('dashboard');
+    const randomApp = apps[Math.floor(Math.random() * apps.length)];
+    handleAppSelect(randomApp);
   };
 
-  
-  
+  // --- RENDER HELPERS ---
   const renderRecentlyViewed = () => {
     if (recentlyViewed.length === 0 || selectedCategory === "ShowCategories") {
       return null;
@@ -276,7 +277,7 @@ export default function Home() {
       return (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
           {filteredApps.map((app) => (
-            <AppCard key={app.id} app={app} onClick={() => setSelectedApp(app)} />
+            <AppCard key={app.id} app={app} onClick={() => handleAppSelect(app)} />
           ))}
         </div>
       );
@@ -306,13 +307,14 @@ export default function Home() {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
           {categoryApps.map((app) => (
-            <AppCard key={app.id} app={app} onClick={() => setSelectedApp(app)} />
+            <AppCard key={app.id} app={app} onClick={() => handleAppSelect(app)} />
           ))}
         </div>
       </div>
     );
   };
 
+  // --- FINAL RENDER ---
   if (!isMounted) return <div className="min-h-screen bg-white dark:bg-[#0d1117]" />;
 
   if (!isStarted) {
@@ -337,7 +339,7 @@ export default function Home() {
               <div className="w-12 h-1.5 rounded-full bg-gradient-to-r from-blue-600/40 to-transparent" />
             </div>
           </div>
-          <div className="pt-10 flex flex-col items-center gap-4">
+          <div className="pt-2 md:pt-10 flex flex-col items-center gap-4">
             <button 
               onClick={() => navigateTo('dashboard')}
               className="group relative px-10 py-5 bg-blue-600 text-white font-black text-xl rounded-2xl shadow-2xl shadow-blue-500/40 hover:bg-blue-700 hover:-translate-y-1 active:scale-95 transition-all cursor-pointer uppercase tracking-[0.2em] overflow-hidden"
@@ -356,7 +358,7 @@ export default function Home() {
             </p>
           </div>
         </div>
-        <div className="mt-20 flex flex-wrap justify-center gap-12 lg:gap-20 uppercase text-[10px] font-black tracking-[0.3em]">
+        <div className="mt-10 md:mt-20 flex flex-wrap justify-center gap-5 lg:gap-20 uppercase text-[10px] font-black tracking-[0.3em]">
           <div className="group relative text-center">
             <div className="text-slate-900 dark:text-white text-3xl mb-1 tabular-nums">
               <Counter value={apps.length} delay={2000} />
@@ -364,13 +366,13 @@ export default function Home() {
             <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Containers</div>
           </div>
           <div className="group relative text-center">
+            <DeployedCounter />
+          </div>
+          <div className="group relative text-center">
             <div className="text-slate-900 dark:text-white text-3xl mb-1 tabular-nums">
               <Counter value={categories.length} delay={2000} />
             </div>
             <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Categories</div>
-          </div>
-          <div className="group relative text-center">
-            <DeployedCounter />
           </div>
         </div>
       </div>
@@ -386,7 +388,6 @@ export default function Home() {
         ${sidebarCollapsed ? 'lg:w-24' : 'lg:w-72'}`}
       >
         <div className="p-6 h-full flex flex-col">
-          {/* Logo Section */}
           <div onClick={() => navigateTo('landing')} className={`flex items-center cursor-pointer transition-all duration-300 mb-10 ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
             <div className="relative w-10 h-10 flex-shrink-0 flex items-center justify-center border-2 border-blue-600/20 rounded-lg bg-slate-50 dark:bg-slate-900 group">
               <div className="relative flex text-3xl font-black tracking-tighter select-none z-10 leading-none translate-y-[1px]">
@@ -439,7 +440,7 @@ export default function Home() {
                 {!sidebarCollapsed && <span>About</span>}
               </button>
 
-              <a href="https://github.com/vukilis" target="_blank" className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
+              <a href="https://github.com/vukilis" target="_blank" rel="noreferrer" className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" /></svg>
                 {!sidebarCollapsed && <span>GitHub</span>}
               </a>
@@ -474,13 +475,7 @@ export default function Home() {
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <header className="h-16 flex items-center justify-between px-3 md:px-6 border-b border-slate-200 dark:border-slate-800 shrink-0 bg-white/50 dark:bg-[#0d1117]/50 backdrop-blur-md z-10">
-          {/* 
-              SIDEBAR TOGGLE CONTAINER
-              Mobile: Positioned last (right)
-              Desktop: Positioned first (left)
-          */}
           <div className="flex items-center gap-2 md:gap-4 order-last lg:order-first">
-            {/* Sidebar Toggle - Desktop */}
             <button 
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)} 
               className="hidden lg:flex p-2 text-slate-500 hover:text-blue-600 transition-colors bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer"
@@ -491,10 +486,9 @@ export default function Home() {
               </svg>
             </button>
             
-            {/* Sidebar Toggle - Mobile */}
             <button 
               onClick={() => setSidebarOpen(true)} 
-              className="lg:hidden p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              className="lg:hidden p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -504,13 +498,7 @@ export default function Home() {
             </button>
           </div>
 
-          {/* 
-              ACTIONS CONTAINER (Search + Icons)
-              Mobile: Positioned first (left)
-              Desktop: Positioned last (right)
-          */}
           <div className="flex items-center gap-1.5 md:gap-3 flex-1 justify-start lg:justify-end order-first lg:order-last relative">
-            {/* MOBILE MENU TRIGGER */}
             <div className="md:hidden">
               <button 
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -525,76 +513,40 @@ export default function Home() {
                 </svg>
               </button>
 
-              {/* FULL WIDTH SQUARE MENU - MATCHES HEADER */}
               {isMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-60" onClick={() => setIsMenuOpen(false)} />
                   <div className="fixed left-1/2 -translate-x-1/2 top-16 w-[90%] p-3 bg-white dark:bg-[#0B0B11] border border-t-0 border-slate-200 dark:border-blue-600/50 shadow-[0_20px_50px_rgba(0,0,0,0.4)] z-[70] rounded-b-3xl animate-in slide-in-from-top duration-300">                    
                     <div className="grid grid-cols-3 gap-3">
-                      
-                      {/* Surprise Me*/}
                       <button 
                           onClick={() => { handleRandomApp(); setIsMenuOpen(false); }}
                           className="relative group flex flex-col items-center justify-center gap-2 py-4 rounded-xl border border-slate-200 dark:border-emerald-600/30 bg-white/5 dark:bg-emerald-950/10 cursor-pointer"
                       >
                           <div className="relative shrink-0 text-emerald-400">
-                              <svg 
-                                  width="18" 
-                                  height="18" 
-                                  viewBox="0 0 24 24" 
-                                  fill="none" 
-                                  stroke="currentColor" 
-                                  strokeWidth="2.5" 
-                                  strokeLinecap="round" 
-                                  strokeLinejoin="round" 
-                                  className="drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]"
-                              >
-                                  <path d="m15 5 4 4" />
-                                  <path d="M11 9 2 18l4 4 9-9" />
-                                  <path className="animate-pulse" d="M15 1l.5 1.5L17 3l-1.5.5L15 5l-.5-1.5L13 3l1.5-.5L15 1z" />
-                                  <path className="animate-pulse delay-75" d="M22 10l.5 1.5L24 12l-1.5.5L22 14l-.5-1.5L20 12l1.5-.5L22 10z" />
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]">
+                                  <path d="m15 5 4 4" /><path d="M11 9 2 18l4 4 9-9" /><path className="animate-pulse" d="M15 1l.5 1.5L17 3l-1.5.5L15 5l-.5-1.5L13 3l1.5-.5L15 1z" /><path className="animate-pulse delay-75" d="M22 10l.5 1.5L24 12l-1.5.5L22 14l-.5-1.5L20 12l1.5-.5L22 10z" />
                               </svg>
                           </div>
                           <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Surprise</span>
                       </button>
-
-                      {/* Report Issue */}
-                      <a 
-                          href="https://github.com/vukilis/docker-ninja/issues"
-                          target="_blank"
-                          className="relative group flex flex-col items-center justify-center gap-2 py-4 rounded-xl border border-slate-200 dark:border-purple-600/30 bg-white/5 dark:bg-purple-950/10"
-                      >
+                      <a href="https://github.com/vukilis/docker-ninja/issues" target="_blank" rel="noreferrer" className="relative group flex flex-col items-center justify-center gap-2 py-4 rounded-xl border border-slate-200 dark:border-purple-600/30 bg-white/5 dark:bg-purple-950/10 cursor-pointer">
                           <div className="relative shrink-0 text-purple-400">
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
-                                  <rect width="8" height="14" x="8" y="6" rx="4" />
-                                  <path d="m19 7-3 2" /><path d="m5 7 3 2" /><path d="m19 19-3-2" /><path d="m5 19 3-2" /><path d="M20 13h-4" /><path d="M4 13h4" /><path d="m10 4 1 2" /><path d="m14 4-1 2" />
-                              </svg>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]"><rect width="8" height="14" x="8" y="6" rx="4" /><path d="m19 7-3 2" /><path d="m5 7 3 2" /><path d="m19 19-3-2" /><path d="m5 19 3-2" /><path d="M20 13h-4" /><path d="M4 13h4" /><path d="m10 4 1 2" /><path d="m14 4-1 2" /></svg>
                           </div>
                           <span className="text-[10px] font-black uppercase tracking-widest text-purple-400">Report</span>
                       </a>
-
-                      {/* Request App */}
-                      <button 
-                          onClick={() => { setIsRequesting(true); setIsMenuOpen(false); }}
-                          className="relative group flex flex-col items-center justify-center gap-2 py-4 rounded-xl border border-slate-200 dark:border-amber-600/30 bg-white/5 dark:bg-amber-950/10 cursor-pointer"
-                      >
+                      <button onClick={() => { setIsRequesting(true); setIsMenuOpen(false); }} className="relative group flex flex-col items-center justify-center gap-2 py-4 rounded-xl border border-slate-200 dark:border-amber-600/30 bg-white/5 dark:bg-amber-950/10 cursor-pointer">
                           <div className="relative shrink-0 text-amber-400">
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]">
-                                  <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" />
-                                  <path d="M9 18h6" />
-                                  <path d="M10 22h4" />
-                              </svg>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" /><path d="M9 18h6" /><path d="M10 22h4" /></svg>
                           </div>
                           <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">Request</span>
                       </button>
-
                     </div>
                   </div>
                 </>
               )}
             </div>
 
-            {/* DESKTOP ACTIONS */}
             <div className="hidden md:flex items-center gap-3">
               {/* Random App Button */}
               <button 
@@ -686,7 +638,6 @@ export default function Home() {
               </button>
             </div>
 
-            {/* Search Input */}
             <div className="flex max-w-[250px] md:max-w-none lg:order-first">
               <SearchInput apps={apps} search={search} setSearch={setSearch} onAppSelect={handleAppSelect} />
             </div>
@@ -701,7 +652,6 @@ export default function Home() {
           ) : (
             <div className="p-6 lg:p-10">
               <div className="max-w-10xl mx-auto">
-                {/* <AISuggestor onAppSelect={handleAppSelect} /> */}
                 {renderRecentlyViewed()}
                 <div className="mb-10 mt-5 flex items-center justify-between">
                   <div>
@@ -725,34 +675,16 @@ export default function Home() {
           )}
         </section>
 
-        <button
-          onClick={scrollToTop}
-          className={`fixed bottom-8 right-8 z-[60] flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-xl shadow-2xl shadow-blue-500/40 hover:bg-blue-700 hover:-translate-y-1 transition-all duration-300 cursor-pointer ${
-            showScrollTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0 pointer-events-none'
-          }`}
-        >
+        <button onClick={scrollToTop} className={`fixed bottom-8 right-8 z-[60] flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-xl shadow-2xl shadow-blue-500/40 hover:bg-blue-700 hover:-translate-y-1 transition-all duration-300 cursor-pointer ${showScrollTop ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0 pointer-events-none'}`}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 15l-6-6-6 6"/></svg>
         </button>
       </main>
 
       {selectedApp && (
-          <AppModal 
-              app={selectedApp} 
-              allApps={apps} 
-              onAppChange={setSelectedApp} 
-              onClose={() => setSelectedApp(null)}
-              onRandom={handleRandomApp}
-          />
+          <AppModal app={selectedApp} allApps={apps} onAppChange={setSelectedApp} onClose={() => setSelectedApp(null)} onRandom={handleRandomApp} />
       )}
       {isRequesting && (
-        <RequestSearchOverlay 
-          allApps={apps}
-          onClose={() => setIsRequesting(false)}
-          onAppSelect={(app) => {
-            setSelectedApp(app);
-            setIsRequesting(false);
-          }}
-        />
+        <RequestSearchOverlay allApps={apps} onClose={() => setIsRequesting(false)} onAppSelect={(app: AppData) => { setSelectedApp(app); setIsRequesting(false); }} />
       )}
     </div>
   );

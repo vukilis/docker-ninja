@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo, useState } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 
 export const NetworkBackground = ({ apps = [] }) => {
@@ -38,7 +38,6 @@ export const NetworkBackground = ({ apps = [] }) => {
 
     const nodeGroup = new THREE.Group();
     const nodes = [];
-    const textureLoader = new THREE.TextureLoader();
 
     // Utility to create textures from SVGs or Fallbacks
     const getTexture = (app) => {
@@ -137,7 +136,6 @@ export const NetworkBackground = ({ apps = [] }) => {
       nodeGroup.rotation.y += 0.0003;
       nodeGroup.position.y = scrollY.current * 0.08;
 
-      const positions = lineGeometry.attributes.position.array;
       let lineIdx = 0;
       const shouldUpdateLines = !isMobile || (time - lastLineUpdate.current > 30);
       if (shouldUpdateLines) lastLineUpdate.current = time;
