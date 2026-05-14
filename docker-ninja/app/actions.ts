@@ -34,7 +34,7 @@ export async function fetchAllApps() {
 export async function getComposeContent(app: any) {
     if (!app) return "Error: Invalid application data.";
 
-    // 1. Try Remote Fetching first (GitHub/Raw)
+    // Try Remote Fetching first (GitHub/Raw)
     if (app.compose_url) {
         try {
             const response = await fetch(app.compose_url, { 
@@ -51,6 +51,46 @@ export async function getComposeContent(app: any) {
         }
     }
 
-    // 2. Fallback: Retrieve from Database column
+    // Retrieve from Database column
     return app.fallback_compose || "No compose configuration found in database!";
+}
+
+/**
+ * Gets the total copy count from the analytics table.
+ */
+export async function getGlobalStats() {
+    try {
+        const { data, error } = await supabase
+            .from('analytics')
+            .select('copy_count')
+            .single();
+
+        if (error) {
+            console.error("SUPABASE ERROR:", error.message, error.details);
+            return 5;
+        }
+
+        console.log("DATABASE FETCHED:", data.copy_count);
+        return data.copy_count;
+    } catch (err) {
+        console.error("CATCH ERROR:", err);
+        return 0;
+    }
+}
+
+/**
+ * Increments the global copy counter.
+ */
+export async function incrementCopyCount() {
+    try {
+        const { error } = await supabase.rpc('increment_copy_count');
+        
+        if (error) {
+            console.error("RPC Error:", error.message); 
+            return { success: false };
+        }
+        return { success: true };
+    } catch (err) {
+        return { success: false };
+    }
 }
