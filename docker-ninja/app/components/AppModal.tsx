@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { getComposeContent } from '../actions';
+import { getComposeContent, incrementCopyCount, getGlobalStats } from '../actions';
 import SearchInput from './SearchInput';
+import { Counter } from './Counter';
 
 interface AppModalProps {
     app: any;
@@ -263,7 +264,7 @@ function ModalContent({
                         <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-blue-900/30 p-4 flex flex-col flex-1 overflow-hidden">
                             <h3 className="text-blue-600 dark:text-blue-400 mb-2 font-bold flex justify-between text-[10px] md:text-xs uppercase tracking-widest">
                                 docker-compose.yml 
-                                <button onClick={() => copyToClipboard(composeCode, setCopiedYaml)} className={`ml-2 transition-colors cursor-pointer ${copiedYaml ? 'text-green-600 dark:text-green-500' : 'text-slate-500 hover:text-green-500'}`}>{copiedYaml ? "[COPIED!]" : "[COPY]"}</button>
+                                <button onClick={() => copyToClipboard(composeCode, setCopiedYaml, 'compose_yaml', true)} className={`ml-2 transition-colors cursor-pointer ${copiedYaml ? 'text-green-600 dark:text-green-500' : 'text-slate-500 hover:text-green-500'}`}>{copiedYaml ? "[COPIED!]" : "[COPY]"}</button>
                             </h3>
                             <div onTouchStart={stopPropagation} className="code-container flex-1 overflow-auto bg-slate-50 dark:bg-[#0d1117] rounded p-2 border border-slate-200 dark:border-slate-800">
                                 <pre className="text-[10px] md:text-xs text-slate-700 dark:text-slate-300 whitespace-pre">{loading ? "Loading..." : composeCode}</pre>
@@ -479,21 +480,34 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
         getComposeContent(app).then(setComposeCode).finally(() => setLoading(false));
     }, [app]);
 
-    const copyToClipboard = (text: string, setCopied: (val: boolean) => void) => {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(() => {
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
-            });
-        } else {
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
+    const copyToClipboard = async (
+        text: string, 
+        setCopied: (val: boolean) => void, 
+        shouldTrack: boolean = false
+    ) => {
+        try {
+            // Core Copy Logic
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            }
+
+            // UI Feedback
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
+
+            // Conditional Analytics
+            if (shouldTrack) {
+                await incrementCopyCount();
+            }
+        } catch (err) {
+            console.error("Failed to copy: ", err);
         }
     };
 
@@ -550,6 +564,7 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
                     handleShare={handleShare} copiedLink={copiedLink}
                     setIsRequesting={setIsRequesting}
                     onRandom={onRandom}
+                    DeployedCounter={DeployedCounter}
                 />
             </div>
 
@@ -561,6 +576,31 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
                     onAppSelect={onAppChange} 
                 />
             )}
+        </div>
+    );
+}
+
+export function DeployedCounter() {
+    const [stats, setStats] = useState(0);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const load = async () => {
+            const num = await getGlobalStats();
+            setStats(num);
+            setLoading(false);
+        };
+        load();
+    }, []);
+
+    if (loading) return <div>...</div>;
+
+    return (
+        <div>
+            <div className="relative flex items-center justify-center text-blue-600 text-3xl mb-1 font-black text-center">
+                <span><Counter value={stats} delay={2000} /></span>
+            </div>
+            <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Deployed</div>
         </div>
     );
 }
