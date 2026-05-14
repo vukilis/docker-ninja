@@ -88,7 +88,7 @@ export default function SearchInput({ apps = [], search, setSearch, onAppSelect 
                         onFocus={() => setIsFocused(true)}
                         onChange={(e) => setSearch(e.target.value)} 
                         onKeyDown={handleKeyDown}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-10 py-3 text-sm focus:ring-2 ring-blue-500 transition-all outline-none text-slate-900 dark:text-white" 
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-blue-600/30 hover:border-blue-500/60 rounded-full border px-10 py-2 text-sm focus:ring-2 ring-blue-500 transition-all outline-none text-slate-900 dark:text-white" 
                     />
                     
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
