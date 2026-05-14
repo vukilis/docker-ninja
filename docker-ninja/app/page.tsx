@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useApps } from './hooks/useApps';
 import './style/globals.css';
-import { AppModal, RequestSearchOverlay } from './components/AppModal';
+import { AppModal, RequestSearchOverlay, DeployedCounter } from './components/AppModal';
 import { AppCard } from './components/AppCard';
 import { Counter } from './components/Counter';
 import { AISuggestor} from './components/ChatAI';
@@ -224,6 +224,8 @@ export default function Home() {
     // Ensure dashboard view
     if (currentView !== 'dashboard') setCurrentView('dashboard');
   };
+
+  
   
   const renderRecentlyViewed = () => {
     if (recentlyViewed.length === 0 || selectedCategory === "ShowCategories") {
@@ -368,10 +370,7 @@ export default function Home() {
             <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Categories</div>
           </div>
           <div className="group relative text-center">
-            <div className="relative flex items-center justify-center text-blue-600 text-3xl mb-1 font-black text-center">
-              <span>ONLINE</span>
-            </div>
-            <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Systems Ready</div>
+            <DeployedCounter />
           </div>
         </div>
       </div>
