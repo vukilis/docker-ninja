@@ -2,8 +2,8 @@ import React from 'react';
 
 export const Counter = ({ value, delay = 0 }) => {
   const [count, setCount] = React.useState(0);
+
   React.useEffect(() => {
-    // Check if the preloader has already finished in this session
     const isFirstLoad = !window.__dn_preloader_finished;
     const actualDelay = isFirstLoad ? delay : 100;
 
@@ -11,23 +11,37 @@ export const Counter = ({ value, delay = 0 }) => {
     const startTimeout = setTimeout(() => {
       window.__dn_preloader_finished = true;
 
-      let start = 0;
       const end = parseInt(value);
       if (isNaN(end) || end <= 0) {
         setCount(value);
         return;
       }
 
-      const totalMiliseconds = 800;
-      const incrementTime = Math.max(totalMiliseconds / end, 10);
+      // --- DYNAMIC DURATION LOGIC ---
+      // Small numbers (Slower)
+      // Large numbers (Faster)
+      // const duration = end > 10000 ? 800 : 2000; 
+      const duration = Math.max(600, 2000 - Math.log10(end) * 300);
+      
+      const frameRate = 1000 / 60; // 60fps
+      const totalFrames = Math.round(duration / frameRate);
+      let frame = 0;
 
       timer = setInterval(() => {
-        start += 1;
-        setCount(start);
-        if (start >= end) {
+        frame++;
+        const progress = frame / totalFrames;
+        
+        // Ease-out makes it feel polished (starts fast, ends slow)
+        const easeOut = 1 - Math.pow(1 - progress, 3); 
+        const currentCount = Math.round(easeOut * end);
+
+        setCount(currentCount);
+
+        if (frame >= totalFrames) {
+          setCount(end);
           clearInterval(timer);
         }
-      }, incrementTime);
+      }, frameRate);
     }, actualDelay);
 
     return () => {
@@ -36,5 +50,5 @@ export const Counter = ({ value, delay = 0 }) => {
     };
   }, [value, delay]);
 
-  return <>{count}</>;
+  return <>{count.toLocaleString()}</>;
 };
