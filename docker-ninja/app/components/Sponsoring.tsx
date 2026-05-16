@@ -61,7 +61,7 @@ export const Sponsoring = () => {
     };
 
     return (
-        <div className="min-h-screen bg-white dark:bg-[#0d1117] dark:text-slate-300 text-slate-300 font-sans p-4 md:p-20">
+        <div className="min-h-screen dark:bg-[#0d1117] dark:text-slate-300 text-slate-300 font-sans p-4 md:p-20">
             <div className="max-w-5xl mx-auto space-y-8 pt-10 md:pt-0">
                 {/* Header */}
                 <div className="text-center mb-16">
@@ -207,7 +207,7 @@ export const Sponsoring = () => {
                             <h4 className="text-emerald-400 font-bold text-sm uppercase tracking-widest flex items-center gap-2">
                                 Privacy Protocol Active <Lock size={12} />
                             </h4>
-                            <p className="mt-2 text-slate-400 text-sm leading-relaxed italic">
+                            <p className="mt-2 text-slate-600 text-sm leading-relaxed italic">
                                 "I respect your privacy. Monero donations are fully anonymous — I never collect names, emails, or any identifying information. Your support remains as private as your browsing should be."
                             </p>
                         </div>

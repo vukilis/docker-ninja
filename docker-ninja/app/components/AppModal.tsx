@@ -151,7 +151,7 @@ function ModalContent({
     return (
         <div className="flex flex-col h-full">
             {/* HEADER */}
-            <div className="flex flex-col md:flex-row md:justify-between md:items-center p-4 md:p-8 pb-4 border-b border-slate-100 dark:border-slate-800/50 z-30 bg-white dark:bg-[#0d1117] select-none gap-4">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center p-4 md:p-8 pb-4 border-b border-[#B7C7CD] dark:border-slate-800/50 z-30 dark:bg-[#0d1117] select-none gap-4">
                 <div className="flex justify-between items-start md:block">
                     <div className="flex flex-col gap-1 min-w-0">
                         <h2 className="text-xl md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter truncate">{app.name}</h2>
@@ -187,7 +187,7 @@ function ModalContent({
                     <a 
                         href={`https://github.com/vukilis/docker-ninja/issues?q=is%3Aissue+is%3Aopen+${encodeURIComponent(app.name)}`}
                         target="_blank"
-                        className="relative group flex items-center gap-2 px-3 md:px-5 py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-purple-600/30 hover:border-purple-500/60 bg-white/5 dark:bg-purple-950/5 backdrop-blur-sm"
+                        className="relative group flex items-center gap-2 px-3 md:px-5 py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-purple-600/30 hover:border-purple-500/60 bg-purple-100 dark:bg-purple-950/5 backdrop-blur-sm"
                         >
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-600/20 via-fuchsia-900/5 to-transparent" />
                         <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-purple-400/10 to-transparent" />
@@ -285,7 +285,7 @@ function ModalContent({
                                 docker-compose.yml 
                                 <button onClick={() => copyToClipboard(composeCode, setCopiedYaml, 'compose_yaml', true)} className={`ml-2 transition-colors cursor-pointer ${copiedYaml ? 'text-green-600 dark:text-green-500' : 'text-slate-500 hover:text-green-500'}`}>{copiedYaml ? "[COPIED!]" : "[COPY]"}</button>
                             </h3>
-                            <div onTouchStart={stopPropagation} className="code-container flex-1 overflow-auto bg-slate-50 dark:bg-[#0d1117] rounded p-2 border border-slate-200 dark:border-slate-800">
+                            <div onTouchStart={stopPropagation} className="code-container flex-1 overflow-auto bg-[#f6f4f0]/50 dark:bg-[#0d1117] rounded p-2 border border-slate-200 dark:border-slate-800">
                                 <pre className="text-[10px] md:text-xs text-slate-700 dark:text-slate-300 whitespace-pre">{loading ? "Loading..." : composeCode}</pre>
                             </div>
                         </div>
@@ -294,20 +294,20 @@ function ModalContent({
                                 <h3 className="text-blue-600 dark:text-blue-400 mb-1 font-bold flex justify-between uppercase">Compose Command
                                     <button onClick={() => copyToClipboard("docker compose up -d", setCopiedComposeCmd)} className={`cursor-pointer transition-colors ${copiedComposeCmd ? 'text-green-600 dark:text-green-500' : 'text-slate-500 hover:text-green-500'}`}>{copiedComposeCmd ? "[COPIED!]" : "[COPY]"}</button>
                                 </h3>
-                                <div onTouchStart={stopPropagation} className="code-container bg-slate-100 dark:bg-[#0d1117] p-2 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 overflow-x-auto whitespace-nowrap">$ docker compose up -d</div>
+                                <div onTouchStart={stopPropagation} className="code-container bg-[#f6f4f0]/50 dark:bg-[#0d1117] p-2 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 overflow-x-auto whitespace-nowrap">$ docker compose up -d</div>
                             </div>
                             <div className="text-[10px] md:text-xs">
                                 <h3 className="text-blue-600 dark:text-blue-400 mb-1 font-bold flex justify-between uppercase">Docker Run
                                     <button onClick={() => copyToClipboard(app.run_command || `docker run -d --name ${app.slug}`, setCopiedRunCmd)} className={`cursor-pointer transition-colors ${copiedRunCmd ? 'text-green-600 dark:text-green-500' : 'text-slate-500 hover:text-green-500'}`}>{copiedRunCmd ? "[COPIED!]" : "[COPY]"}</button>
                                 </h3>
-                                <div onTouchStart={stopPropagation} className="code-container bg-slate-100 dark:bg-[#0d1117] p-2 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 overflow-x-auto whitespace-nowrap">$ {app.run_command || `docker run -d --name ${app.slug}`}</div>
+                                <div onTouchStart={stopPropagation} className="code-container bg-[#f6f4f0]/50 dark:bg-[#0d1117] p-2 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 overflow-x-auto whitespace-nowrap">$ {app.run_command || `docker run -d --name ${app.slug}`}</div>
                             </div>
                         </div>
 
                         <div className="flex items-center justify-end gap-3 w-full">
                             <button 
                                 onClick={onRandom}
-                                className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-emerald-600/30 hover:border-emerald-500/60 bg-white/5 dark:bg-emerald-950/5 backdrop-blur-sm cursor-pointer"
+                                className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-emerald-600/30 hover:border-emerald-500/60 bg-emerald-100 dark:bg-emerald-950/5 backdrop-blur-sm cursor-pointer"
                             >
                                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-600/20 via-green-900/5 to-transparent" />
                                 <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent" />
@@ -326,7 +326,7 @@ function ModalContent({
                             <a 
                                 href={`https://github.com/vukilis/docker-ninja/issues?q=is%3Aissue+is%3Aopen+${encodeURIComponent(app.name)}`}
                                 target="_blank"
-                                className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-purple-600/30 hover:border-purple-500/60 bg-white/5 dark:bg-purple-950/5 backdrop-blur-sm"
+                                className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-purple-600/30 hover:border-purple-500/60 bg-purple-100 dark:bg-purple-950/5 backdrop-blur-sm"
                             >
                                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-600/20 via-fuchsia-900/5 to-transparent" />
                                 <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-purple-400/10 to-transparent" />
@@ -349,7 +349,7 @@ function ModalContent({
                             
                             <button 
                                 onClick={(e) => { e.preventDefault(); setIsRequesting(true); }}
-                                className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-amber-600/30 hover:border-amber-500/60 bg-white/5 dark:bg-amber-950/5 backdrop-blur-sm cursor-pointer"
+                                className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-amber-600/30 hover:border-amber-500/60 bg-amber-100 dark:bg-amber-950/5 backdrop-blur-sm cursor-pointer"
                             >
                                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-600/20 via-yellow-900/5 to-transparent" />
                                     <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-amber-400/10 to-transparent" />
@@ -508,7 +508,7 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-2 md:p-4 overflow-hidden" onClick={onClose}>
             <div 
-                className="bg-white dark:bg-[#0d1117] border border-slate-300 dark:border-blue-900/50 w-full max-w-5xl h-[90vh] max-h-[90vh] font-mono shadow-2xl flex flex-col rounded-2xl relative overflow-auto" 
+                className="bg-[#f6f4f0] dark:bg-[#0d1117] border border-slate-300 dark:border-blue-900/50 w-full max-w-5xl h-[90vh] max-h-[90vh] font-mono shadow-2xl flex flex-col rounded-2xl relative overflow-auto" 
                 onClick={stopPropagation}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}

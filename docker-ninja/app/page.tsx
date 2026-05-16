@@ -13,9 +13,10 @@ import { NetworkBackground } from './components/NetworkMap';
 import SearchInput from './components/SearchInput';
 import AboutPage from './components/AboutPage';
 import { Sponsoring } from './components/Sponsoring';
+import CommunityPage from './components/CommunityPage';
 
 // --- TYPES ---
-export type ViewMode = 'dashboard' | 'About' | 'Sponsoring';
+export type ViewMode = 'dashboard' | 'About' | 'Sponsoring' | 'Community';
 
 export interface AppData {
   id: string | number;
@@ -76,7 +77,7 @@ export default function Home() {
   const [currentView, setCurrentView] = useState<ViewMode>(() => {
     if (typeof window === 'undefined') return 'dashboard';
     const view = new URLSearchParams(window.location.search).get('view');
-    return (view === 'About' || view === 'Sponsoring') ? view : 'dashboard';
+    return (view === 'About' || view === 'Sponsoring' || view === 'Community') ? view : 'dashboard';
   });
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -178,7 +179,7 @@ export default function Home() {
     const handleScroll = () => setShowScrollTop(container.scrollTop > 400);
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [isStarted, currentView]);
+  }, [isStarted, currentView, isMounted]);
 
   useEffect(() => {
     if (selectedApp) {
@@ -200,13 +201,13 @@ export default function Home() {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const navigateTo = (path: 'landing' | 'dashboard' | 'About' | 'Sponsoring') => {
+  const navigateTo = (path: 'landing' | 'dashboard' | 'About' | 'Sponsoring' | 'Community') => {
     setSidebarOpen(false);
     if (path === 'landing') {
       setIsStarted(false);
       setSelectedApp(null);
       setCurrentView('dashboard');
-    } else if (path === 'About' || path === 'Sponsoring') {
+    } else if (path === 'About' || path === 'Sponsoring' || path === 'Community') {
       setIsStarted(true);
       setCurrentView(path);
     } else {
@@ -266,7 +267,7 @@ export default function Home() {
           ))}
         </div>
         <div className="mt-6 md:mt-10 relative">
-          <div className="h-[1px] w-full bg-slate-100 dark:bg-slate-800/50" />
+          <div className="h-[1px] w-full bg-[#B7C7CD] dark:bg-slate-800/50" />
         </div>
       </div>
     );
@@ -329,7 +330,7 @@ export default function Home() {
             </span>
             V1.0 Live Now
           </div>
-          <h1 className="text-7xl md:text-9xl font-black text-slate-900 dark:text-white tracking-tighter">
+          <h1 className="text-7xl md:text-9xl font-black text-white dark:text-white tracking-tighter">
             DOCKER<br/><span className="text-blue-600">NINJA</span>
           </h1>
           <div className="relative group max-w-2xl mx-auto">
@@ -360,7 +361,7 @@ export default function Home() {
         </div>
         <div className="mt-10 md:mt-20 flex flex-wrap justify-center gap-5 lg:gap-20 uppercase text-[10px] font-black tracking-[0.3em]">
           <div className="group relative text-center">
-            <div className="text-slate-900 dark:text-white text-3xl mb-1 tabular-nums">
+            <div className="text-white dark:text-white text-3xl mb-1 tabular-nums">
               <Counter value={apps.length} delay={2000} />
             </div>
             <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Containers</div>
@@ -369,7 +370,7 @@ export default function Home() {
             <DeployedCounter />
           </div>
           <div className="group relative text-center">
-            <div className="text-slate-900 dark:text-white text-3xl mb-1 tabular-nums">
+            <div className="text-white dark:text-white text-3xl mb-1 tabular-nums">
               <Counter value={categories.length} delay={2000} />
             </div>
             <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Categories</div>
@@ -380,10 +381,10 @@ export default function Home() {
   }
 
   return (
-    <div className="flex h-screen bg-white dark:bg-[#0d1117] text-slate-900 dark:text-slate-100 transition-colors">
+    <div className="flex h-screen dark:bg-[#0d1117] text-slate-900 dark:text-slate-100 transition-colors">
       {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />}
       
-      <aside className={`fixed lg:relative z-50 h-full bg-slate-50 dark:bg-[#0b0e14] border-l lg:border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out 
+      <aside className={`fixed lg:relative z-50 h-full bg-[#B7C7CD] dark:bg-[#0b0e14] border-l lg:border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out 
         ${sidebarOpen ? 'translate-x-0 w-72 right-0' : 'translate-x-full lg:translate-x-0 right-0 lg:right-auto'} 
         ${sidebarCollapsed ? 'lg:w-24' : 'lg:w-72'}`}
       >
@@ -432,24 +433,49 @@ export default function Home() {
             </button>
 
             <div className="pt-6 mt-6 border-t border-slate-200 dark:border-slate-800 space-y-2">
+              {/* ABOUT BUTTON */}
               <button 
                 onClick={() => { setCurrentView('About'); setSidebarOpen(false); }}
                 className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${currentView === 'About' ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'} ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
               >
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+                <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+                </div>
                 {!sidebarCollapsed && <span>About</span>}
               </button>
 
-              <a href="https://github.com/vukilis" target="_blank" rel="noreferrer" className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" /></svg>
+              {/* COMMUNITY BUTTON */}
+              <button 
+                onClick={() => { setCurrentView('Community'); setSidebarOpen(false); }}
+                className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${currentView === 'Community' ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'} ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
+              >
+                <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                </div>
+                {!sidebarCollapsed && <span>Community</span>}
+              </button>
+
+              {/* GITHUB LINK */}
+              <a 
+                href="https://github.com/vukilis" 
+                target="_blank" 
+                rel="noreferrer" 
+                className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
+              >
+                <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" /></svg>
+                </div>
                 {!sidebarCollapsed && <span>GitHub</span>}
               </a>
 
+              {/* SPONSORING BUTTON */}
               <button 
                 onClick={() => { setCurrentView('Sponsoring'); setSidebarOpen(false); }}
                 className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${currentView === 'Sponsoring' ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'} ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
               >
-                <span className="w-4 h-4 flex items-center justify-center shrink-0">❤️</span>
+                <div className="w-5 h-5 flex items-center justify-center shrink-0 text-sm">
+                  ❤️
+                </div>
                 {!sidebarCollapsed && <span>Sponsoring</span>}
               </button>
             </div>
@@ -516,11 +542,11 @@ export default function Home() {
               {isMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-60" onClick={() => setIsMenuOpen(false)} />
-                  <div className="fixed left-1/2 -translate-x-1/2 top-16 w-[90%] p-3 bg-white dark:bg-[#0B0B11] border border-t-0 border-slate-200 dark:border-blue-600/50 shadow-[0_20px_50px_rgba(0,0,0,0.4)] z-[70] rounded-b-3xl animate-in slide-in-from-top duration-300">                    
+                  <div className="fixed left-1/2 -translate-x-1/2 top-16 w-[90%] p-3 bg-[#f6f4f0] dark:bg-[#0B0B11] border border-t-0 border-slate-200 dark:border-blue-600/50 shadow-[0_20px_50px_rgba(0,0,0,0.4)] z-[70] rounded-b-3xl animate-in slide-in-from-top duration-300">                    
                     <div className="grid grid-cols-3 gap-3">
                       <button 
                           onClick={() => { handleRandomApp(); setIsMenuOpen(false); }}
-                          className="relative group flex flex-col items-center justify-center gap-2 py-4 rounded-xl border border-slate-200 dark:border-emerald-600/30 bg-white/5 dark:bg-emerald-950/10 cursor-pointer"
+                          className="relative group flex flex-col items-center justify-center gap-2 py-4 rounded-xl border border-slate-200 dark:border-emerald-600/30 bg-emerald-100 dark:bg-emerald-950/10 cursor-pointer"
                       >
                           <div className="relative shrink-0 text-emerald-400">
                               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]">
@@ -529,13 +555,13 @@ export default function Home() {
                           </div>
                           <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Surprise</span>
                       </button>
-                      <a href="https://github.com/vukilis/docker-ninja/issues" target="_blank" rel="noreferrer" className="relative group flex flex-col items-center justify-center gap-2 py-4 rounded-xl border border-slate-200 dark:border-purple-600/30 bg-white/5 dark:bg-purple-950/10 cursor-pointer">
+                      <a href="https://github.com/vukilis/docker-ninja/issues" target="_blank" rel="noreferrer" className="relative group flex flex-col items-center justify-center gap-2 py-4 rounded-xl border border-slate-200 dark:border-purple-600/30 bg-purple-100 dark:bg-purple-950/10 cursor-pointer">
                           <div className="relative shrink-0 text-purple-400">
                               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]"><rect width="8" height="14" x="8" y="6" rx="4" /><path d="m19 7-3 2" /><path d="m5 7 3 2" /><path d="m19 19-3-2" /><path d="m5 19 3-2" /><path d="M20 13h-4" /><path d="M4 13h4" /><path d="m10 4 1 2" /><path d="m14 4-1 2" /></svg>
                           </div>
                           <span className="text-[10px] font-black uppercase tracking-widest text-purple-400">Report</span>
                       </a>
-                      <button onClick={() => { setIsRequesting(true); setIsMenuOpen(false); }} className="relative group flex flex-col items-center justify-center gap-2 py-4 rounded-xl border border-slate-200 dark:border-amber-600/30 bg-white/5 dark:bg-amber-950/10 cursor-pointer">
+                      <button onClick={() => { setIsRequesting(true); setIsMenuOpen(false); }} className="relative group flex flex-col items-center justify-center gap-2 py-4 rounded-xl border border-slate-200 dark:border-amber-600/30 bg-amber-100 dark:bg-amber-950/10 cursor-pointer">
                           <div className="relative shrink-0 text-amber-400">
                               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" /><path d="M9 18h6" /><path d="M10 22h4" /></svg>
                           </div>
@@ -551,7 +577,7 @@ export default function Home() {
               {/* Random App Button */}
               <button 
                   onClick={handleRandomApp}
-                  className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-emerald-600/30 hover:border-emerald-500/60 bg-white/5 dark:bg-emerald-950/5 backdrop-blur-sm cursor-pointer"
+                  className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-emerald-600/30 hover:border-emerald-500/60 bg-emerald-100 dark:bg-emerald-950/5 backdrop-blur-sm cursor-pointer"
               >
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-600/20 via-green-900/5 to-transparent" />
                   <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent" />
@@ -589,7 +615,7 @@ export default function Home() {
               <a 
                   href={`https://github.com/vukilis/docker-ninja/issues?q=is%3Aissue+is%3Aopen`}
                   target="_blank"
-                  className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-purple-600/30 hover:border-purple-500/60 bg-white/5 dark:bg-purple-950/5 backdrop-blur-sm"
+                  className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-purple-600/30 hover:border-purple-500/60 bg-purple-100 dark:bg-purple-950/5 backdrop-blur-sm"
               >
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-600/20 via-fuchsia-900/5 to-transparent" />
                   <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-purple-400/10 to-transparent" />
@@ -616,7 +642,7 @@ export default function Home() {
                       e.preventDefault();
                       setIsRequesting(true);
                   }}
-                  className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-amber-600/30 hover:border-amber-500/60 bg-white/5 dark:bg-amber-950/5 backdrop-blur-sm cursor-pointer"
+                  className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-amber-600/30 hover:border-amber-500/60 bg-amber-100 dark:bg-amber-950/5 backdrop-blur-sm cursor-pointer"
               >
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-600/20 via-yellow-900/5 to-transparent" />
                       <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-amber-400/10 to-transparent" />
@@ -649,6 +675,8 @@ export default function Home() {
             <AboutPage />
           ) : currentView === 'Sponsoring' ? (
             <Sponsoring />
+          ) : currentView === 'Community' ? (
+            <CommunityPage />
           ) : (
             <div className="p-6 lg:p-10">
               <div className="max-w-10xl mx-auto">
