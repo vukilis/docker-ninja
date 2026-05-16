@@ -10,6 +10,7 @@ import {
     Zap,
     ExternalLink
 } from 'lucide-react';
+import { Navigation } from '../hooks/navigation';
 
 const FAQS = [
     {
@@ -105,6 +106,7 @@ const FAQItem: React.FC<FAQItemProps> = ({ faq, isOpen, toggle }) => (
 
 export default function CommunityPage() {
     const [openFaq, setOpenFaq] = useState<number>(0);
+    const { navigateTo } = Navigation();
 
     return (
         <div className="min-h-screen dark:bg-[#0d1117] text-slate-900 dark:text-slate-100 p-4 md:p-20 pb-12 px-4 sm:px-6 lg:px-8 font-sans">
@@ -274,13 +276,13 @@ export default function CommunityPage() {
                                     </p>
                                 </div>
                                 <div className="w-full mt-auto flex justify-center">
-                                    <a 
-                                    href="?view=Sponsoring"
-                                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-950 border border-slate-800 text-slate-300 hover:text-purple-400 hover:border-purple-500/40 rounded-xl font-bold text-xs uppercase tracking-widest transition-all duration-300 group-hover/sponsor:shadow-lg group-hover/sponsor:shadow-purple-950/10"
+                                    <button 
+                                        onClick={() => navigateTo('Sponsoring')}
+                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-950 border border-slate-800 text-slate-300 hover:text-purple-400 hover:border-purple-500/40 rounded-xl font-bold text-xs uppercase tracking-widest transition-all duration-300 group-hover/sponsor:shadow-lg group-hover/sponsor:shadow-purple-950/10 cursor-pointer"
                                     >
                                     <span className="w-4 h-4 flex items-center justify-center shrink-0">❤️</span>
                                     Sponsoring
-                                    </a>
+                                    </button>
                                 </div>
                             </div>
                         </div>
