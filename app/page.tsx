@@ -14,6 +14,8 @@ import SearchInput from './components/SearchInput';
 import AboutPage from './components/AboutPage';
 import { Sponsoring } from './components/Sponsoring';
 import CommunityPage from './components/CommunityPage';
+import { Navigation } from './hooks/navigation';
+import { Pagination } from './components/Paginations';
 
 // --- TYPES ---
 export type ViewMode = 'dashboard' | 'About' | 'Sponsoring' | 'Community';
@@ -59,6 +61,12 @@ function useGlobalScrollbar() {
 
 // --- MAIN DASHBOARD ---
 export default function Home() {
+
+  // --- STATE & DATA ---
+  const { navigateTo } = Navigation();
+  const [currentPage, setCurrentPage] = useState(1);
+  const APPS_PER_PAGE = 64;
+
   const { 
     filteredApps, categories, search, setSearch, 
     selectedCategory, setSelectedCategory, apps, getCountByCategory 
@@ -106,25 +114,43 @@ export default function Home() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const hasHydrated = useRef(false);
 
+  // URL SYNC: Listen to navigation and sync URL params to state
+  useEffect(() => {
+    const handleLocationChange = () => {
+      const params = new URLSearchParams(window.location.search);
+      const view = params.get('view') as ViewMode | null;
+      const isStartedLoc = localStorage.getItem('ninja_isStarted') === 'true';
+
+      setIsStarted(isStartedLoc);
+      
+      if (!isStartedLoc) {
+        setSelectedApp(null);
+        setCurrentView('dashboard');
+      } else if (view === 'About' || view === 'Sponsoring' || view === 'Community') {
+        setCurrentView(view);
+      } else {
+        setCurrentView('dashboard');
+      }
+    };
+
+    handleLocationChange();
+
+    window.addEventListener('popstate', handleLocationChange);
+    return () => window.removeEventListener('popstate', handleLocationChange);
+  }, [setSelectedApp]);
+
   // MOUNT & INITIAL HYDRATION (Sync URL params to state once)
   useEffect(() => {
-    // 1. Only run this if we haven't hydrated yet and we have apps
     if (hasHydrated.current || apps.length === 0) return;
-
     const appId = searchParams.get('app') || searchParams.get('id');
     const catParam = searchParams.get('category');
-
-    // Handle App Direct Link
     if (appId) {
         const found = apps.find(a => String(a.id) === String(appId) || a.slug === appId);
         if (found) {
             setSelectedApp(found);
-            // Ensure the background is ready so the modal has a "home"
             setIsStarted(true); 
         }
     }
-
-    // Handle Category Direct Link
     if (catParam) {
         setSelectedCategory('ShowCategories');
         if (catParam !== 'ShowCategories' && categories.includes(catParam)) {
@@ -132,7 +158,6 @@ export default function Home() {
         }
         setIsStarted(true);
     }
-
     setIsMounted(true);
     hasHydrated.current = true;
   }, [apps, searchParams, categories]); 
@@ -167,20 +192,25 @@ export default function Home() {
       .sort((a, b) => a.localeCompare(b));
   }, [categories]);
 
+  // Ensure a subcategory is always active when "ShowCategories" is selected
   useEffect(() => {
     if (selectedCategory === "ShowCategories" && !activeSubCategory && sortedCategories.length > 0) {
       setActiveSubCategory(sortedCategories[0]);
     }
   }, [selectedCategory, sortedCategories, activeSubCategory]);
 
+  // SCROLL HANDLER: Show "Scroll to Top" button after scrolling down a bit
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
+    container.scrollTop = 0;
+    // setCurrentPage(1);
     const handleScroll = () => setShowScrollTop(container.scrollTop > 400);
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [isStarted, currentView, isMounted]);
+  }, [isStarted, currentView, isMounted, selectedCategory, activeSubCategory]);
 
+  // RECENTLY VIEWED PERSISTENCE
   useEffect(() => {
     if (selectedApp) {
       document.body.style.overflow = 'hidden';
@@ -197,24 +227,20 @@ export default function Home() {
 
   useGlobalScrollbar();
 
+  // SCROLL TO TOP FUNCTION
   const scrollToTop = () => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const navigateTo = (path: 'landing' | 'dashboard' | 'About' | 'Sponsoring' | 'Community') => {
-    setSidebarOpen(false);
-    if (path === 'landing') {
-      setIsStarted(false);
-      setSelectedApp(null);
-      setCurrentView('dashboard');
-    } else if (path === 'About' || path === 'Sponsoring' || path === 'Community') {
-      setIsStarted(true);
-      setCurrentView(path);
-    } else {
-      setIsStarted(true);
-      setCurrentView('dashboard');
+  // When changing pages, scroll back to top of the container
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
     }
-  };
+  }, [currentPage]);
 
   const handleAppSelect = (app: AppData) => {
     setSelectedApp(app);
@@ -274,16 +300,33 @@ export default function Home() {
   };
 
   const renderDashboard = () => {
+    const indexOfLastApp = currentPage * APPS_PER_PAGE;
+    const indexOfFirstApp = indexOfLastApp - APPS_PER_PAGE;
+    const handlePageChange = (pageNumber: number) => {
+      setCurrentPage(pageNumber);
+      scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    };
     if (selectedCategory !== "ShowCategories") {
+      const paginatedApps = filteredApps.slice(indexOfFirstApp, indexOfLastApp);
       return (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-          {filteredApps.map((app) => (
-            <AppCard key={app.id} app={app} onClick={() => handleAppSelect(app)} />
-          ))}
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+            {paginatedApps.map((app) => (
+              <AppCard key={app.id} app={app} onClick={() => handleAppSelect(app)} />
+            ))}
+          </div>
+
+          <Pagination 
+            totalItems={filteredApps.length}
+            itemsPerPage={APPS_PER_PAGE}
+            currentPage={currentPage}
+            onPageChange={handlePageChange}
+          />
         </div>
       );
     }
     const categoryApps = filteredApps.filter(a => a.category === activeSubCategory);
+    const paginatedCategoryApps = categoryApps.slice(indexOfFirstApp, indexOfLastApp);
     return (
       <div className="space-y-8">
         <div className="relative">
@@ -307,10 +350,16 @@ export default function Home() {
           <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white dark:from-[#0d1117] to-transparent pointer-events-none md:hidden" />
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-          {categoryApps.map((app) => (
+          {paginatedCategoryApps.map((app) => (
             <AppCard key={app.id} app={app} onClick={() => handleAppSelect(app)} />
           ))}
         </div>
+        <Pagination
+          totalItems={categoryApps.length}
+          itemsPerPage={APPS_PER_PAGE}
+          currentPage={currentPage}
+          onPageChange={handlePageChange}
+        />
       </div>
     );
   };
