@@ -5,12 +5,12 @@ import './style/globals.css';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="bg-[#f6f4f0] dark:bg-[#0d1117] text-slate-900 dark:text-slate-200 transition-colors duration-300">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <Preloader />
-          {children}
-        </ThemeProvider>
-      </body>
+      <body className="my-custom-background text-slate-900 dark:text-slate-200">
+  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+    <Preloader />
+    {children}
+  </ThemeProvider>
+</body>
     </html>
   );
 }
