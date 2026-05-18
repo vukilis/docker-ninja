@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { getComposeContent, incrementCopyCount, getGlobalStats } from '../actions';
+import { getComposeContent, incrementCopyCount, getGlobalStats, fetchAppLikes, toggleAppLike, checkHasDeviceLiked } from '../actions';
 import SearchInput from './SearchInput';
 import { Counter } from './Counter';
 import { getIcon } from '../hooks/icons';
+import { getOrCreateDeviceUUID } from './Utils';
 
 // --- SHARED TYPES ---
 interface App {
@@ -140,13 +141,25 @@ function ModalContent({
     copiedYaml, setCopiedYaml, copiedComposeCmd, setCopiedComposeCmd,
     copiedRunCmd, setCopiedRunCmd, copyToClipboard,
     handlePrev, handleNext, onClose, stopPropagation,
-    handleShare, copiedLink, setIsRequesting, onRandom
+    handleShare, copiedLink, setIsRequesting, onRandom, handleLikeToggle,
+    isLiked, likesCount, isSyncing
 }: any) {
     if (!app) return null;
 
+    // Find the current app's index within its category for pagination display
     const currentIndex = categoryApps.findIndex((a: App) => a.id === app.id) + 1;
     const totalApps = categoryApps.length;
     const icon = getIcon(app.slug, app.icon_url);
+
+    // Helper to format large numbers in a compact form (e.g., 1.2K, 3.4M)
+    const formatCompactNumber = (number: number) => {
+        if (number < 1000) return number.toString();
+        
+        return new Intl.NumberFormat('en-US', {
+            notation: 'compact',
+            maximumFractionDigits: 1
+        }).format(number);
+    };
 
     return (
         <div className="flex flex-col h-full">
@@ -154,7 +167,39 @@ function ModalContent({
             <div className="flex flex-col md:flex-row md:justify-between md:items-center p-4 md:p-8 pb-4 border-b border-[#B7C7CD] dark:border-slate-800/50 z-30 dark:bg-[#0d1117] select-none gap-4">
                 <div className="flex justify-between items-start md:block">
                     <div className="flex flex-col gap-1 min-w-0">
-                        <h2 className="text-xl md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter truncate">{app.name}</h2>
+                        <div className="flex items-center gap-3 flex-wrap max-w-full">
+                            <h2 className="text-xl md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter truncate">
+                                {app.name}
+                            </h2>
+                            
+                            {/* LIKE BUTTON */}
+                            <button
+                                onClick={handleLikeToggle}
+                                className={`group inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold transition-all duration-300 transform active:scale-95 cursor-pointer select-none ${
+                                    isLiked 
+                                        ? 'bg-rose-500/10 border-rose-500/30 text-rose-500' 
+                                        : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-rose-500/40 hover:text-rose-500'
+                                } ${isSyncing ? 'opacity-80' : ''}`}
+                            >
+                                <svg 
+                                    xmlns="http://www.w3.org/2000/svg" 
+                                    viewBox="0 0 24 24" 
+                                    fill={isLiked ? "currentColor" : "none"} 
+                                    stroke="currentColor" 
+                                    strokeWidth="2.5" 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round" 
+                                    className={`w-3.5 h-3.5 shrink-0 transition-transform duration-300 ${
+                                        isLiked ? 'animate-in zoom-in-75 duration-200 scale-110' : 'group-hover:scale-110'
+                                    }`}
+                                >
+                                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                                </svg>
+                                <span className="tabular-nums font-sans text-[12px] font-black leading-none inline-flex items-center">
+                                    {formatCompactNumber(likesCount)}
+                                </span>
+                            </button>
+                        </div>
                         <div className="flex items-center gap-2">
                             <div className="h-1 w-8 bg-blue-600 rounded-full" />
                             <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em]">
@@ -191,7 +236,7 @@ function ModalContent({
                         >
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-600/20 via-fuchsia-900/5 to-transparent" />
                         <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-purple-400/10 to-transparent" />
-                        <div className="relative flex items-center gap-2 text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-400 transition-colors duration-300">
+                        <div className="relative flex items-center gap-2 text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-900 dark:group-hover:text-fuchsia-400 transition-colors duration-300">
                             <div className="relative">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
                                 <rect width="8" height="14" x="8" y="6" rx="4" />
@@ -311,7 +356,7 @@ function ModalContent({
                             >
                                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-600/20 via-green-900/5 to-transparent" />
                                 <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent" />
-                                <div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-emerald-400 group-hover:text-emerald-300 transition-colors duration-300">
+                                <div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-emerald-400 group-hover:text-emerald-900 dark:group-hover:text-emerald-300 transition-colors duration-300">
                                     <div className="relative shrink-0 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]">
                                             <path d="m15 5 4 4" /><path d="M11 9 2 18l4 4 9-9" />
@@ -331,7 +376,7 @@ function ModalContent({
                                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-600/20 via-fuchsia-900/5 to-transparent" />
                                 <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-purple-400/10 to-transparent" />
                                 
-                                <div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-400 transition-colors duration-300">
+                                <div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-900 dark:group-hover:text-fuchsia-400 transition-colors duration-300">
                                     <div className="relative shrink-0">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
                                             <rect width="8" height="14" x="8" y="6" rx="4" />
@@ -353,7 +398,7 @@ function ModalContent({
                             >
                                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-600/20 via-yellow-900/5 to-transparent" />
                                     <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-amber-400/10 to-transparent" />
-                                    <div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-amber-400 group-hover:text-yellow-400 transition-colors duration-300">
+                                    <div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-amber-400 group-hover:text-yellow-900 dark:group-hover:text-yellow-400 transition-colors duration-300">
                                         <div className="relative shrink-0">
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]">
                                                 <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" /><path d="M9 18h6" /><path d="M10 22h4" />
@@ -372,6 +417,7 @@ function ModalContent({
 
 // --- MAIN EXPORT ---
 export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppModalProps) {
+    // State for content and interactions
     const [composeCode, setComposeCode] = useState("Loading...");
     const [copiedYaml, setCopiedYaml] = useState(false);
     const [copiedComposeCmd, setCopiedComposeCmd] = useState(false);
@@ -380,19 +426,27 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
     const [loading, setLoading] = useState(true);
     const [isRequesting, setIsRequesting] = useState(false);
 
+    // Drag state
     const [dragOffset, setDragOffset] = useState(0);
     const [isDragging, setIsDragging] = useState(false);
     const [status, setStatus] = useState<'idle' | 'exiting' | 'resetting'>('idle');
     const [direction, setDirection] = useState<'left' | 'right' | null>(null);
 
+    // Refs for touch handling
     const touchStartPos = useRef({ x: 0, y: 0 });
     const isScrolling = useRef(false);
 
+    // Get apps in the same category for navigation
     const categoryApps = useMemo(() => allApps.filter(a => a.category === app.category), [allApps, app.category]);
     const currentIndex = categoryApps.findIndex(a => a.id === app.id);
     const nextApp = categoryApps[(currentIndex + 1) % categoryApps.length];
     const prevApp = categoryApps[(currentIndex - 1 + categoryApps.length) % categoryApps.length];
 
+    // Like state
+    const [isLiked, setIsLiked] = useState(false);
+    const [likesCount, setLikesCount] = useState<number>();
+    const [isSyncing, setIsSyncing] = useState(false);
+    
     const navigate = useCallback((dir: 'left' | 'right', targetApp: App) => {
         if (status !== 'idle') return;
         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -461,10 +515,26 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleKeyDown]);
 
+    // Load compose content when app changes
     useEffect(() => {
-        setLoading(true);
-        getComposeContent(app).then(setComposeCode).finally(() => setLoading(false));
-    }, [app]);
+        async function loadYamlFile() {
+            if (!app?.slug) return;
+            
+            try {
+                if (typeof setLoading === 'function') setLoading(true); 
+                const yamlCode = await getComposeContent(app.slug);
+                if (typeof setComposeCode === 'function') {
+                    setComposeCode(yamlCode);
+                }
+            } catch (err) {
+                console.error("Failed loading compose template:", err);
+            } finally {
+                if (typeof setLoading === 'function') setLoading(false);
+            }
+        }
+        
+        loadYamlFile();
+    }, [app?.slug]);
 
     const copyToClipboard = async (text: string, setCopied: (val: boolean) => void, shouldTrack: boolean = false) => {
         try {
@@ -505,10 +575,53 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
         return 'translateX(0)';
     };
 
+    useEffect(() => {
+        if (!app?.slug) return; 
+        
+        async function fetchLikesAndStatus() {
+            const liveCount = await fetchAppLikes(app.slug);
+            setLikesCount(liveCount);
+
+            if (typeof window !== 'undefined') {
+                const browserUuid = getOrCreateDeviceUUID();
+                const hasLikedBefore = await checkHasDeviceLiked(app.slug, browserUuid);
+                setIsLiked(hasLikedBefore);
+            }
+        }
+        
+        fetchLikesAndStatus();
+    }, [app?.slug]);
+
+    // --- LIKE TOGGLE HANDLER ---
+    const handleLikeToggle = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isSyncing) return;
+
+        const browserUuid = getOrCreateDeviceUUID();
+        if (!browserUuid) return; 
+
+        const futureLikedState = !isLiked;
+        
+        setIsLiked(futureLikedState);
+        setLikesCount(prev => futureLikedState ? prev + 1 : Math.max(0, prev - 1));
+        setIsSyncing(true);
+
+        const success = await toggleAppLike(app.slug, futureLikedState, browserUuid);
+
+        if (success) {
+            const freshCount = await fetchAppLikes(app.slug);
+            setLikesCount(freshCount);
+        } else {
+            setIsLiked(!futureLikedState);
+            setLikesCount(prev => futureLikedState ? Math.max(0, prev - 1) : prev + 1);
+        }
+        setIsSyncing(false);
+    };
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md p-2 md:p-4 overflow-hidden" onClick={onClose}>
             <div 
-                className="bg-[#f6f4f0] dark:bg-[#0d1117] border border-slate-300 dark:border-blue-900/50 w-full max-w-5xl h-[90vh] max-h-[90vh] font-mono shadow-2xl flex flex-col rounded-2xl relative overflow-auto" 
+                className="my-custom-background dark:bg-[#0d1117] border border-slate-300 dark:border-blue-900/50 w-full max-w-5xl h-[90vh] max-h-[90vh] font-mono shadow-2xl flex flex-col rounded-2xl relative overflow-auto" 
                 onClick={stopPropagation}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
@@ -533,6 +646,9 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
                     setIsRequesting={setIsRequesting}
                     onRandom={onRandom}
                     DeployedCounter={DeployedCounter}
+                    handleLikeToggle={handleLikeToggle}
+                    isLiked={isLiked}
+                    likesCount={likesCount}
                 />
             </div>
             {isRequesting && (
