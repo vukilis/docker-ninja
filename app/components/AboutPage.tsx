@@ -43,7 +43,7 @@ export default function AboutPage() {
                     <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white mb-4 tracking-tight uppercase italic">
                         The <span className="text-blue-600 dark:text-blue-400">Compose</span> Commons
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 max-w-xl mx-auto font-mono text-xs tracking-[0.15em] leading-relaxed">
+                    <p className="text-slate-900 dark:text-slate-400 max-w-xl mx-auto font-mono text-xs tracking-[0.15em] leading-relaxed">
                         $ cat ./why-i-built-this.md
                     </p>
                 </div>
@@ -162,10 +162,10 @@ export default function AboutPage() {
 
                 {/* Personal Signature */}
                 <div className="mt-20 text-center font-mono">
-                    <p className="text-slate-400 dark:text-slate-500 text-xs italic mb-4">
+                    <p className="text-slate-600 dark:text-slate-500 text-xs italic mb-4">
                         "If you find this useful, share a compose file or fuel the project"
                     </p>
-                    <div className="inline-flex items-center gap-2 px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg text-[10px] text-slate-500 uppercase tracking-tighter">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 border border-slate-400 dark:border-slate-800 rounded-lg text-[10px] text-slate-500 uppercase tracking-tighter">
                         <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
                         Active Maintainer Mode
                     </div>

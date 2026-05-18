@@ -71,7 +71,7 @@ export const Sponsoring = () => {
                     <h1 className="text-5xl md:text-6xl font-black text-slate-900 dark:text-white mb-6 tracking-tighter uppercase italic">
                         Fuel the <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-400">Project </span>🚀
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 max-w-xl mx-auto font-mono text-xs tracking-[0.15em] leading-relaxed">
+                    <p className="text-slate-900 dark:text-slate-400 max-w-xl mx-auto font-mono text-xs tracking-[0.15em] leading-relaxed">
                         $ ./initiate-support --mode=independent-creator
                     </p>
                 </div>
@@ -198,16 +198,16 @@ export const Sponsoring = () => {
                 </section>
 
                 {/* 4. PRIVACY GUARANTEE */}
-                <section className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-6">
+                <section className="bg-emerald-500/5 border border-emerald-500 dark:border-emerald-500/20 rounded-2xl p-6">
                     <div className="flex items-start gap-4">
                         <div className="mt-1">
                             <ShieldCheck className="text-emerald-500" size={24} />
                         </div>
                         <div>
-                            <h4 className="text-emerald-400 font-bold text-sm uppercase tracking-widest flex items-center gap-2">
+                            <h4 className="text-emerald-600 dark:text-emerald-400 font-bold text-sm uppercase tracking-widest flex items-center gap-2">
                                 Privacy Protocol Active <Lock size={12} />
                             </h4>
-                            <p className="mt-2 text-slate-600 text-sm leading-relaxed italic">
+                            <p className="mt-2 text-slate-600 dark:text-slate-400 text-sm leading-relaxed italic">
                                 "I respect your privacy. Monero donations are fully anonymous — I never collect names, emails, or any identifying information. Your support remains as private as your browsing should be."
                             </p>
                         </div>
@@ -216,7 +216,7 @@ export const Sponsoring = () => {
 
                 {/* Footer Metadata */}
                 <div className="text-center pt-8 border-t border-slate-900 font-mono">
-                    <div className="inline-flex items-center gap-4 text-[9px] text-slate-600 uppercase tracking-[0.3em]">
+                    <div className="inline-flex items-center gap-4 text-xs text-slate-600 uppercase tracking-[0.3em]">
                         <span>Secure SSL</span>
                         <div className="w-1 h-1 rounded-full bg-slate-800" />
                         <span>No Cookies</span>

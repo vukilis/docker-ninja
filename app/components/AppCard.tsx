@@ -18,7 +18,7 @@ export const AppCard: React.FC<AppCardProps> = ({ app, onClick }) => {
     return (
         <div 
             onClick={onClick} 
-            className="group relative aspect-square max-w-[160px] mx-auto w-full bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:border-blue-500/50 hover:shadow-[0_20px_40px_rgba(37,99,235,0.15)] hover:-translate-y-1 active:scale-95 overflow-hidden"
+            className="group relative aspect-square max-w-[160px] mx-auto w-full bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-slate-800 rounded-2xl p-2 md:p-3 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 hover:border-blue-500/50 hover:shadow-[0_20px_40px_rgba(37,99,235,0.15)] hover:-translate-y-1 active:scale-95 overflow-hidden"
         >
             <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="relative w-11 h-11 flex items-center justify-center group-hover:scale-110 transition-transform duration-500 ease-out">
@@ -37,7 +37,7 @@ export const AppCard: React.FC<AppCardProps> = ({ app, onClick }) => {
                 )}
             </div>
 
-            <p className="mt-3 text-[14px] leading-tight uppercase tracking-tighter text-slate-400 group-hover:text-blue-500 font-bold transition-colors text-center w-full px-1 line-clamp-2 overflow-hidden">
+            <p className="mt-3 text-[14px] leading-tight uppercase tracking-tighter text-slate-400 group-hover:text-blue-500 font-bold transition-colors text-center w-full line-clamp-2 overflow-hidden overflow-ellipsis">
                 {app.name}
             </p>
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-1 bg-blue-600 rounded-full transition-all duration-300 group-hover:w-1/3" />

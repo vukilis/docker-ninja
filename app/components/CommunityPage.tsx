@@ -121,7 +121,7 @@ export default function CommunityPage() {
                     <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white mb-4 tracking-tight uppercase italic">
                         The <span className="text-purple-600 dark:text-purple-400">Terminal</span> Core
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 max-w-xl mx-auto font-mono text-xs tracking-[0.15em] leading-relaxed">
+                    <p className="text-slate-900 dark:text-slate-400 max-w-xl mx-auto font-mono text-xs tracking-[0.15em] leading-relaxed">
                         $ cat ./core/manifesto.yml
                     </p>
                 </div>
@@ -164,9 +164,9 @@ export default function CommunityPage() {
                 {/* Shoutouts Section */}
                 <section className="mb-24">
                     <div className="flex items-center gap-3 mb-10">
-                        <div className="h-px flex-1 bg-gradient-to-r from-transparent to-slate-200 dark:to-slate-800"></div>
-                        <h2 className="text-sm font-mono uppercase tracking-[0.3em] text-slate-400">Shoutouts</h2>
-                        <div className="h-px flex-1 bg-gradient-to-l from-transparent to-slate-200 dark:to-slate-800"></div>
+                        <div className="h-px flex-1 bg-gradient-to-r from-transparent to-slate-800 dark:to-slate-800"></div>
+                        <h2 className="text-sm font-mono uppercase tracking-[0.3em] text-slate-500">Shoutouts</h2>
+                        <div className="h-px flex-1 bg-gradient-to-l from-transparent to-slate-800 dark:to-slate-800"></div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -290,7 +290,7 @@ export default function CommunityPage() {
 
                     {/* Footer Signature */}
                     <div className="text-center">
-                        <p className="text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-[0.2em]">
+                        <p className="text-slate-600 dark:text-slate-500 text-xs uppercase tracking-[0.2em]">
                         Built by Vuk1lis &mdash; Powered by the Community
                         </p>
                     </div>
