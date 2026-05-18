@@ -16,6 +16,7 @@ import { Sponsoring } from './components/Sponsoring';
 import CommunityPage from './components/CommunityPage';
 import { Navigation } from './hooks/navigation';
 import { Pagination } from './components/Paginations';
+import { fetchAllActiveLikes } from './actions';
 
 // --- TYPES ---
 export type ViewMode = 'dashboard' | 'About' | 'Sponsoring' | 'Community';
@@ -64,8 +65,10 @@ export default function Home() {
 
   // --- STATE & DATA ---
   const { navigateTo } = Navigation();
-  const [currentPage, setCurrentPage] = useState(1);
-  const APPS_PER_PAGE = 64;
+  const [paginationState, setPaginationState] = useState<Record<string, number>>({ 'all-apps': 1 });
+  const [appsPerPage, setAppsPerPage] = useState(64);
+  const [sortBy, setSortBy] = useState<'A-Z' | 'Z-A' | 'Favorites'>('A-Z');
+  const [globalLikes, setGlobalLikes] = useState<Record<string, number>>({});
 
   const { 
     filteredApps, categories, search, setSearch, 
@@ -160,7 +163,7 @@ export default function Home() {
     }
     setIsMounted(true);
     hasHydrated.current = true;
-  }, [apps, searchParams, categories]); 
+  }, [apps, searchParams, categories, setSelectedCategory]); 
 
   // URL SYNC & PERSISTENCE
   useEffect(() => {
@@ -192,6 +195,32 @@ export default function Home() {
       .sort((a, b) => a.localeCompare(b));
   }, [categories]);
 
+  // DYNAMIC SORTING INTERCEPTOR FOR THE DASHBOARD LISTS
+  const processedApps = useMemo(() => {
+    const items = [...filteredApps];
+
+    if (sortBy === 'A-Z') {
+      return items.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    if (sortBy === 'Z-A') {
+      return items.sort((a, b) => b.name.localeCompare(a.name));
+    }
+    if (sortBy === 'Favorites') {
+      return items.sort((a, b) => {
+        const countA = globalLikes[a.slug || ''] || 0;
+        const countB = globalLikes[b.slug || ''] || 0;
+
+        // Sort descending: Highest likes count comes first
+        if (countB !== countA) {
+          return countB - countA;
+        }
+        // Fallback to alphabetical order if likes are equal
+        return a.name.localeCompare(b.name);
+      });
+    }
+    return items;
+  }, [filteredApps, sortBy, globalLikes]);
+
   // Ensure a subcategory is always active when "ShowCategories" is selected
   useEffect(() => {
     if (selectedCategory === "ShowCategories" && !activeSubCategory && sortedCategories.length > 0) {
@@ -199,17 +228,38 @@ export default function Home() {
     }
   }, [selectedCategory, sortedCategories, activeSubCategory]);
 
-  // SCROLL HANDLER: Show "Scroll to Top" button after scrolling down a bit
+  // --- DYNAMIC VIEW PORT NAVIGATION  ---
+  const activePageForScroll = selectedCategory !== "ShowCategories" 
+    ? (paginationState['all-apps'] || 1) 
+    : (paginationState[activeSubCategory] || 1);
+
+  // SCROLL MECHANISM: Handles page resets, view shifts, and page flips seamlessly
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
     container.scrollTop = 0;
-    // setCurrentPage(1);
     const handleScroll = () => setShowScrollTop(container.scrollTop > 400);
     container.addEventListener('scroll', handleScroll);
     return () => container.removeEventListener('scroll', handleScroll);
-  }, [isStarted, currentView, isMounted, selectedCategory, activeSubCategory]);
+  }, [isStarted, currentView, isMounted, selectedCategory, activeSubCategory, activePageForScroll]);
 
+  // Automatically reset pagination when the user types a search query
+  useEffect(() => {
+    if (search.trim() !== "") {
+      const currentKey = selectedCategory !== "ShowCategories" ? 'all-apps' : activeSubCategory;
+      
+      setPaginationState(prev => {
+        // Only trigger state update if we aren't already on page 1 (prevents infinite re-render loops)
+        if (prev[currentKey || 'all-apps'] === 1) return prev;
+        
+        return {
+          ...prev,
+          [currentKey || 'all-apps']: 1
+        };
+      });
+    }
+  }, [search, selectedCategory, activeSubCategory]);
+  
   // RECENTLY VIEWED PERSISTENCE
   useEffect(() => {
     if (selectedApp) {
@@ -225,22 +275,52 @@ export default function Home() {
     }
   }, [selectedApp]);
 
+  // Sync device's locally liked records for instant client-side favorites sorting
+  useEffect(() => {
+    if (apps.length === 0 || Object.keys(globalLikes).length > 0) return;
+
+    async function loadDashboardLikes() {
+      try {
+        const activeLikesMap = await fetchAllActiveLikes();
+        setGlobalLikes(activeLikesMap);
+      } catch (err) {
+        console.error("Error setting active dashboard likes:", err);
+      }
+    }
+
+    loadDashboardLikes();
+  }, [apps]);
+
+  // DYNAMIC PAGINATION PER BREAKPOINT
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width >= 1536) {       // 2xl breakpoint
+        setAppsPerPage(64);
+      } else if (width >= 1280) { // xl breakpoint
+        setAppsPerPage(64);
+      } else if (width >= 1024) { // lg breakpoint
+        setAppsPerPage(64);
+      } else if (width >= 768) {  // md breakpoint
+        setAppsPerPage(64);
+      } else if (width >= 640) {  // sm breakpoint
+        setAppsPerPage(64);
+      } else {                    // Mobile layout
+        setAppsPerPage(63);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   useGlobalScrollbar();
 
   // SCROLL TO TOP FUNCTION
   const scrollToTop = () => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  // When changing pages, scroll back to top of the container
-  useEffect(() => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    }
-  }, [currentPage]);
 
   const handleAppSelect = (app: AppData) => {
     setSelectedApp(app);
@@ -276,7 +356,7 @@ export default function Home() {
           </h3>
         </div>
 
-        <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 md:gap-4 relative z-0">
+        <div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-8 lg:grid-cols-8 xl:grid-cols-8 gap-2 md:gap-4 relative z-0">
           {recentlyViewed.map((app, index) => (
             <div key={`recent-${app.id}`} className="relative group">
               {index < recentlyViewed.length - 1 && (
@@ -284,7 +364,7 @@ export default function Home() {
               )}
               
               <div 
-                className="relative z-10 transition-transform duration-300 active:scale-95 cursor-pointer transform scale-95 md:scale-100 origin-top max-md:[&_h3]:hidden max-md:[&_p]:hidden max-md:[&_span:not(.icon-span)]:hidden max-md:flex max-md:justify-center"
+                className="relative z-10 transition-transform duration-300 active:scale-95 cursor-pointer transform md:scale-100 origin-top max-xl:[&_h3]:hidden max-xl:[&_p]:hidden max-xl:[&_span:not(.icon-span)]:hidden max-md:flex max-md:justify-center"
                 onClick={() => setSelectedApp(app)}
               >
                 <AppCard app={app} onClick={() => setSelectedApp(app)} />
@@ -299,33 +379,47 @@ export default function Home() {
     );
   };
 
+  // --- RENDER DASHBOARD ---
   const renderDashboard = () => {
-    const indexOfLastApp = currentPage * APPS_PER_PAGE;
-    const indexOfFirstApp = indexOfLastApp - APPS_PER_PAGE;
+    // Fetch the contextual page number dynamically based on the active view
+    const activePage = selectedCategory !== "ShowCategories" 
+      ? (paginationState['all-apps'] || 1) 
+      : (paginationState[activeSubCategory] || 1);
+    
+    const indexOfLastApp = activePage * appsPerPage;
+    const indexOfFirstApp = indexOfLastApp - appsPerPage;
+
     const handlePageChange = (pageNumber: number) => {
-      setCurrentPage(pageNumber);
-      scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      const currentKey = selectedCategory !== "ShowCategories" ? 'all-apps' : activeSubCategory;
+      setPaginationState(prev => ({
+        ...prev,
+        [currentKey]: pageNumber
+      }));
     };
+
+    // --- VIEW 1: ALL CONTAINERS ---
     if (selectedCategory !== "ShowCategories") {
-      const paginatedApps = filteredApps.slice(indexOfFirstApp, indexOfLastApp);
+      const paginatedApps = processedApps.slice(indexOfFirstApp, indexOfLastApp);
       return (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+          <div className="grid grid-cols-3 2x1:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
             {paginatedApps.map((app) => (
               <AppCard key={app.id} app={app} onClick={() => handleAppSelect(app)} />
             ))}
           </div>
 
           <Pagination 
-            totalItems={filteredApps.length}
-            itemsPerPage={APPS_PER_PAGE}
-            currentPage={currentPage}
+            totalItems={processedApps.length}
+            itemsPerPage={appsPerPage}
+            currentPage={activePage}
             onPageChange={handlePageChange}
           />
         </div>
       );
     }
-    const categoryApps = filteredApps.filter(a => a.category === activeSubCategory);
+
+    // --- VIEW 2: CATEGORIES DASHBOARD ---
+    const categoryApps = processedApps.filter(a => a.category === activeSubCategory);
     const paginatedCategoryApps = categoryApps.slice(indexOfFirstApp, indexOfLastApp);
     return (
       <div className="space-y-8">
@@ -349,22 +443,24 @@ export default function Home() {
           </div>
           <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white dark:from-[#0d1117] to-transparent pointer-events-none md:hidden" />
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+        
+        <div className="grid grid-cols-3 2x1:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
           {paginatedCategoryApps.map((app) => (
             <AppCard key={app.id} app={app} onClick={() => handleAppSelect(app)} />
           ))}
         </div>
+        
         <Pagination
           totalItems={categoryApps.length}
-          itemsPerPage={APPS_PER_PAGE}
-          currentPage={currentPage}
+          itemsPerPage={appsPerPage}
+          currentPage={activePage}
           onPageChange={handlePageChange}
         />
       </div>
     );
   };
 
-  // --- FINAL RENDER ---
+  // --- FINAL RENDER GUARD & LANDING ---
   if (!isMounted) return <div className="min-h-screen bg-white dark:bg-[#0d1117]" />;
 
   if (!isStarted) {
@@ -429,13 +525,14 @@ export default function Home() {
     );
   }
 
+  // --- RESPONSIVE MAIN APP LAYOUT ---
   return (
-    <div className="flex h-screen dark:bg-[#0d1117] text-slate-900 dark:text-slate-100 transition-colors">
-      {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />}
+    <div className="flex h-screen dark:bg-[#0d1117] text-slate-900 dark:text-slate-100 transition-colors overflow-hidden">
+      {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm xl:hidden" onClick={() => setSidebarOpen(false)} />}
       
-      <aside className={`fixed lg:relative z-50 h-full bg-[#B7C7CD] dark:bg-[#0b0e14] border-l lg:border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out 
-        ${sidebarOpen ? 'translate-x-0 w-72 right-0' : 'translate-x-full lg:translate-x-0 right-0 lg:right-auto'} 
-        ${sidebarCollapsed ? 'lg:w-24' : 'lg:w-72'}`}
+      <aside className={`fixed xl:relative z-50 h-full bg-[#B7C7CD] dark:bg-[#0b0e14] border-l xl:border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out 
+        ${sidebarOpen ? 'translate-x-0 w-72 right-0' : 'translate-x-full xl:translate-x-0 right-0 xl:right-auto'} 
+        ${sidebarCollapsed ? 'xl:w-24' : 'xl:w-72'}`}
       >
         <div className="p-6 h-full flex flex-col">
           <div onClick={() => navigateTo('landing')} className={`flex items-center cursor-pointer transition-all duration-300 mb-10 ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
@@ -450,7 +547,7 @@ export default function Home() {
             </span>
           </div>
           
-          <nav className="flex-1 flex flex-col h-full space-y-2 overflow-y-auto scrollbar-hide">
+          <nav className="flex-1 flex flex-col h-full space-y-2 scrollbar-hide">
             <button 
               onClick={() => { setSelectedCategory("All"); setCurrentView('dashboard'); setSidebarOpen(false); }}
               className={`w-full flex items-center px-4 py-3 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${sidebarCollapsed ? 'justify-center' : 'justify-between'} ${selectedCategory === "All" && currentView === 'dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800'}`}
@@ -549,11 +646,11 @@ export default function Home() {
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="h-16 flex items-center justify-between px-3 md:px-6 border-b border-slate-200 dark:border-slate-800 shrink-0 bg-white/50 dark:bg-[#0d1117]/50 backdrop-blur-md z-10">
-          <div className="flex items-center gap-2 md:gap-4 order-last lg:order-first">
+        <header className="h-16 flex items-center justify-between px-3 md:px-6 bg-[#b7c7cd] border-b border-slate-200 dark:border-slate-800 shrink-0 dark:bg-[#0d1117]/50 backdrop-blur-md z-10">
+          <div className="flex items-center md:ml-3 xl:mr-5 gap-2 md:gap-4 order-last xl:order-first">
             <button 
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)} 
-              className="hidden lg:flex p-2 text-slate-500 hover:text-blue-600 transition-colors bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer"
+              className="hidden xl:flex p-2 text-slate-500 hover:text-blue-600 transition-colors bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={sidebarCollapsed ? "rotate-180" : ""}>
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -563,7 +660,7 @@ export default function Home() {
             
             <button 
               onClick={() => setSidebarOpen(true)} 
-              className="lg:hidden p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+              className="xl:hidden p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -573,7 +670,7 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="flex items-center gap-1.5 md:gap-3 flex-1 justify-start lg:justify-end order-first lg:order-last relative">
+          <div className="flex items-center gap-1.5 md:gap-3 flex-1 justify-start xl:justify-end order-first xl:order-last relative">
             <div className="md:hidden">
               <button 
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -591,7 +688,7 @@ export default function Home() {
               {isMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-60" onClick={() => setIsMenuOpen(false)} />
-                  <div className="fixed left-1/2 -translate-x-1/2 top-16 w-[90%] p-3 bg-[#f6f4f0] dark:bg-[#0B0B11] border border-t-0 border-slate-200 dark:border-blue-600/50 shadow-[0_20px_50px_rgba(0,0,0,0.4)] z-[70] rounded-b-3xl animate-in slide-in-from-top duration-300">                    
+                  <div className="fixed left-1/2 -translate-x-1/2 top-16 w-[90%] p-3 bg-[#B7C7CD] dark:bg-[#0B0B11] border border-t-0 border-slate-200 dark:border-blue-600/50 shadow-[0_20px_50px_rgba(0,0,0,0.4)] z-[70] rounded-b-3xl animate-in slide-in-from-top duration-300">                    
                     <div className="grid grid-cols-3 gap-3">
                       <button 
                           onClick={() => { handleRandomApp(); setIsMenuOpen(false); }}
@@ -631,7 +728,7 @@ export default function Home() {
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-600/20 via-green-900/5 to-transparent" />
                   <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent" />
                   
-                  <div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-emerald-400 group-hover:text-emerald-300 transition-colors duration-300">
+                  <div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-emerald-400 group-hover:text-emerald-900 dark:group-hover:text-emerald-300 transition-colors duration-300">
                       <div className="relative shrink-0 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
                           <svg 
                               width="14" 
@@ -669,7 +766,7 @@ export default function Home() {
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-600/20 via-fuchsia-900/5 to-transparent" />
                   <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-purple-400/10 to-transparent" />
                   
-                  <div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-400 transition-colors duration-300">
+                  <div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-900 dark:group-hover:text-fuchsia-400 transition-colors duration-300">
                       <div className="relative shrink-0">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
                               <rect width="8" height="14" x="8" y="6" rx="4" />
@@ -695,7 +792,7 @@ export default function Home() {
               >
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-600/20 via-yellow-900/5 to-transparent" />
                       <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-amber-400/10 to-transparent" />
-                      <div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-amber-400 group-hover:text-yellow-400 transition-colors duration-300">
+                      <div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-amber-400 group-hover:text-yellow-900 dark:group-hover:text-yellow-400 transition-colors duration-300">
                           <div className="relative shrink-0">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]">
                                   <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" />
@@ -713,7 +810,7 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="flex max-w-[250px] md:max-w-none lg:order-first">
+            <div className="flex max-w-[250px] md:max-w-none xl:order-first">
               <SearchInput apps={apps} search={search} setSearch={setSearch} onAppSelect={handleAppSelect} />
             </div>
           </div>
@@ -727,23 +824,53 @@ export default function Home() {
           ) : currentView === 'Community' ? (
             <CommunityPage />
           ) : (
-            <div className="p-6 lg:p-10">
-              <div className="max-w-10xl mx-auto">
+            <div className="p-4 sm:p-6 lg:p-10">
+              <div className="max-w-[1600px] mx-auto">
                 {renderRecentlyViewed()}
-                <div className="mb-10 mt-5 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-3xl font-black tracking-tight mb-2">
-                      {selectedCategory === "ShowCategories" ? "Explore Categories" : "Explore Containers"}
-                    </h2>
-                    <div className="flex items-center gap-4">
-                      <div className="h-1 w-12 bg-blue-600 rounded-full" />
-                      <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-black uppercase tracking-widest rounded-full">
-                        {selectedCategory === "ShowCategories" 
-                          ? `${categories.length} categories · ${apps.length} Containers`
-                          : `${apps.length} Containers`
-                        }
-                      </span>
+                <div className="mb-6 mt-4 sm:mb-10 sm:mt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex flex-row items-center justify-between w-full gap-4 mb-6">
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight mb-1.5 truncate">
+                        {selectedCategory === "ShowCategories" ? "Explore Categories" : "Explore Containers"}
+                      </h2>
+                      <div className="flex items-center gap-3">
+                        <div className="h-1 w-8 bg-blue-600 rounded-full" />
+                        <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-full whitespace-nowrap">
+                          {selectedCategory === "ShowCategories" 
+                            ? `${categories.length} categories · ${apps.length} Containers`
+                            : `${apps.length} Containers`
+                          }
+                        </span>
+                      </div>
                     </div>
+                    {selectedCategory !== "ShowCategories" && (
+                      <div className="flex items-center gap-2 shrink-0 self-center">
+                        <span className="hidden md:inline text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                          Sort By:
+                        </span>
+                        <div className="inline-flex items-center bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-1 shadow-sm">
+                          {(['A-Z', 'Z-A', 'Favorites'] as const).map((option) => {
+                            const isActive = sortBy === option;
+                            return (
+                              <button
+                                key={option}
+                                onClick={() => {
+                                  setSortBy(option);
+                                  setPaginationState(prev => ({ ...prev, 'all-apps': 1 }));
+                                }}
+                                className={`px-2.5 py-1.5 sm:px-3 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-150 cursor-pointer whitespace-nowrap ${
+                                  isActive 
+                                    ? 'bg-blue-600 text-white shadow-sm' 
+                                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
+                                }`}
+                              >
+                                {option === 'Favorites' ? '❤️ Favs' : option}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 {renderDashboard()}
@@ -758,7 +885,15 @@ export default function Home() {
       </main>
 
       {selectedApp && (
-          <AppModal app={selectedApp} allApps={apps} onAppChange={setSelectedApp} onClose={() => setSelectedApp(null)} onRandom={handleRandomApp} />
+          <AppModal app={selectedApp} allApps={apps} onAppChange={setSelectedApp} onClose={() => setSelectedApp(null)} onRandom={handleRandomApp} 
+            onLikeUpdate={(slug: string, newCount: number) => {
+                setGlobalLikes(prev => ({
+                  ...prev,
+                  [slug]: newCount
+                }));
+              }}
+            likesCount={globalLikes[selectedApp.slug || ''] || 0}
+          />
       )}
       {isRequesting && (
         <RequestSearchOverlay allApps={apps} onClose={() => setIsRequesting(false)} onAppSelect={(app: AppData) => { setSelectedApp(app); setIsRequesting(false); }} />
