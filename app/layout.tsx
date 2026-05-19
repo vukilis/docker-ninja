@@ -6,36 +6,30 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="my-custom-background text-slate-900 dark:text-slate-200">
-  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-    <Preloader />
-    {children}
-  </ThemeProvider>
-</body>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          <Preloader />
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
 
 export const metadata = {
     title: 'Docker Ninja',
-    description: `Containerization redefined my reality, yet I constantly hit a ceiling. 
-    I grew tired of the fragmented search for reliable infrastructure code and the endless scouring for inspiration. 
-    I built this universe to collapse the hurdles. Whether you are a student exploring the basics, 
-    a tinkerer building a homelab or a pro architecting a stack, this is the perfect place for you.`,
+    description: `Containerization redefined my reality, yet I constantly hit a ceiling. I grew tired of the fragmented search for reliable infrastructure code and the endless scouring for inspiration. I built this universe to collapse the hurdles. Whether you are a student exploring the basics, a tinkerer building a homelab or a pro architecting a stack, this is the perfect place for you.`,
     keywords: ['Docker', 'Self-hosting', 'Templates', 'Compose'],
     authors: [{ name: 'Vuk Lekic' }],
     creator: 'Vuk Lekic',
     metadataBase: new URL('https://dockerninja.com'),
     openGraph: {
       title: 'Docker Ninja',
-      description: `Containerization redefined my reality, yet I constantly hit a ceiling. 
-    I grew tired of the fragmented search for reliable infrastructure code and the endless scouring for inspiration. 
-    I built this universe to collapse the hurdles. Whether you are a student exploring the basics, 
-    a tinkerer building a homelab or a pro architecting a stack, this is the perfect place for you.`,
+      description: `Containerization redefined my reality, yet I constantly hit a ceiling. I grew tired of the fragmented search for reliable infrastructure code and the endless scouring for inspiration. I built this universe to collapse the hurdles. Whether you are a student exploring the basics, a tinkerer building a homelab or a pro architecting a stack, this is the perfect place for you.`,
       url: 'https://dockerninja.com',
       siteName: 'Docker Ninja',
       images: [
         {
-          url: 'https://dockerninja.com/og-image.png',
+          url: '/og-image.png',
           width: 1200,
           height: 630,
         },
@@ -44,14 +38,11 @@ export const metadata = {
       type: 'website',
     },
     twitter: {
-      card: 'Docker Ninja',
+      card: 'summary_large_image',
       title: 'Docker Ninja',
-      description: `Containerization redefined my reality, yet I constantly hit a ceiling. 
-    I grew tired of the fragmented search for reliable infrastructure code and the endless scouring for inspiration. 
-    I built this universe to collapse the hurdles. Whether you are a student exploring the basics, 
-    a tinkerer building a homelab or a pro architecting a stack, this is the perfect place for you.`,
+      description: `Containerization redefined my reality, yet I constantly hit a ceiling. I grew tired of the fragmented search for reliable infrastructure code and the endless scouring for inspiration. I built this universe to collapse the hurdles. Whether you are a student exploring the basics, a tinkerer building a homelab or a pro architecting a stack, this is the perfect place for you.`,
       creator: '@vukilis',
-      images: ['https://dockerninja.com/og-image.png'], 
+      images: ['/og-image.png'], 
     },
     robots: {
       index: true,
@@ -61,8 +52,14 @@ export const metadata = {
       canonical: 'https://dockerninja.com',
     },
     icons: {
-      icon: '/favicon.ico',
-      apple: '/apple-touch-icon.png',
+      icon: [
+        { url: '/favicon.ico' },
+        { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+        { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      ],
+      apple: [
+        { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }
+      ],
     },
 }
 
