@@ -112,7 +112,6 @@ export default function Home() {
   const [selectedApp, setSelectedApp] = useState<AppData | null>(null);
   const [isRequesting, setIsRequesting] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const hasHydrated = useRef(false);
@@ -315,6 +314,14 @@ export default function Home() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // GLOBAL SCROLL LOCK (e.g. when modal is open or sidebar is open on mobile)
+  useEffect(() => {
+    document.body.style.overflow = sidebarOpen || isRequesting ? 'hidden' : 'unset';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [sidebarOpen, isRequesting]);
+
   useGlobalScrollbar();
 
   // SCROLL TO TOP FUNCTION
@@ -364,7 +371,7 @@ export default function Home() {
               )}
               
               <div 
-                className="relative z-10 transition-transform duration-300 active:scale-95 cursor-pointer transform md:scale-100 origin-top max-xl:[&_h3]:hidden max-xl:[&_p]:hidden max-xl:[&_span:not(.icon-span)]:hidden max-md:flex max-md:justify-center"
+                className="relative z-10 transition-transform duration-300 cursor-pointer transform origin-top max-xl:[&_h3]:hidden max-xl:[&_p]:hidden max-xl:[&_span:not(.icon-span)]:hidden max-md:flex max-md:justify-center"
                 onClick={() => setSelectedApp(app)}
               >
                 <AppCard app={app} onClick={() => setSelectedApp(app)} />
@@ -530,37 +537,48 @@ export default function Home() {
     <div className="flex h-screen dark:bg-[#0d1117] text-slate-900 dark:text-slate-100 transition-colors overflow-hidden">
       {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm xl:hidden" onClick={() => setSidebarOpen(false)} />}
       
-      <aside className={`fixed xl:relative z-50 h-full bg-[#B7C7CD] dark:bg-[#0b0e14] border-l xl:border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out 
+      <aside className={`fixed xl:relative z-50 h-full bg-[#B7C7CD] dark:bg-[#0b0e14] border-l xl:border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out top-0 bottom-0
         ${sidebarOpen ? 'translate-x-0 w-72 right-0' : 'translate-x-full xl:translate-x-0 right-0 xl:right-auto'} 
         ${sidebarCollapsed ? 'xl:w-24' : 'xl:w-72'}`}
       >
-        <div className="p-6 h-full flex flex-col">
-          <div onClick={() => navigateTo('landing')} className={`flex items-center cursor-pointer transition-all duration-300 mb-10 ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
-            <div className="relative w-10 h-10 flex-shrink-0 flex items-center justify-center border-2 border-blue-600/20 rounded-lg bg-slate-50 dark:bg-slate-900 group">
-              <div className="relative flex text-3xl font-black tracking-tighter select-none z-10 leading-none translate-y-[1px]">
-                <span className="text-slate-900 dark:text-white group-hover:-translate-y-1 transition-transform duration-300">D</span>
-                <span className="text-blue-600 group-hover:translate-y-1 transition-transform duration-300">N</span>
+        <div className="p-4 h-full flex flex-col scrollbar-hide">
+          {/* LOGO SECTION */}
+          <div 
+            onClick={() => navigateTo('landing')} 
+            className={`flex items-center cursor-pointer transition-all duration-300 mb-10 ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
+          >
+            <div className="relative w-10 h-10 flex-shrink-0 flex items-center justify-center border-2 border-blue-600/20 rounded-lg my-custom-background group">
+              <div className="absolute flex text-4xl font-black tracking-tighter select-none z-10 leading-none">
+                <span className="text-slate-900 dark:text-white group-hover:-translate-y-1 transition-transform duration-300">
+                  D
+                </span>
+                <span className="text-blue-600 group-hover:translate-y-1 transition-transform duration-300">
+                  N
+                </span>
               </div>
             </div>         
-            <span className={`font-black text-xl tracking-tighter hover:text-blue-600 transition-all duration-300 origin-left ${sidebarCollapsed ? 'w-0 opacity-0 scale-0 overflow-hidden' : 'w-auto opacity-100 scale-100'}`}>
+            <span className={`font-black text-xl tracking-tighter hover:text-blue-600 transition-all duration-300 origin-left ${sidebarCollapsed ? 'w-0 opacity-0 scale-0 overflow-hidden hidden' : 'w-auto opacity-100 scale-100'}`}>
               DOCKER <span className="text-blue-600 text-xl">NINJA</span>
             </span>
           </div>
           
-          <nav className="flex-1 flex flex-col h-full space-y-2 scrollbar-hide">
+          {/* NAVIGATION LINKS */}
+          <nav className={`flex-1 flex flex-col space-y-2
+            ${sidebarCollapsed ? 'p-2' : 'p-0'}`
+          }>
             <button 
               onClick={() => { setSelectedCategory("All"); setCurrentView('dashboard'); setSidebarOpen(false); }}
               className={`w-full flex items-center px-4 py-3 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${sidebarCollapsed ? 'justify-center' : 'justify-between'} ${selectedCategory === "All" && currentView === 'dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800'}`}
             >
               <div className={`flex items-center ${sidebarCollapsed ? '' : 'gap-3'}`}>
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
-                {!sidebarCollapsed && <span>All Containers</span>}
-                {!sidebarCollapsed && (
+                {!sidebarCollapsed && <span>Containers</span>}
+              </div>
+              {!sidebarCollapsed && (
                 <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${selectedCategory === "All" ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800'}`}>
                   {apps.length}
                 </span>
               )}
-              </div>
             </button>
 
             <button 
@@ -570,77 +588,208 @@ export default function Home() {
               <div className={`flex items-center ${sidebarCollapsed ? '' : 'gap-3'}`}>
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
                 {!sidebarCollapsed && <span>Categories</span>}
-                {!sidebarCollapsed && (
+              </div>
+              {!sidebarCollapsed && (
                 <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${selectedCategory === "ShowCategories" ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800'}`}>
                   {categories.length}
                 </span>
               )}
-              </div>
             </button>
 
-            <div className="pt-6 mt-6 border-t border-slate-200 dark:border-slate-800 space-y-2">
-              {/* ABOUT BUTTON */}
-              <button 
-                onClick={() => { setCurrentView('About'); setSidebarOpen(false); }}
-                className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${currentView === 'About' ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'} ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
-              >
-                <div className="w-5 h-5 flex items-center justify-center shrink-0">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
-                </div>
-                {!sidebarCollapsed && <span>About</span>}
-              </button>
+            {/* ABOUT BUTTON */}
+            <button 
+              onClick={() => { setCurrentView('About'); setSidebarOpen(false); }}
+              className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${currentView === 'About' ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'} ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
+            >
+              <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+              </div>
+              {!sidebarCollapsed && <span>About</span>}
+            </button>
 
-              {/* COMMUNITY BUTTON */}
-              <button 
-                onClick={() => { setCurrentView('Community'); setSidebarOpen(false); }}
-                className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${currentView === 'Community' ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'} ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
-              >
-                <div className="w-5 h-5 flex items-center justify-center shrink-0">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-                </div>
-                {!sidebarCollapsed && <span>Community</span>}
-              </button>
+            {/* COMMUNITY BUTTON */}
+            <button 
+              onClick={() => { setCurrentView('Community'); setSidebarOpen(false); }}
+              className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${currentView === 'Community' ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'} ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
+            >
+              <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+              </div>
+              {!sidebarCollapsed && <span>Community</span>}
+            </button>
 
-              {/* GITHUB LINK */}
-              <a 
-                href="https://github.com/vukilis" 
-                target="_blank" 
-                rel="noreferrer" 
-                className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
-              >
-                <div className="w-5 h-5 flex items-center justify-center shrink-0">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" /></svg>
-                </div>
-                {!sidebarCollapsed && <span>GitHub</span>}
-              </a>
+            {/* SPONSORING BUTTON */}
+            <button 
+              onClick={() => { setCurrentView('Sponsoring'); setSidebarOpen(false); }}
+              className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${currentView === 'Sponsoring' ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'} ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
+            >
+              <div className="w-5 h-5 flex items-center justify-center shrink-0 text-base select-none">
+                ❤️
+              </div>
+              {!sidebarCollapsed && <span>Sponsoring</span>}
+            </button>
 
-              {/* SPONSORING BUTTON */}
-              <button 
-                onClick={() => { setCurrentView('Sponsoring'); setSidebarOpen(false); }}
-                className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${currentView === 'Sponsoring' ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'} ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
-              >
-                <div className="w-5 h-5 flex items-center justify-center shrink-0 text-sm">
-                  ❤️
-                </div>
-                {!sidebarCollapsed && <span>Sponsoring</span>}
-              </button>
+            {/* UTILITIES & EXTERNAL LINKS SEGMENT */}
+            <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800">
+              <div className={`grid gap-2 ${
+                sidebarCollapsed 
+                  ? 'grid-cols-1' 
+                  : 'grid-cols-2 xl:flex xl:flex-col'
+              }`}>
+                
+                {/* 1. SURPRISE ME BUTTON */}
+                <button 
+                  title="Surprise Me"
+                  onClick={(e) => { handleRandomApp(); setSidebarOpen(false); }}
+                  className={`relative group flex items-center rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-slate-200 dark:hover:bg-slate-800 ${
+                    sidebarCollapsed 
+                      ? 'justify-center px-4 py-3' 
+                      : 'justify-start px-3 py-3 xl:px-4 xl:py-2.5 bg-slate-100/40 dark:bg-slate-900/20 xl:bg-transparent'
+                  } text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 overflow-hidden cursor-pointer`}
+                >
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-600/15 via-transparent to-transparent" />
+                  <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent" />
+                  
+                  <div className={`flex items-center relative z-10 ${sidebarCollapsed ? 'justify-center' : 'gap-3 w-full'}`}>
+                    <div className="relative w-5 h-5 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(16,185,129,0.3)]">
+                        <path d="m15 5 4 4" /><path d="M11 9 2 18l4 4 9-9" />
+                        <path className="animate-pulse" d="M15 1l.5 1.5L17 3l-1.5.5L15 5l-.5-1.5L13 3l1.5-.5L15 1z" />
+                        <path className="animate-pulse delay-75" d="M22 10l.5 1.5L24 12l-1.5.5L22 14l-.5-1.5L20 12l1.5-.5L22 10z" />
+                      </svg>
+                    </div>
+                    {!sidebarCollapsed && <span className="text-[10px] xl:text-xs truncate">Surprise</span>}
+                  </div>
+                </button>
+
+                {/* 2. REQUEST CONTAINER BUTTON */}
+                <button 
+                  title="Request Container"
+                  onClick={(e) => {
+                      e.preventDefault();
+                      setIsRequesting(true);
+                      setSidebarOpen(false);
+                  }}
+                  className={`relative group flex items-center rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-slate-200 dark:hover:bg-slate-800 ${
+                    sidebarCollapsed 
+                      ? 'justify-center px-4 py-3' 
+                      : 'justify-start px-3 py-3 xl:px-4 xl:py-2.5 bg-slate-100/40 dark:bg-slate-900/20 xl:bg-transparent'
+                  } text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 overflow-hidden cursor-pointer`}
+                >
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-600/15 via-transparent to-transparent" />
+                  <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-amber-400/10 to-transparent" />
+                  
+                  <div className={`flex items-center relative z-10 ${sidebarCollapsed ? 'justify-center' : 'gap-3 w-full'}`}>
+                    <div className="relative w-5 h-5 flex items-center justify-center shrink-0 text-amber-500 dark:text-amber-400 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(245,158,11,0.3)]">
+                        <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" />
+                        <path d="M9 18h6" />
+                        <path d="M10 22h4" />
+                      </svg>
+                      <span className="absolute top-0 right-0 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1 w-1 bg-amber-300"></span>
+                      </span>
+                    </div>
+                    {!sidebarCollapsed && <span className="text-[10px] xl:text-xs truncate">Request</span>}
+                  </div>
+                  <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(245,158,11,0.1)]" />
+                </button>
+
+                {/* 3. REPORT ISSUE LINK */}
+                <a 
+                  title="Report Issue"
+                  href={`https://github.com/vukilis/docker-ninja/issues?q=is%3Aissue+is%3Aopen`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`relative group flex items-center rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-slate-200 dark:hover:bg-slate-800 ${
+                    sidebarCollapsed 
+                      ? 'justify-center px-4 py-3' 
+                      : 'justify-start xl:justify-between px-3 py-3 xl:px-4 xl:py-2.5 bg-slate-100/40 dark:bg-slate-900/20 xl:bg-transparent'
+                  } text-slate-500 hover:text-purple-600 dark:hover:text-purple-400 overflow-hidden`}
+                >
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-600/15 via-transparent to-transparent" />
+                  <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-purple-400/10 to-transparent" />
+                  
+                  <div className={`flex items-center relative z-10 min-w-0 ${sidebarCollapsed ? 'justify-center' : 'gap-3 w-full'}`}>
+                    <div className="relative w-5 h-5 flex items-center justify-center shrink-0 text-purple-600 dark:text-purple-400 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(168,85,247,0.3)]">
+                        <rect width="8" height="14" x="8" y="6" rx="4" />
+                        <path d="m19 7-3 2" /><path d="m5 7 3 2" /><path d="m19 19-3-2" /><path d="m5 19 3-2" /><path d="M20 13h-4" /><path d="M4 13h4" /><path d="m10 4 1 2" /><path d="m14 4-1 2" />
+                      </svg>
+                      <span className="absolute top-0 right-0 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1 w-1 bg-purple-300"></span>
+                      </span>
+                    </div>
+                    {!sidebarCollapsed && <span className="text-[10px] xl:text-xs truncate">Report</span>}
+                  </div>
+                  
+                  {!sidebarCollapsed && (
+                    <svg className="w-3 h-3 text-slate-400 opacity-60 relative z-10 transition-transform group-hover:translate-x-0.5 hidden xl:block shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                    </svg>
+                  )}
+                  <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(168,85,247,0.1)]" />
+                </a>
+
+                {/* 4. GITHUB LINK */}
+                <a 
+                  title="GitHub"
+                  href="https://github.com/vukilis" 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className={`relative group flex items-center rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-slate-200 dark:hover:bg-slate-800 ${
+                    sidebarCollapsed 
+                      ? 'justify-center px-4 py-3' 
+                      : 'justify-start xl:justify-between px-3 py-3 xl:px-4 xl:py-2.5 bg-slate-100/40 dark:bg-slate-900/20 xl:bg-transparent'
+                  } text-slate-500 hover:text-slate-900 dark:hover:text-white overflow-hidden`}
+                >
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-500/15 via-transparent to-transparent" />
+                  <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-indigo-400/10 to-transparent" />
+                  
+                  <div className={`flex items-center relative z-10 min-w-0 ${sidebarCollapsed ? 'justify-center' : 'gap-3 w-full'}`}>
+                    <div className="relative w-5 h-5 flex items-center justify-center shrink-0 text-slate-700 dark:text-slate-300 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
+                      <svg 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="2.5" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        className="w-[16px] h-[16px] drop-shadow-[0_0_5px_rgba(99,102,241,0.3)]"
+                      >
+                        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
+                      </svg>
+                    </div>
+                    {!sidebarCollapsed && <span className="text-[10px] xl:text-xs truncate">GitHub</span>}
+                  </div>
+                  
+                  {!sidebarCollapsed && (
+                    <svg className="w-3 h-3 text-slate-400 opacity-60 relative z-10 transition-transform group-hover:translate-x-0.5 hidden xl:block shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                    </svg>
+                  )}
+                </a>
+
+              </div>
             </div>
-
-            <div className="flex-1" />
             
+            {/* BOTTOM ACTION REGION */}
             <div className="pt-8 mt-auto border-b border-slate-200 dark:border-slate-800 pb-6">
               <button 
                 onClick={() => navigateTo('landing')} 
-                className="group relative w-full flex items-center justify-center gap-3 px-4 py-4 rounded-2xl cursor-pointer bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 overflow-hidden"
+                className="group relative w-full flex items-center justify-center gap-3 px-4 py-4 rounded-2xl cursor-pointer bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600/0 via-blue-600/10 to-blue-600/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
-                <svg className="w-3 h-3 transform group-hover:-translate-x-1 transition-transform duration-300 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                <svg className="w-3 h-3 transform group-hover:-translate-x-1 transition-transform flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                   <path d="M19 12H5M12 19l-7-7 7-7" />
                 </svg>
-                <span className={`relative z-10 transition-all duration-300 ${sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden hidden' : 'w-auto opacity-100'}`}>Back to Landing</span>
+                <span className={`relative z-10 transition-all ${sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden hidden' : 'w-auto opacity-100'}`}>Back to Landing</span>
               </button>
             </div>
           </nav>
+          
           <div className="pt-6"><ThemeSwitcher collapsed={sidebarCollapsed} /></div>
         </div>
       </aside>
@@ -670,146 +819,25 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="flex items-center gap-1.5 md:gap-3 flex-1 justify-start xl:justify-end order-first xl:order-last relative">
-            <div className="md:hidden">
-              <button 
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className={`relative flex items-center justify-center w-10 h-10 rounded-full border transition-all duration-300 bg-white dark:bg-[#0d1117] cursor-pointer z-[71] ${
-                  isMenuOpen ? 'border-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.2)]' : 'border-slate-200 dark:border-slate-800'
-                }`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={isMenuOpen ? "text-blue-600" : "text-slate-500"}>
-                  <path d="M12 6a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M4 6l8 0" /><path d="M16 6l4 0" />
-                  <path d="M6 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M4 12l2 0" /><path d="M10 12l10 0" />
-                  <path d="M15 18a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M4 18l11 0" /><path d="M19 18l1 0" />
-                </svg>
-              </button>
-
-              {isMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-60" onClick={() => setIsMenuOpen(false)} />
-                  <div className="fixed left-1/2 -translate-x-1/2 top-16 w-[90%] p-3 bg-[#B7C7CD] dark:bg-[#0B0B11] border border-t-0 border-slate-200 dark:border-blue-600/50 shadow-[0_20px_50px_rgba(0,0,0,0.4)] z-[70] rounded-b-3xl animate-in slide-in-from-top duration-300">                    
-                    <div className="grid grid-cols-3 gap-3">
-                      <button 
-                          onClick={() => { handleRandomApp(); setIsMenuOpen(false); }}
-                          className="relative group flex flex-col items-center justify-center gap-2 py-4 rounded-xl border border-slate-200 dark:border-emerald-600/30 bg-emerald-100 dark:bg-emerald-950/10 cursor-pointer"
-                      >
-                          <div className="relative shrink-0 text-emerald-400">
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]">
-                                  <path d="m15 5 4 4" /><path d="M11 9 2 18l4 4 9-9" /><path className="animate-pulse" d="M15 1l.5 1.5L17 3l-1.5.5L15 5l-.5-1.5L13 3l1.5-.5L15 1z" /><path className="animate-pulse delay-75" d="M22 10l.5 1.5L24 12l-1.5.5L22 14l-.5-1.5L20 12l1.5-.5L22 10z" />
-                              </svg>
-                          </div>
-                          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Surprise</span>
-                      </button>
-                      <a href="https://github.com/vukilis/docker-ninja/issues" target="_blank" rel="noreferrer" className="relative group flex flex-col items-center justify-center gap-2 py-4 rounded-xl border border-slate-200 dark:border-purple-600/30 bg-purple-100 dark:bg-purple-950/10 cursor-pointer">
-                          <div className="relative shrink-0 text-purple-400">
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]"><rect width="8" height="14" x="8" y="6" rx="4" /><path d="m19 7-3 2" /><path d="m5 7 3 2" /><path d="m19 19-3-2" /><path d="m5 19 3-2" /><path d="M20 13h-4" /><path d="M4 13h4" /><path d="m10 4 1 2" /><path d="m14 4-1 2" /></svg>
-                          </div>
-                          <span className="text-[10px] font-black uppercase tracking-widest text-purple-400">Report</span>
-                      </a>
-                      <button onClick={() => { setIsRequesting(true); setIsMenuOpen(false); }} className="relative group flex flex-col items-center justify-center gap-2 py-4 rounded-xl border border-slate-200 dark:border-amber-600/30 bg-amber-100 dark:bg-amber-950/10 cursor-pointer">
-                          <div className="relative shrink-0 text-amber-400">
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" /><path d="M9 18h6" /><path d="M10 22h4" /></svg>
-                          </div>
-                          <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">Request</span>
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
+          <div className="flex items-center gap-3 md:gap-3 flex-1 justify-start xl:justify-end order-first xl:order-last relative">
+            {/* LOGO SECTION: Shows on mobile, hides on desktop */}
+            <div 
+              onClick={() => navigateTo('landing')} 
+              className="flex xl:hidden items-center cursor-pointer transition-all duration-300"
+            >
+              <div className="relative w-10 h-10 flex-shrink-0 flex items-center justify-center border-2 border-blue-600/20 rounded-lg my-custom-background group">
+                <div className="absolute flex text-4xl font-black tracking-tighter select-none z-10 leading-none">
+                  <span className="text-slate-900 dark:text-white group-hover:-translate-y-1 transition-transform duration-300">
+                    D
+                  </span>
+                  <span className="text-blue-600 group-hover:translate-y-1 transition-transform duration-300">
+                    N
+                  </span>
+                </div>
+              </div>   
             </div>
 
-            <div className="hidden md:flex items-center gap-3">
-              {/* Random App Button */}
-              <button 
-                  onClick={handleRandomApp}
-                  className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-emerald-600/30 hover:border-emerald-500/60 bg-emerald-100 dark:bg-emerald-950/5 backdrop-blur-sm cursor-pointer"
-              >
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-600/20 via-green-900/5 to-transparent" />
-                  <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent" />
-                  
-                  <div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-emerald-400 group-hover:text-emerald-900 dark:group-hover:text-emerald-300 transition-colors duration-300">
-                      <div className="relative shrink-0 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
-                          <svg 
-                              width="14" 
-                              height="14" 
-                              viewBox="0 0 24 24" 
-                              fill="none" 
-                              stroke="currentColor" 
-                              strokeWidth="2.5" 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round" 
-                              className="drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]"
-                          >
-                              <path d="m15 5 4 4" />
-                              <path d="M11 9 2 18l4 4 9-9" />
-                              <path className="animate-pulse" d="M15 1l.5 1.5L17 3l-1.5.5L15 5l-.5-1.5L13 3l1.5-.5L15 1z" />
-                              <path className="animate-pulse delay-75" d="M22 10l.5 1.5L24 12l-1.5.5L22 14l-.5-1.5L20 12l1.5-.5L22 10z" />
-                          </svg>
-                          <span className="absolute -top-1 -right-1 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-1 w-1 bg-emerald-300"></span>
-                          </span>
-                      </div>
-                      
-                      <span className="hidden md:inline tracking-[0.2em] whitespace-nowrap">Surprise Me</span>
-                  </div>
-
-                  <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(16,185,129,0.15)]" />
-              </button>
-              {/* Report Issue Button */}
-              <a 
-                  href={`https://github.com/vukilis/docker-ninja/issues?q=is%3Aissue+is%3Aopen`}
-                  target="_blank"
-                  className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-purple-600/30 hover:border-purple-500/60 bg-purple-100 dark:bg-purple-950/5 backdrop-blur-sm"
-              >
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-600/20 via-fuchsia-900/5 to-transparent" />
-                  <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-purple-400/10 to-transparent" />
-                  
-                  <div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-900 dark:group-hover:text-fuchsia-400 transition-colors duration-300">
-                      <div className="relative shrink-0">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
-                              <rect width="8" height="14" x="8" y="6" rx="4" />
-                              <path d="m19 7-3 2" /><path d="m5 7 3 2" /><path d="m19 19-3-2" /><path d="m5 19 3-2" /><path d="M20 13h-4" /><path d="M4 13h4" /><path d="m10 4 1 2" /><path d="m14 4-1 2" />
-                          </svg>
-                          <span className="absolute -top-1 -right-1 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-400 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-1 w-1 bg-fuchsia-300"></span>
-                          </span>
-                      </div>
-                      <span className="hidden md:inline tracking-[0.2em] whitespace-nowrap">Report Issue</span>
-                  </div>
-                  <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(168,85,247,0.15)]" />
-              </a>
-
-              {/* Request App Button */}
-              <button 
-                  onClick={(e) => {
-                      e.preventDefault();
-                      setIsRequesting(true);
-                  }}
-                  className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-amber-600/30 hover:border-amber-500/60 bg-amber-100 dark:bg-amber-950/5 backdrop-blur-sm cursor-pointer"
-              >
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-600/20 via-yellow-900/5 to-transparent" />
-                      <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-amber-400/10 to-transparent" />
-                      <div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-amber-400 group-hover:text-yellow-900 dark:group-hover:text-yellow-400 transition-colors duration-300">
-                          <div className="relative shrink-0">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]">
-                                  <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" />
-                                  <path d="M9 18h6" />
-                                  <path d="M10 22h4" />
-                              </svg>
-                              <span className="absolute -top-1 -right-1 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-1 w-1 bg-yellow-300"></span>
-                              </span>
-                          </div>
-                          <span className="hidden md:inline tracking-[0.2em] whitespace-nowrap">Request App</span>
-                      </div>
-                  <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(245,158,11,0.15)]" />
-              </button>
-            </div>
-
+            {/* SEARCH SECTION */}
             <div className="flex max-w-[250px] md:max-w-none xl:order-first">
               <SearchInput apps={apps} search={search} setSearch={setSearch} onAppSelect={handleAppSelect} />
             </div>
