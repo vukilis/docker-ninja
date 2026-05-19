@@ -238,16 +238,16 @@ function ModalContent({
                         <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-purple-400/10 to-transparent" />
                         <div className="relative flex items-center gap-2 text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-900 dark:group-hover:text-fuchsia-400 transition-colors duration-300">
                             <div className="relative">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
-                                <rect width="8" height="14" x="8" y="6" rx="4" />
-                                <path d="m19 7-3 2" /><path d="m5 7 3 2" /><path d="m19 19-3-2" /><path d="m5 19 3-2" /><path d="M20 13h-4" /><path d="M4 13h4" /><path d="m10 4 1 2" /><path d="m14 4-1 2" />
-                            </svg>
-                            <span className="absolute -top-1 -right-1 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-1 w-1 bg-fuchsia-300"></span>
-                            </span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
+                                    <rect width="8" height="14" x="8" y="6" rx="4" />
+                                    <path d="m19 7-3 2" /><path d="m5 7 3 2" /><path d="m19 19-3-2" /><path d="m5 19 3-2" /><path d="M20 13h-4" /><path d="M4 13h4" /><path d="m10 4 1 2" /><path d="m14 4-1 2" />
+                                </svg>
+                                <span className="absolute -top-1 -right-1 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-1 w-1 bg-fuchsia-300"></span>
+                                </span>
                             </div>
-                            <span className="tracking-[0.2em]">Report Issue</span>
+                            <span className="tracking-[0.2em] font-sans">Report</span>
                         </div>
                         <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(168,85,247,0.15)]" />
                     </a>
@@ -364,7 +364,7 @@ function ModalContent({
                                             <path className="animate-pulse delay-75" d="M22 10l.5 1.5L24 12l-1.5.5L22 14l-.5-1.5L20 12l1.5-.5L22 10z" />
                                         </svg>
                                     </div>
-                                    <span className="hidden md:inline tracking-[0.2em] whitespace-nowrap">Surprise Me</span>
+                                    <span className="hidden md:inline tracking-[0.2em] whitespace-nowrap font-sans">Surprise</span>
                                 </div>
                             </button>
 
@@ -387,7 +387,7 @@ function ModalContent({
                                             <span className="relative inline-flex rounded-full h-1 w-1 bg-fuchsia-300"></span>
                                         </span>
                                     </div>
-                                    <span className="hidden md:inline tracking-[0.2em] whitespace-nowrap">Report Issue</span>
+                                    <span className="hidden md:inline tracking-[0.2em] whitespace-nowrap font-sans">Report</span>
                                 </div>
                                 <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(168,85,247,0.15)]" />
                             </a>
@@ -404,7 +404,7 @@ function ModalContent({
                                                 <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" /><path d="M9 18h6" /><path d="M10 22h4" />
                                             </svg>
                                         </div>
-                                        <span className="hidden md:inline tracking-[0.2em] whitespace-nowrap">Request App</span>
+                                        <span className="hidden md:inline tracking-[0.2em] whitespace-nowrap font-sans">Request</span>
                                     </div>
                             </button>
                         </div>
