@@ -31,6 +31,34 @@ export interface AppData {
   [key: string]: unknown; 
 }
 
+// --- SLUG HELPERS ---
+const convertToSlug = (text: string): string => {
+  return text
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9 -\s]/g, '')
+    .replace(/\s+/g, '-')
+    .trim();
+};
+
+// Converts a slug back to a human-readable string, handling special cases like "and"
+const slugToString = (slug: string): string => {
+  if (!slug) return '';
+  const words = slug.split('-').map(word => {
+    if (word.toLowerCase() === 'and') return '&';
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  });
+  const formatted = words.join(' ');
+  return formatted.replace(/\s+&\s+/g, ' & ');
+};
+
+// Matches a slug against a collection of strings by converting each string to a slug and comparing
+const matchRuntimeStringFromSlug = (slug: string, collection: string[]): string | null => {
+  if (!slug) return null;
+  const target = slug.toLowerCase();
+  return collection.find(item => convertToSlug(item) === target) || null;
+};
+
 // --- HOOKS ---
 function useGlobalScrollbar() {
   useEffect(() => {
@@ -87,8 +115,10 @@ export default function Home() {
 
   const [currentView, setCurrentView] = useState<ViewMode>(() => {
     if (typeof window === 'undefined') return 'dashboard';
-    const view = new URLSearchParams(window.location.search).get('view');
-    return (view === 'About' || view === 'Sponsoring' || view === 'Community') ? view : 'dashboard';
+    const rawView = new URLSearchParams(window.location.search).get('view');
+    if (!rawView) return 'dashboard';
+    const decodedView = slugToString(rawView) as ViewMode; 
+    return (decodedView === 'About' || decodedView === 'Sponsoring' || decodedView === 'Community') ? decodedView : 'dashboard';
   });
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -120,7 +150,7 @@ export default function Home() {
   useEffect(() => {
     const handleLocationChange = () => {
       const params = new URLSearchParams(window.location.search);
-      const view = params.get('view') as ViewMode | null;
+      const rawView = params.get('view');
       const isStartedLoc = localStorage.getItem('ninja_isStarted') === 'true';
 
       setIsStarted(isStartedLoc);
@@ -128,8 +158,15 @@ export default function Home() {
       if (!isStartedLoc) {
         setSelectedApp(null);
         setCurrentView('dashboard');
-      } else if (view === 'About' || view === 'Sponsoring' || view === 'Community') {
-        setCurrentView(view);
+      } else if (rawView) {
+        const decodedView = slugToString(rawView) as ViewMode;
+        const validViews: ViewMode[] = ['About', 'Sponsoring', 'Community'];
+        
+        if (validViews.includes(decodedView)) {
+          setCurrentView(decodedView);
+        } else {
+          setCurrentView('dashboard');
+        }
       } else {
         setCurrentView('dashboard');
       }
@@ -139,7 +176,7 @@ export default function Home() {
 
     window.addEventListener('popstate', handleLocationChange);
     return () => window.removeEventListener('popstate', handleLocationChange);
-  }, [setSelectedApp]);
+  }, [setSelectedApp, setCurrentView]);
 
   // MOUNT & INITIAL HYDRATION (Sync URL params to state once)
   useEffect(() => {
@@ -147,18 +184,19 @@ export default function Home() {
     const appId = searchParams.get('app') || searchParams.get('id');
     const catParam = searchParams.get('category');
     if (appId) {
-        const found = apps.find(a => String(a.id) === String(appId) || a.slug === appId);
-        if (found) {
-            setSelectedApp(found);
-            setIsStarted(true); 
-        }
+      const found = apps.find(a => String(a.id) === String(appId) || a.slug === appId);
+      if (found) {
+        setSelectedApp(found);
+        setIsStarted(true); 
+      }
     }
     if (catParam) {
-        setSelectedCategory('ShowCategories');
-        if (catParam !== 'ShowCategories' && categories.includes(catParam)) {
-            setActiveSubCategory(catParam);
-        }
-        setIsStarted(true);
+      setSelectedCategory('ShowCategories');
+      const matchedCategory = matchRuntimeStringFromSlug(catParam, categories);
+      if (matchedCategory && matchedCategory !== 'ShowCategories') {
+          setActiveSubCategory(matchedCategory);
+      }
+      setIsStarted(true);
     }
     setIsMounted(true);
     hasHydrated.current = true;
@@ -167,24 +205,28 @@ export default function Home() {
   // URL SYNC & PERSISTENCE
   useEffect(() => {
     if (!isMounted) return;
-
     localStorage.setItem('ninja_isStarted', isStarted.toString());
     localStorage.setItem('ninja_sidebarCollapsed', sidebarCollapsed.toString());
     if (activeSubCategory) localStorage.setItem('ninja_activeSubCategory', activeSubCategory);
-
     if (!isStarted) {
       window.history.replaceState({}, '', window.location.pathname);
     } else {
-      const params = new URLSearchParams();
-      if (selectedApp) params.set('app', (selectedApp.slug || selectedApp.id).toString());
-      if (currentView !== 'dashboard') params.set('view', currentView);
-      else if (selectedCategory === 'ShowCategories') {
-        params.set('category', activeSubCategory || 'ShowCategories');
+        const params = new URLSearchParams();
+        if (selectedApp) {
+          const appValue = selectedApp.slug || selectedApp.id.toString();
+          params.set('app', convertToSlug(appValue));
+        }
+        if (currentView && currentView !== 'dashboard') {
+          params.set('view', convertToSlug(currentView));
+        } 
+        else if (selectedCategory === 'ShowCategories') {
+          const activeTarget = activeSubCategory || 'ShowCategories';
+          params.set('category', convertToSlug(activeTarget));
+        }
+        const qs = params.toString();
+        const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+        window.history.replaceState({ path: newUrl }, '', newUrl);
       }
-      const qs = params.toString();
-      const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
-      window.history.replaceState({ path: newUrl }, '', newUrl);
-    }
   }, [isStarted, sidebarCollapsed, currentView, selectedApp, selectedCategory, activeSubCategory, isMounted]);
 
   // UI LOGIC & HANDLERS
@@ -230,7 +272,7 @@ export default function Home() {
   // --- DYNAMIC VIEW PORT NAVIGATION  ---
   const activePageForScroll = selectedCategory !== "ShowCategories" 
     ? (paginationState['all-apps'] || 1) 
-    : (paginationState[activeSubCategory] || 1);
+    : (paginationState[activeSubCategory || ''] || 1);
 
   // SCROLL MECHANISM: Handles page resets, view shifts, and page flips seamlessly
   useEffect(() => {
@@ -389,18 +431,16 @@ export default function Home() {
   // --- RENDER DASHBOARD ---
   const renderDashboard = () => {
     // Fetch the contextual page number dynamically based on the active view
-    const activePage = selectedCategory !== "ShowCategories" 
-      ? (paginationState['all-apps'] || 1) 
-      : (paginationState[activeSubCategory] || 1);
+    const categoryKey = selectedCategory !== "ShowCategories" ? 'all-apps' : (activeSubCategory ?? 'ShowCategories');
+    const activePage = paginationState[categoryKey] || 1;
     
     const indexOfLastApp = activePage * appsPerPage;
     const indexOfFirstApp = indexOfLastApp - appsPerPage;
 
     const handlePageChange = (pageNumber: number) => {
-      const currentKey = selectedCategory !== "ShowCategories" ? 'all-apps' : activeSubCategory;
       setPaginationState(prev => ({
         ...prev,
-        [currentKey]: pageNumber
+        [categoryKey]: pageNumber
       }));
     };
 
@@ -473,7 +513,7 @@ export default function Home() {
   if (!isStarted) {
     return (
       <div className="min-h-screen bg-white dark:bg-[#0d1117] flex flex-col items-center justify-center p-6 transition-colors duration-700">
-        <NetworkBackground apps={apps} />
+        <NetworkBackground apps={apps as AppData[]} />
         <div className="max-w-4xl w-full text-center space-y-8 z-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-xs font-bold tracking-widest uppercase">
             <span className="relative flex h-2 w-2">
@@ -514,7 +554,7 @@ export default function Home() {
         <div className="mt-10 md:mt-20 flex flex-wrap justify-center gap-5 lg:gap-20 uppercase text-[10px] font-black tracking-[0.3em]">
           <div className="group relative text-center">
             <div className="text-white dark:text-white text-3xl mb-1 tabular-nums">
-              <Counter value={apps.length} delay={2000} />
+              <Counter value={apps.length} />
             </div>
             <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Containers</div>
           </div>
@@ -523,7 +563,7 @@ export default function Home() {
           </div>
           <div className="group relative text-center">
             <div className="text-white dark:text-white text-3xl mb-1 tabular-nums">
-              <Counter value={categories.length} delay={2000} />
+              <Counter value={categories.length} />
             </div>
             <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Categories</div>
           </div>
@@ -541,97 +581,177 @@ export default function Home() {
         ${sidebarOpen ? 'translate-x-0 w-72 right-0' : 'translate-x-full xl:translate-x-0 right-0 xl:right-auto'} 
         ${sidebarCollapsed ? 'xl:w-24' : 'xl:w-72'}`}
       >
-        <div className="p-4 h-full flex flex-col scrollbar-hide">
-          {/* LOGO SECTION */}
-          <div 
-            onClick={() => navigateTo('landing')} 
-            className={`flex items-center cursor-pointer transition-all duration-300 mb-10 ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
-          >
-            <div className="relative w-10 h-10 flex-shrink-0 flex items-center justify-center border-2 border-blue-600/20 rounded-lg my-custom-background group">
-              <div className="absolute flex text-4xl font-black tracking-tighter select-none z-10 leading-none">
-                <span className="text-slate-900 dark:text-white group-hover:-translate-y-1 transition-transform duration-300">
-                  D
-                </span>
-                <span className="text-blue-600 group-hover:translate-y-1 transition-transform duration-300">
-                  N
-                </span>
-              </div>
-            </div>         
-            <span className={`font-black text-xl tracking-tighter hover:text-blue-600 transition-all duration-300 origin-left ${sidebarCollapsed ? 'w-0 opacity-0 scale-0 overflow-hidden hidden' : 'w-auto opacity-100 scale-100'}`}>
-              DOCKER <span className="text-blue-600 text-xl">NINJA</span>
-            </span>
+        <div className="p-2.5 xl:p-4 h-full flex flex-col scrollbar-hide">
+          <div className="flex items-center mb-6 ml-3 xl:mb-10 justify-between w-full">
+            {/* Left Section: Logo + Text */}
+            <div className="flex items-center">
+              <div 
+                onClick={() => navigateTo('landing')} 
+                className="relative w-10 h-10 flex-shrink-0 flex cursor-pointer items-center justify-center border-2 border-blue-600/20 rounded-lg my-custom-background group">
+                <div className="absolute flex text-4xl font-black tracking-tighter select-none z-10 leading-none">
+                  <span className="text-slate-900 dark:text-white group-hover:-translate-y-1 transition-transform duration-300">
+                    D
+                  </span>
+                  <span className="text-blue-600 group-hover:translate-y-1 transition-transform duration-300">
+                    N
+                  </span>
+                </div>
+              </div>         
+              <span 
+                onClick={() => navigateTo('landing')} 
+                className={`font-black text-xl tracking-tighter cursor-pointer hover:text-blue-600 whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out
+                ${sidebarCollapsed 
+                  ? 'max-w-0 opacity-0 scale-95 ml-0' 
+                  : 'max-w-[200px] opacity-100 scale-100 ml-3'
+                }`}
+              >
+                DOCKER <span className="text-blue-600 text-xl">NINJA</span>
+              </span>
+            </div>
+
+            {/* Right Section: Toggle Button */}
+            <button 
+              onClick={() => setSidebarOpen(false)} 
+              className="xl:hidden pr-5 text-blue-600 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={sidebarOpen ? "rotate-180" : ""}>
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+              </svg>
+            </button>
           </div>
           
           {/* NAVIGATION LINKS */}
-          <nav className={`flex-1 flex flex-col space-y-2
-            ${sidebarCollapsed ? 'p-2' : 'p-0'}`
-          }>
+          <nav className="flex-1 flex flex-col space-y-1 xl:space-y-2">
+            
+            {/* CONTAINERS BUTTON */}
             <button 
               onClick={() => { setSelectedCategory("All"); setCurrentView('dashboard'); setSidebarOpen(false); }}
-              className={`w-full flex items-center px-4 py-3 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${sidebarCollapsed ? 'justify-center' : 'justify-between'} ${selectedCategory === "All" && currentView === 'dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800'}`}
+              className={`w-full flex items-center h-10 xl:h-12 rounded-xl font-bold uppercase text-xs tracking-wider transition-all duration-300 cursor-pointer justify-start overflow-hidden
+                ${selectedCategory === "All" && currentView === 'dashboard' 
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
+                  : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
             >
-              <div className={`flex items-center ${sidebarCollapsed ? '' : 'gap-3'}`}>
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>
-                {!sidebarCollapsed && <span>Containers</span>}
+              <div className="w-[64px] flex items-center justify-center shrink-0">
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+                </svg>
               </div>
-              {!sidebarCollapsed && (
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${selectedCategory === "All" ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800'}`}>
+              <div className={`flex items-center justify-between flex-1 pr-4 min-w-0 transition-all duration-300 ease-in-out
+                ${sidebarCollapsed ? 'opacity-0 max-w-0 pointer-events-none' : 'opacity-100 max-w-[200px]'}`}
+              >
+                <span className="whitespace-nowrap overflow-hidden text-left">
+                  Containers
+                </span>
+                <span className={`px-2 py-0.5 rounded-md text-[10px] lg:text-[11px] font-sans shrink-0 ml-2
+                  ${selectedCategory === "All" && currentView === 'dashboard' ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800'}`}
+                >
                   {apps.length}
                 </span>
-              )}
+              </div>
             </button>
 
+            {/* CATEGORIES BUTTON */}
             <button 
               onClick={() => { setSelectedCategory("ShowCategories"); setCurrentView('dashboard'); setSidebarOpen(false); }}
-              className={`w-full flex items-center px-4 py-3 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${sidebarCollapsed ? 'justify-center' : 'justify-between'} ${selectedCategory === "ShowCategories" && currentView === 'dashboard' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800'}`}
+              className={`w-full flex items-center h-10 xl:h-12 rounded-xl font-bold uppercase text-xs tracking-wider transition-all duration-300 cursor-pointer justify-start overflow-hidden
+                ${selectedCategory === "ShowCategories" && currentView === 'dashboard' 
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
+                  : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
             >
-              <div className={`flex items-center ${sidebarCollapsed ? '' : 'gap-3'}`}>
-                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>
-                {!sidebarCollapsed && <span>Categories</span>}
+              <div className="w-[64px] flex items-center justify-center shrink-0">
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
+                  <line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
+                </svg>
               </div>
-              {!sidebarCollapsed && (
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${selectedCategory === "ShowCategories" ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800'}`}>
+              <div className={`flex items-center justify-between flex-1 pr-4 min-w-0 transition-all duration-300 ease-in-out
+                ${sidebarCollapsed ? 'opacity-0 max-w-0 pointer-events-none' : 'opacity-100 max-w-[200px]'}`}
+              >
+                <span className="whitespace-nowrap overflow-hidden text-left">
+                  Categories
+                </span>
+                <span className={`px-2 py-0.5 rounded-md text-[10px] lg:text-[11px] font-sans shrink-0 ml-2
+                  ${selectedCategory === "ShowCategories" && currentView === 'dashboard' ? 'bg-white/20' : 'bg-slate-100 dark:bg-slate-800'}`}
+                >
                   {categories.length}
                 </span>
-              )}
-            </button>
-
-            {/* ABOUT BUTTON */}
-            <button 
-              onClick={() => { setCurrentView('About'); setSidebarOpen(false); }}
-              className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${currentView === 'About' ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'} ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
-            >
-              <div className="w-5 h-5 flex items-center justify-center shrink-0">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
               </div>
-              {!sidebarCollapsed && <span>About</span>}
             </button>
 
             {/* COMMUNITY BUTTON */}
             <button 
               onClick={() => { setCurrentView('Community'); setSidebarOpen(false); }}
-              className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${currentView === 'Community' ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'} ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
+              className={`w-full flex items-center h-9 xl:h-11 rounded-xl font-bold uppercase text-xs tracking-wider transition-all duration-300 cursor-pointer justify-start overflow-hidden
+                ${currentView === 'Community' 
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
+                  : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
             >
-              <div className="w-5 h-5 flex items-center justify-center shrink-0">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+              <div className="w-[64px] flex items-center justify-center shrink-0">
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
               </div>
-              {!sidebarCollapsed && <span>Community</span>}
+              <div className={`flex items-center flex-1 pr-4 min-w-0 transition-all duration-300 ease-in-out
+                ${sidebarCollapsed ? 'opacity-0 max-w-0 pointer-events-none' : 'opacity-100 max-w-[200px]'}`}
+              >
+                <span className="whitespace-nowrap overflow-hidden text-left">
+                  Community
+                </span>
+              </div>
+            </button>
+
+            {/* ABOUT BUTTON */}
+            <button 
+              onClick={() => { setCurrentView('About'); setSidebarOpen(false); }}
+              className={`w-full flex items-center h-9 xl:h-11 rounded-xl font-bold uppercase text-xs tracking-wider transition-all duration-300 cursor-pointer justify-start overflow-hidden
+                ${currentView === 'About' 
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
+                  : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
+            >
+              <div className="w-[64px] flex items-center justify-center shrink-0">
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                </svg>
+              </div>
+              <div className={`flex items-center flex-1 pr-4 min-w-0 transition-all duration-300 ease-in-out
+                ${sidebarCollapsed ? 'opacity-0 max-w-0 pointer-events-none' : 'opacity-100 max-w-[200px]'}`}
+              >
+                <span className="whitespace-nowrap overflow-hidden text-left">
+                  About
+                </span>
+              </div>
             </button>
 
             {/* SPONSORING BUTTON */}
             <button 
               onClick={() => { setCurrentView('Sponsoring'); setSidebarOpen(false); }}
-              className={`w-full flex items-center px-4 py-2 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer ${currentView === 'Sponsoring' ? 'bg-blue-600/10 text-blue-600 dark:text-blue-400' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'} ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}
+              className={`w-full flex items-center h-9 xl:h-11 rounded-xl font-bold uppercase text-xs tracking-wider transition-all duration-300 cursor-pointer justify-start overflow-hidden
+                ${currentView === 'Sponsoring' 
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
+                  : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
+                }`}
             >
-              <div className="w-5 h-5 flex items-center justify-center shrink-0 text-base select-none">
+              <div className="w-[64px] flex items-center justify-center shrink-0 text-base select-none">
                 ❤️
               </div>
-              {!sidebarCollapsed && <span>Sponsoring</span>}
+              <div className={`flex items-center flex-1 pr-4 min-w-0 transition-all duration-300 ease-in-out
+                ${sidebarCollapsed ? 'opacity-0 max-w-0 pointer-events-none' : 'opacity-100 max-w-[200px]'}`}
+              >
+                <span className="whitespace-nowrap overflow-hidden text-left">
+                  Sponsoring
+                </span>
+              </div>
             </button>
 
-            {/* UTILITIES & EXTERNAL LINKS SEGMENT */}
-            <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800">
-              <div className={`grid gap-2 ${
+            {/* UTILITIES LINKS */}
+            <div className="pt-3 mt-3 xl:pt-4 xl:mt-4 border-t border-slate-200 dark:border-slate-800">
+              <div className={`grid gap-1.5 xl:gap-2 transition-all duration-300 ${
                 sidebarCollapsed 
                   ? 'grid-cols-1' 
                   : 'grid-cols-2 xl:flex xl:flex-col'
@@ -641,16 +761,15 @@ export default function Home() {
                 <button 
                   title="Surprise Me"
                   onClick={(e) => { handleRandomApp(); setSidebarOpen(false); }}
-                  className={`relative group flex items-center rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-slate-200 dark:hover:bg-slate-800 ${
-                    sidebarCollapsed 
-                      ? 'justify-center px-4 py-3' 
-                      : 'justify-start px-3 py-3 xl:px-4 xl:py-2.5 bg-slate-100/40 dark:bg-slate-900/20 xl:bg-transparent'
-                  } text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 overflow-hidden cursor-pointer`}
+                  className={`relative group flex items-center h-9 xl:h-11 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-slate-200 dark:hover:bg-slate-800 transition-all duration-300 cursor-pointer justify-start overflow-hidden
+                    ${sidebarCollapsed 
+                      ? 'text-slate-500' 
+                      : 'text-slate-500 bg-slate-100/40 dark:bg-slate-900/20 xl:bg-transparent'
+                    } hover:text-emerald-600 dark:hover:text-emerald-400`}
                 >
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-600/15 via-transparent to-transparent" />
                   <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent" />
-                  
-                  <div className={`flex items-center relative z-10 ${sidebarCollapsed ? 'justify-center' : 'gap-3 w-full'}`}>
+                  <div className="w-12 xl:w-[64px] flex items-center justify-center shrink-0 relative z-10">
                     <div className="relative w-5 h-5 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(16,185,129,0.3)]">
                         <path d="m15 5 4 4" /><path d="M11 9 2 18l4 4 9-9" />
@@ -658,28 +777,29 @@ export default function Home() {
                         <path className="animate-pulse delay-75" d="M22 10l.5 1.5L24 12l-1.5.5L22 14l-.5-1.5L20 12l1.5-.5L22 10z" />
                       </svg>
                     </div>
-                    {!sidebarCollapsed && <span className="text-[10px] xl:text-xs truncate">Surprise</span>}
+                  </div>
+                  <div className={`flex items-center flex-1 pr-4 min-w-0 transition-all duration-300 ease-in-out relative z-10
+                    ${sidebarCollapsed ? 'opacity-0 max-w-0 pointer-events-none' : 'opacity-100 max-w-[200px]'}`}
+                >
+                    <span className="text-[10px] xl:text-xs truncate whitespace-nowrap overflow-hidden text-left">
+                      Surprise
+                    </span>
                   </div>
                 </button>
 
                 {/* 2. REQUEST CONTAINER BUTTON */}
                 <button 
                   title="Request Container"
-                  onClick={(e) => {
-                      e.preventDefault();
-                      setIsRequesting(true);
-                      setSidebarOpen(false);
-                  }}
-                  className={`relative group flex items-center rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-slate-200 dark:hover:bg-slate-800 ${
-                    sidebarCollapsed 
-                      ? 'justify-center px-4 py-3' 
-                      : 'justify-start px-3 py-3 xl:px-4 xl:py-2.5 bg-slate-100/40 dark:bg-slate-900/20 xl:bg-transparent'
-                  } text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 overflow-hidden cursor-pointer`}
+                  onClick={(e) => { e.preventDefault(); setIsRequesting(true); setSidebarOpen(false); }}
+                  className={`relative group flex items-center h-9 xl:h-11 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-slate-200 dark:hover:bg-slate-800 transition-all duration-300 cursor-pointer justify-start overflow-hidden
+                    ${sidebarCollapsed 
+                      ? 'text-slate-500' 
+                      : 'text-slate-500 bg-slate-100/40 dark:bg-slate-900/20 xl:bg-transparent'
+                    } hover:text-amber-600 dark:hover:text-amber-400`}
                 >
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-600/15 via-transparent to-transparent" />
                   <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-amber-400/10 to-transparent" />
-                  
-                  <div className={`flex items-center relative z-10 ${sidebarCollapsed ? 'justify-center' : 'gap-3 w-full'}`}>
+                  <div className="w-12 xl:w-[64px] flex items-center justify-center shrink-0 relative z-10">
                     <div className="relative w-5 h-5 flex items-center justify-center shrink-0 text-amber-500 dark:text-amber-400 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(245,158,11,0.3)]">
                         <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" />
@@ -691,7 +811,13 @@ export default function Home() {
                         <span className="relative inline-flex rounded-full h-1 w-1 bg-amber-300"></span>
                       </span>
                     </div>
-                    {!sidebarCollapsed && <span className="text-[10px] xl:text-xs truncate">Request</span>}
+                  </div>
+                  <div className={`flex items-center flex-1 pr-4 min-w-0 transition-all duration-300 ease-in-out relative z-10
+                    ${sidebarCollapsed ? 'opacity-0 max-w-0 pointer-events-none' : 'opacity-100 max-w-[200px]'}`}
+                  >
+                    <span className="text-[10px] xl:text-xs truncate whitespace-nowrap overflow-hidden text-left">
+                      Request
+                    </span>
                   </div>
                   <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(245,158,11,0.1)]" />
                 </button>
@@ -702,16 +828,15 @@ export default function Home() {
                   href={`https://github.com/vukilis/docker-ninja/issues?q=is%3Aissue+is%3Aopen`}
                   target="_blank"
                   rel="noreferrer"
-                  className={`relative group flex items-center rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-slate-200 dark:hover:bg-slate-800 ${
-                    sidebarCollapsed 
-                      ? 'justify-center px-4 py-3' 
-                      : 'justify-start xl:justify-between px-3 py-3 xl:px-4 xl:py-2.5 bg-slate-100/40 dark:bg-slate-900/20 xl:bg-transparent'
-                  } text-slate-500 hover:text-purple-600 dark:hover:text-purple-400 overflow-hidden`}
+                  className={`relative group flex items-center h-9 xl:h-11 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-slate-200 dark:hover:bg-slate-800 transition-all duration-300 justify-start overflow-hidden
+                    ${sidebarCollapsed 
+                      ? 'text-slate-500' 
+                      : 'text-slate-500 bg-slate-100/40 dark:bg-slate-900/20 xl:bg-transparent'
+                    } hover:text-purple-600 dark:hover:text-purple-400`}
                 >
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-600/15 via-transparent to-transparent" />
                   <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-purple-400/10 to-transparent" />
-                  
-                  <div className={`flex items-center relative z-10 min-w-0 ${sidebarCollapsed ? 'justify-center' : 'gap-3 w-full'}`}>
+                  <div className="w-12 xl:w-[64px] flex items-center justify-center shrink-0 relative z-10">
                     <div className="relative w-5 h-5 flex items-center justify-center shrink-0 text-purple-600 dark:text-purple-400 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(168,85,247,0.3)]">
                         <rect width="8" height="14" x="8" y="6" rx="4" />
@@ -722,14 +847,17 @@ export default function Home() {
                         <span className="relative inline-flex rounded-full h-1 w-1 bg-purple-300"></span>
                       </span>
                     </div>
-                    {!sidebarCollapsed && <span className="text-[10px] xl:text-xs truncate">Report</span>}
                   </div>
-                  
-                  {!sidebarCollapsed && (
-                    <svg className="w-3 h-3 text-slate-400 opacity-60 relative z-10 transition-transform group-hover:translate-x-0.5 hidden xl:block shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <div className={`flex items-center justify-between flex-1 pr-4 min-w-0 transition-all duration-300 ease-in-out relative z-10
+                    ${sidebarCollapsed ? 'opacity-0 max-w-0 pointer-events-none' : 'opacity-100 max-w-[200px]'}`}
+                  >
+                    <span className="text-[10px] xl:text-xs truncate whitespace-nowrap overflow-hidden text-left">
+                      Report
+                    </span>
+                    <svg className="w-3 h-3 text-slate-400 opacity-60 transition-transform group-hover:translate-x-0.5 hidden xl:block shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                     </svg>
-                  )}
+                  </div>
                   <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(168,85,247,0.1)]" />
                 </a>
 
@@ -739,16 +867,15 @@ export default function Home() {
                   href="https://github.com/vukilis" 
                   target="_blank" 
                   rel="noreferrer" 
-                  className={`relative group flex items-center rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-slate-200 dark:hover:bg-slate-800 ${
-                    sidebarCollapsed 
-                      ? 'justify-center px-4 py-3' 
-                      : 'justify-start xl:justify-between px-3 py-3 xl:px-4 xl:py-2.5 bg-slate-100/40 dark:bg-slate-900/20 xl:bg-transparent'
-                  } text-slate-500 hover:text-slate-900 dark:hover:text-white overflow-hidden`}
+                  className={`relative group flex items-center h-9 xl:h-11 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-slate-200 dark:hover:bg-slate-800 transition-all duration-300 justify-start overflow-hidden
+                    ${sidebarCollapsed 
+                      ? 'text-slate-500' 
+                      : 'text-slate-500 bg-slate-100/40 dark:bg-slate-900/20 xl:bg-transparent'
+                    } hover:text-slate-900 dark:hover:text-white`}
                 >
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-500/15 via-transparent to-transparent" />
                   <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-indigo-400/10 to-transparent" />
-                  
-                  <div className={`flex items-center relative z-10 min-w-0 ${sidebarCollapsed ? 'justify-center' : 'gap-3 w-full'}`}>
+                  <div className="w-12 xl:w-[64px] flex items-center justify-center shrink-0 relative z-10">
                     <div className="relative w-5 h-5 flex items-center justify-center shrink-0 text-slate-700 dark:text-slate-300 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
                       <svg 
                         viewBox="0 0 24 24" 
@@ -762,41 +889,54 @@ export default function Home() {
                         <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
                       </svg>
                     </div>
-                    {!sidebarCollapsed && <span className="text-[10px] xl:text-xs truncate">GitHub</span>}
                   </div>
-                  
-                  {!sidebarCollapsed && (
-                    <svg className="w-3 h-3 text-slate-400 opacity-60 relative z-10 transition-transform group-hover:translate-x-0.5 hidden xl:block shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <div className={`flex items-center justify-between flex-1 pr-4 min-w-0 transition-all duration-300 ease-in-out relative z-10
+                    ${sidebarCollapsed ? 'opacity-0 max-w-0 pointer-events-none' : 'opacity-100 max-w-[200px]'}`}
+                  >
+                    <span className="text-[10px] xl:text-xs truncate whitespace-nowrap overflow-hidden text-left">
+                      GitHub
+                    </span>
+                    <svg className="w-3 h-3 text-slate-400 opacity-60 transition-transform group-hover:translate-x-0.5 hidden xl:block shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                     </svg>
-                  )}
+                  </div>
                 </a>
-
               </div>
             </div>
             
             {/* BOTTOM ACTION REGION */}
-            <div className="pt-8 mt-auto border-b border-slate-200 dark:border-slate-800 pb-6">
+            <div className="pt-5 mt-auto border-b border-slate-200 dark:border-slate-800 pb-3 xl:pt-8 xl:pb-6">
               <button 
                 onClick={() => navigateTo('landing')} 
-                className="group relative w-full flex items-center justify-center gap-3 px-4 py-4 rounded-2xl cursor-pointer bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all overflow-hidden"
+                className="group relative w-full flex items-center justify-center xl:justify-start h-11 xl:h-14 rounded-2xl cursor-pointer bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600/0 via-blue-600/10 to-blue-600/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
-                <svg className="w-3 h-3 transform group-hover:-translate-x-1 transition-transform flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                  <path d="M19 12H5M12 19l-7-7 7-7" />
-                </svg>
-                <span className={`relative z-10 transition-all ${sidebarCollapsed ? 'w-0 opacity-0 overflow-hidden hidden' : 'w-auto opacity-100'}`}>Back to Landing</span>
+                <div className="absolute left-4 xl:left-auto xl:w-[64px] flex items-center justify-center shrink-0 relative z-10">
+                  <svg className="w-3 h-3 transform group-hover:-translate-x-0.5 transition-transform shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                  </svg>
+                </div>
+                <div className={`flex items-center justify-center xl:justify-start flex-1 xl:pr-4 min-w-0 transition-all duration-300 ease-in-out relative z-10
+                  ${sidebarCollapsed ? 'opacity-0 max-w-0 pointer-events-none' : 'opacity-100 max-w-[200px]'}`}
+                >
+                  <span className="whitespace-nowrap overflow-hidden text-center xl:text-left truncate">
+                    Back to Landing
+                  </span>
+                </div>
               </button>
             </div>
           </nav>
-          
-          <div className="pt-6"><ThemeSwitcher collapsed={sidebarCollapsed} /></div>
+          {/* THEME SWITCHER */}
+          <div className="pt-4 xl:pt-6">
+            <ThemeSwitcher collapsed={sidebarCollapsed} />
+          </div>
         </div>
       </aside>
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <header className="h-16 flex items-center justify-between px-3 md:px-6 bg-[#b7c7cd] border-b border-slate-200 dark:border-slate-800 shrink-0 dark:bg-[#0d1117]/50 backdrop-blur-md z-10">
           <div className="flex items-center md:ml-3 xl:mr-5 gap-2 md:gap-4 order-last xl:order-first">
+            {/* Desktop menu button */}
             <button 
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)} 
               className="hidden xl:flex p-2 text-slate-500 hover:text-blue-600 transition-colors bg-slate-100 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 cursor-pointer"
@@ -806,15 +946,14 @@ export default function Home() {
                 <line x1="9" y1="3" x2="9" y2="21"></line>
               </svg>
             </button>
-            
+            {/* Mobile menu button */}
             <button 
               onClick={() => setSidebarOpen(true)} 
-              className="xl:hidden p-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
+              className="xl:hidden p-2 text-blue-600 hover:text-slate-700 dark:hover:text-slate-300 cursor-pointer"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={sidebarCollapsed ? "rotate-180" : ""}>
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
               </svg>
             </button>
           </div>
