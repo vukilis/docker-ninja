@@ -31,7 +31,7 @@ export default function Preloader({ onComplete }: { onComplete?: () => void }) {
 
     return (
         <div 
-        className={`fixed inset-0 bg-[#0d1117] z-[200] flex flex-col items-center justify-center transition-opacity duration-500 ease-in-out ${phase === 'fade' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        className={`fixed inset-0 my-custom-background z-[200] flex flex-col items-center justify-center transition-opacity duration-500 ease-in-out ${phase === 'fade' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
         >
         <div className="relative flex flex-col items-center">
             
