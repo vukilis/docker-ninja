@@ -1,7 +1,7 @@
 ---
-name: Application Name
+name: Issue Report
 about: Create a report to help us improve
-title: "[BUG]"
+title: "[BUG] Application Name"
 labels: bug
 assignees: ''
 
