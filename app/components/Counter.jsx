@@ -1,18 +1,17 @@
 import React from 'react';
 
-// Helper function for compact format
+// Helper function to format numbers in a compact form (e.g., 1.2K, 3.4M)
 const formatCompactNumber = (number) => {
-  if (number < 1000) return number;
+  if (number < 1000) return number.toLocaleString(); 
   return new Intl.NumberFormat('en-US', {
     notation: "compact",
     compactDisplay: "short",
-    maximumFractionDigits: 1,
+    maximumSignificantDigits: 2, 
   }).format(number);
 };
 
 export const Counter = ({ value, delay = 0 }) => {
   const [count, setCount] = React.useState(0);
-  const [isFinished, setIsFinished] = React.useState(false);
 
   React.useEffect(() => {
     const isFirstLoad = !window.__dn_preloader_finished;
@@ -22,7 +21,7 @@ export const Counter = ({ value, delay = 0 }) => {
     const startTimeout = setTimeout(() => {
       window.__dn_preloader_finished = true;
 
-      const end = parseInt(value);
+      const end = parseInt(value, 10);
       if (isNaN(end) || end <= 0) {
         setCount(value);
         return;
@@ -43,7 +42,6 @@ export const Counter = ({ value, delay = 0 }) => {
 
         if (frame >= totalFrames) {
           setCount(end);
-          setIsFinished(true);
           clearInterval(timer);
         }
       }, frameRate);
@@ -55,12 +53,5 @@ export const Counter = ({ value, delay = 0 }) => {
     };
   }, [value, delay]);
 
-  return (
-    <>
-      {isFinished 
-        ? formatCompactNumber(count)
-        : count.toLocaleString()
-      }
-    </>
-  );
+  return <>{formatCompactNumber(count)}</>;
 };
