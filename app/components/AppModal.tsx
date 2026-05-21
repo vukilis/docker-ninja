@@ -342,7 +342,7 @@ function ModalContent({
                                 <div onTouchStart={stopPropagation} className="code-container bg-[#f6f4f0]/50 dark:bg-[#0d1117] p-2 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 overflow-x-auto whitespace-nowrap">$ docker compose up -d</div>
                             </div>
                             <div className="text-[10px] md:text-xs">
-                                <h3 className="text-blue-600 dark:text-blue-400 mb-1 font-bold flex justify-between uppercase">Docker Run
+                                <h3 className="text-blue-600 dark:text-blue-400 mb-1 font-bold flex justify-between uppercase">Docker CLI
                                     <button onClick={() => copyToClipboard(app.run_command || `docker run -d --name ${app.slug}`, setCopiedRunCmd)} className={`cursor-pointer transition-colors ${copiedRunCmd ? 'text-green-600 dark:text-green-500' : 'text-slate-500 hover:text-green-500'}`}>{copiedRunCmd ? "[COPIED!]" : "[COPY]"}</button>
                                 </h3>
                                 <div onTouchStart={stopPropagation} className="code-container bg-[#f6f4f0]/50 dark:bg-[#0d1117] p-2 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 overflow-x-auto whitespace-nowrap">$ {app.run_command || `docker run -d --name ${app.slug}`}</div>
@@ -676,7 +676,7 @@ export function DeployedCounter() {
     return (
         <div>
             <div className="relative flex items-center justify-center text-blue-600 text-3xl mb-1 font-black text-center">
-                <span><Counter value={stats} delay={2000} /></span>
+                <span><Counter value={stats}/></span>
             </div>
             <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Deployed</div>
         </div>
