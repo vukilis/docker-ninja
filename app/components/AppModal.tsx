@@ -96,7 +96,7 @@ export function RequestSearchOverlay({ allApps, onClose, onAppSelect }: { allApp
                                     </button>
                                 ) : (
                                     <a 
-                                        href={`https://github.com/vukilis/docker-ninja/discussions/new?category=ideas&title=Request: ${search}`}
+                                        href={`https://github.com/vukilis/docker-ninja/discussions/new?category=request-container&title=Container request: ${search}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         onClick={(e) => e.stopPropagation()}
@@ -215,11 +215,11 @@ function ModalContent({
                 </div>
 
                 <div className="flex items-center justify-between md:justify-end gap-2 shrink-0">
-                    <div className="flex items-center bg-slate-100 dark:bg-slate-900/50 rounded-full p-1 border border-slate-200 dark:border-blue-900/30">
+                    <div className="flex items-center bg-slate-100 dark:bg-slate-900/50 rounded-full px-1 py-0.5 border border-slate-200 dark:border-blue-900/30">
                         <button onClick={handlePrev} className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all text-slate-500 hover:text-blue-600 cursor-pointer">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path d="M15 19l-7-7 7-7" /></svg>
                         </button>
-                        <div className="px-1 flex items-center justify-center min-w-[3.5rem] pt-0.5 font-mono">
+                        <div className="px-1 flex items-center justify-center min-w-[3.5rem] sm:pt-0.5 font-mono">
                             <span className="text-[12px] font-black text-slate-600 dark:text-slate-400 tabular-nums">
                                 {currentIndex} <span className="text-slate-300 dark:text-slate-700 mx-0.5">/</span> {totalApps}
                             </span>
@@ -230,9 +230,9 @@ function ModalContent({
                     </div>
 
                     <a 
-                        href={`https://github.com/vukilis/docker-ninja/issues?q=is%3Aissue+is%3Aopen+${encodeURIComponent(app.name)}`}
+                        href={`https://github.com/vukilis/docker-ninja/issues/new?template=issue-report.md&title=${encodeURIComponent(`[BUG] ${app.name}`)}&labels=bug`}
                         target="_blank"
-                        className="relative group flex items-center gap-2 px-3 md:px-5 py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-purple-600/30 hover:border-purple-500/60 bg-purple-100 dark:bg-purple-950/5 backdrop-blur-sm"
+                        className="relative group flex w-full items-center gap-2 px-7 md:px-5 py-3 text-[10px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-purple-600/30 hover:border-purple-500/60 bg-purple-100 dark:bg-purple-950/5 backdrop-blur-sm"
                         >
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-600/20 via-fuchsia-900/5 to-transparent" />
                         <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-purple-400/10 to-transparent" />
@@ -369,7 +369,7 @@ function ModalContent({
                             </button>
 
                             <a 
-                                href={`https://github.com/vukilis/docker-ninja/issues?q=is%3Aissue+is%3Aopen+${encodeURIComponent(app.name)}`}
+                                href={`https://github.com/vukilis/docker-ninja/issues/new?template=issue-report.md&title=${encodeURIComponent(`[BUG] ${app.name}`)}&labels=bug`}
                                 target="_blank"
                                 className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-purple-600/30 hover:border-purple-500/60 bg-purple-100 dark:bg-purple-950/5 backdrop-blur-sm"
                             >

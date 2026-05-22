@@ -21,11 +21,11 @@ export const metadata = {
     keywords: ['Docker', 'Self-hosting', 'Templates', 'Compose'],
     authors: [{ name: 'Vuk Lekic' }],
     creator: 'Vuk Lekic',
-    metadataBase: new URL('https://dockerninja.com'),
+    metadataBase: new URL('https://dockerninja.org'),
     openGraph: {
       title: 'Docker Ninja',
       description: `Containerization redefined my reality, yet I constantly hit a ceiling. I grew tired of the fragmented search for reliable infrastructure code and the endless scouring for inspiration. I built this universe to collapse the hurdles. Whether you are a student exploring the basics, a tinkerer building a homelab or a pro architecting a stack, this is the perfect place for you.`,
-      url: 'https://dockerninja.com',
+      url: 'https://dockerninja.org',
       siteName: 'Docker Ninja',
       images: [
         {
@@ -49,7 +49,7 @@ export const metadata = {
       follow: true,
     },
     alternates: {
-      canonical: 'https://dockerninja.com',
+      canonical: 'https://dockerninja.org',
     },
     icons: {
       icon: [
