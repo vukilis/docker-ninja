@@ -1,42 +1,106 @@
-![Docker Ninja](https://img.shields.io/badge/Docker-Ninja-blue?style=for-the-badge&logo=docker)
-![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)
-![Tailwind](https://img.shields.io/badge/Tailwind-CSS-38B2AC?style=for-the-badge&logo=tailwind-css)
+<div align="center" style="padding-top:30px;">
+  <div style="position: relative; width: 128px; height: 112px; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(37, 99, 235, 0.2); border-radius: 12px; background-color: #0d1117; user-select: none;">
+  <div style="display: flex; font-size: 124px; font-weight: 900; letter-spacing: -0.05em; line-height: 1;">
+    <span style="color: #fff;">D</span>
+    <span style="color: #2563eb;">N</span>
+  </div>
+</div>
+
+  <h1>Docker Ninja</h1>
+  <h3>The official frontend application for dockerninja.org 🚀</h3>
+  <p><strong>Master your container universe with perfectly crafted stacks for any application — all in one place</strong></p>
+
+  <p>
+    <img width=94px src="https://img.shields.io/badge/Nix_Shell-5277C3?style=flat-square&logo=nixos&logoColor=white" />
+    <img width=108px src="https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=next.js&logoColor=white" />
+    <img width=99px src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black" />
+    <img width=126px src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white" />
+    <img width=148px src="https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white" />
+  </p>
+</div>
 
 ---
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## What is this?
+
+Containerization redefined my reality, yet I constantly hit a ceiling. I grew tired of the fragmented search for reliable infrastructure code and the endless scouring for inspiration. I built this universe to collapse the hurdles. Whether you are a student exploring the basics, a tinkerer building a homelab or a pro architecting a stack, this is the perfect place for you.
+
+---
+
+## Requirements
+
+Docker Ninja is environment-agnostic. Any operating system or environment capable of running **Docker** and **Docker Compose** is fully supported:
+
+* **Linux** (Ubuntu, Debian, Fedora, Arch, Alpine, etc.)
+* **macOS** (Intel & Apple Silicon via Docker Desktop / OrbStack / Colima)
+* **Windows 10/11** (via WSL2 and Docker Desktop)
+* **Cloud & Edge Environments** (AWS, GCP, Azure, DigitalOcean, Hetzner, etc.)
+
+---
 
 ## Getting Started
 
-First, run the development server:
+Your shortcut from container search to docker compose up:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. Go to **[dockerninja.org](https://dockerninja.org)**
+2. Search for the application stack you want to deploy (e.g., "Home Assistant", "AdGuard Home", "Nginx Proxy Manager")
+3. Copy the optimized `Docker Compose` or `Docker CLI command` deployment command from the stack page
+4. Open your server's terminal or container environment
+5. Make a `compose.yaml` or run the `Docker CLI command` to launch your container
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Contributing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This project thrives on community contributions. Whether you want to share a new container stack, optimize an existing configuration, or report a bug — every bit helps master the universe.
 
-## Learn More
+### Where to start
 
-To learn more about Next.js, take a look at the following resources:
+| I want to…                            | Go here                                                                                           |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Add a **new** container stack         | Go to **dockerninja.org** $\rightarrow$ click the **Request** button $\rightarrow$ Verify availability in the database. |
+| Fix or improve an **existing** stack  | Go to **dockerninja.org** $\rightarrow$ select the application stack $\rightarrow$ click the **Report** button to open a PR. repo                                     |
+| Get help or chat with other builders        | [Discussions](https://github.com/vukilis/docker-ninja/discussions)                             |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Before you open a PR
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Optimizations, security fixes, and updates to existing stacks belong in this repo.
+- Keep PRs focused. One configuration fix or application update per PR.
+- Document your `compose.yaml` setup and note any non-obvious environment variables or volume choices in the corresponding documentation/metadata file.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Fuel the Project 🚀
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+<div align="center">
+  <a href="https://ko-fi.com/vukilis">
+    <img src="https://img.shields.io/badge/Support_on_Ko--fi-FF5F5F?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support on Ko-fi" />
+  </a>
+  &nbsp;
+  <a href="https://dockerninja.org/?view=sponsoring">
+    <img src="https://img.shields.io/badge/DockerNinja.org%2Fsponsoring-60a9fa?style=for-the-badge" alt="Donate via dockerninja.org" />
+  </a>
+</div>
+
+<br />
+
+<div align="left">
+  <p>
+    If these <span style="color: #60a5fa;">compose files</span> saved you hours of debugging or helped you learn something new, consider sending a one-time donation to keep the lights on and the registry growing.
+  </p>
+  <p>
+    Your support keeps the <span style="color: #f97316;">servers running</span> and the code open source.
+  </p>
+  
+  <blockquote>
+    <span style="color: #f472b6;"><i><b>"Individual contributions ensure a decentralized future for self-hosters."</b></i></span>
+  </blockquote>
+</div>
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE) — free to use, modify, and redistribute for personal and commercial purposes.
+
+See the full license text in [LICENSE](LICENSE).
