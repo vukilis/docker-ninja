@@ -1,11 +1,5 @@
 <div align="center" style="padding-top:30px;">
-  <div style="position: relative; width: 128px; height: 112px; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(37, 99, 235, 0.2); border-radius: 12px; background-color: #0d1117; user-select: none;">
-  <div style="display: flex; font-size: 124px; font-weight: 900; letter-spacing: -0.05em; line-height: 1;">
-    <span style="color: #fff;">D</span>
-    <span style="color: #2563eb;">N</span>
-  </div>
-</div>
-
+  <img src="https://raw.githubusercontent.com/vukilis/docker-ninja/refs/heads/main/app/android-chrome-512x512.png" width="192" alt="Docker Ninja" />
   <h1>Docker Ninja</h1>
   <h3>The official frontend application for dockerninja.org 🚀</h3>
   <p><strong>Master your container universe with perfectly crafted stacks for any application — all in one place</strong></p>
