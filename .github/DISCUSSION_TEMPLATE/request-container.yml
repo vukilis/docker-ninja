@@ -34,12 +34,14 @@ body:
       label: Docker Compose Snippet
       description: Provide a sample Docker Compose configuration.
       placeholder: |
+        ```
         services:
           app:
             image: example/image
             ports:
               - "8080:80"
-
+        ```
+        
   - type: textarea
     id: additional
     attributes:
