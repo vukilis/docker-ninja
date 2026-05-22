@@ -3,7 +3,7 @@ name: "🚀 Request Container"
 about: Request a new container for Docker Ninja
 title: "[REQUEST] "
 labels: ["request"]
-category: request-container
+category: -request-container
 ---
 
 # 🚀 Request Container
