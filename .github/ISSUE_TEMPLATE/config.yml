@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
     - name: 💡 New Container Request
-      url: https://github.com/vukilis/docker-ninja/discussions/new?category=-request-container&title=Request:
+      url: https://github.com/vukilis/docker-ninja/discussions/new?category=request-container
       about: For container requests, please use the Discussions section.
     - name: 🐞 Container Issue Report
       url: https://github.com/vukilis/docker-ninja/issues/new?template=issue-report.md
