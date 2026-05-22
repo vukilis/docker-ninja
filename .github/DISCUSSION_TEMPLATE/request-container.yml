@@ -1,0 +1,51 @@
+title: "[Container request]: "
+labels: ["request"]
+body:
+  - type: input
+    id: app-name
+    attributes:
+      label: Application Name
+      description: Enter the application name.
+      placeholder: "e.g., Home Assistant"
+    validations:
+      required: true
+
+  - type: input
+    id: website
+    attributes:
+      label: Website
+      description: Official website or GitHub page.
+      placeholder: "e.g., https://www.home-assistant.io/"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Explain what the application does and why it should be added to Docker Ninja.
+      placeholder: "e.g., Home Assistant is a popular open-source platform that brings all your smart home devices together..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: docker-compose
+    attributes:
+      label: Docker Compose Snippet
+      description: Provide a sample Docker Compose configuration.
+      placeholder: |
+        services:
+          app:
+            image: example/image
+            ports:
+              - "8080:80"
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Information
+      description: Links, documentation, screenshots, or anything else helpful.
+
+  - type: markdown
+    attributes:
+      value: "Thanks for submitting your request! The maintainers will review it."
