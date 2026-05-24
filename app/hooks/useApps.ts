@@ -5,16 +5,17 @@ import { supabase } from '../../lib/supabase';
 export function useApps() {
     const [apps, setApps] = useState<any[]>([]);
     const [search, setSearch] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("All");
+    const [selectedCategory, setSelectedCategory] = useState("Dashboard");
     const [loading, setLoading] = useState(true);
 
     // 1. Initial Data Fetch
     useEffect(() => {
+        let isMounted = true;
         const loadApps = async () => {
             try {
                 setLoading(true);
                 const data = await fetchAllApps();
-                setApps(data || []);
+                if (isMounted) setApps(data || []);
             } catch (error) {
                 console.error("Failed to load apps:", error);
             } finally {
@@ -22,6 +23,7 @@ export function useApps() {
             }
         };
         loadApps();
+        return () => { isMounted = false; };
     }, []);
 
     // 2. Realtime Subscription
@@ -60,7 +62,7 @@ export function useApps() {
     // 3. Smart Search Logic (Weighted & Fuzzy)
     const filteredApps = useMemo(() => {
         if (!search.trim()) {
-            return apps.filter(app => (selectedCategory === "All" || app.category === selectedCategory || selectedCategory === "ShowCategories"));
+            return apps.filter(app => (selectedCategory === "Dashboard" || app.category === selectedCategory || selectedCategory === "categories"));
         }
 
         const query = search.toLowerCase().trim();
@@ -99,7 +101,7 @@ export function useApps() {
                 return { ...app, searchScore: score };
             })
             .filter(app => {
-                const categoryMatch = (selectedCategory === "All" || app.category === selectedCategory || selectedCategory === "ShowCategories");
+                const categoryMatch = (selectedCategory === "Dashboard" || app.category === selectedCategory || selectedCategory === "categories");
                 const minThreshold = queryWords.length > 1 ? 25 : 1;
                 return categoryMatch && app.searchScore >= minThreshold;
             })
