@@ -1,11 +1,10 @@
 "use client";
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { useApps } from './hooks/useApps';
+import { useAppsGlobal } from './context/AppsContext';
 import './style/globals.css';
 import { AppModal, RequestSearchOverlay, DeployedCounter } from './components/AppModal';
 import { AppCard } from './components/AppCard';
-import { Counter } from './components/Counter';
-// import { AISuggestor} from './components/ChatAI';
+import { Counter } from './utils/Counter';
 import { ThemeSwitcher} from './components/ThemeSwitcher';
 import { RotatingMessage} from './components/RotatingMessage';
 import { NetworkBackground } from './components/NetworkMap';
@@ -15,7 +14,6 @@ import { Sponsoring } from './components/Sponsoring';
 import CommunityPage from './components/CommunityPage';
 import { Navigation } from './hooks/navigation';
 import { Pagination } from './components/Paginations';
-import { fetchAllActiveLikes } from './actions';
 import { ClientMetadataController } from './components/PageMetadata';
 
 // --- TYPES ---
@@ -90,12 +88,11 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 	const [paginationState, setPaginationState] = useState<Record<string, number>>({ 'all-apps': 1 });
 	const [appsPerPage, setAppsPerPage] = useState(64);
 	const [sortBy, setSortBy] = useState<'A-Z' | 'Z-A' | 'Favorites'>('A-Z');
-	const [globalLikes, setGlobalLikes] = useState<Record<string, number>>({});
 
 	const { 
 		filteredApps, categories, search, setSearch, 
-		apps, getCountByCategory 
-	} = useApps();
+		apps, getCountByCategory, globalLikes 
+	} = useAppsGlobal();
 
 	// STATE INITIALIZATION
 	const [isMounted, setIsMounted] = useState(false);
@@ -277,7 +274,7 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 		? (paginationState['all-apps'] || 1) 
 		: (paginationState[activeSubCategory || ''] || 1);
 
-	// SCROLL MECHANISM: Handles page resets, view shifts, and page flips seamlessly
+	// SCROLL MECHANISM
 	useEffect(() => {
 		const container = scrollContainerRef.current;
 		if (!container) return;
@@ -293,7 +290,7 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 		const currentKey = currentView !== "categories" ? 'all-apps' : activeSubCategory;
 		
 		setPaginationState(prev => {
-			// Only trigger state update if we aren't already on page 1 (prevents infinite re-render loops)
+			// Only trigger state update if we aren't already on page 1
 			if (prev[currentKey || 'all-apps'] === 1) return prev;
 			
 			return {
@@ -319,22 +316,6 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 		}
 	}, [selectedApp]);
 
-	// Sync device's locally liked records for instant client-side favorites sorting
-	useEffect(() => {
-		if (apps.length === 0 || Object.keys(globalLikes).length > 0) return;
-
-		async function loadDashboardLikes() {
-			try {
-				const activeLikesMap = await fetchAllActiveLikes();
-				setGlobalLikes(activeLikesMap);
-			} catch (err) {
-				console.error("Error setting active dashboard likes:", err);
-			}
-		}
-
-		loadDashboardLikes();
-	}, [apps, globalLikes]);
-
 	// DYNAMIC PAGINATION PER BREAKPOINT
 	useEffect(() => {
 		if (typeof window === 'undefined') return;
@@ -359,7 +340,7 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 		return () => window.removeEventListener('resize', handleResize);
 	}, []);
 
-	// GLOBAL SCROLL LOCK (e.g. when modal is open or sidebar is open on mobile)
+	// GLOBAL SCROLL LOCK (when modal is open or sidebar is open on mobile)
 	useEffect(() => {
 		document.body.style.overflow = sidebarOpen || isRequesting ? 'hidden' : 'unset';
 		return () => {
@@ -1086,16 +1067,9 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 					slug: selectedApp.slug || ''
 				}}
 				allApps={apps} 
-				globalLikes={globalLikes} // Pass the full map
 				onAppChange={(app) => setSelectedApp(app as AppData)}
 				onClose={() => setSelectedApp(null)} 
-				onRandom={handleRandomApp} 
-				onLikeUpdate={(slug: string, newCount: number) => {
-					setGlobalLikes(prev => ({
-						...prev,
-						[slug]: newCount
-					}));
-				}}
+				onRandom={handleRandomApp}
 			/>
 		)}
 		{isRequesting && (

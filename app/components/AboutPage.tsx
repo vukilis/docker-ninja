@@ -1,9 +1,9 @@
-import { useApps } from '../hooks/useApps';
+import { useAppsGlobal } from '../context/AppsContext';
 
 // AboutPage Component
 export default function AboutPage() {
 
-    const { totalCount } = useApps();;
+    const { totalCount, loading } = useAppsGlobal();
     
     const initiatives = [
         {
@@ -124,7 +124,7 @@ export default function AboutPage() {
                         <div className="group flex justify-center sm:justify-start">
                             <div className="inline-flex flex-col items-start">
                                 <div className="text-6xl sm:text-5xl font-black text-white self-center group-hover:text-blue-400 transition-colors tracking-tighter italic uppercase">
-                                    {Math.floor(totalCount / 10) * 10}+
+                                    {loading ? "..." : `${Math.floor(totalCount / 10) * 10}+`}
                                 </div>
                                 <div className="text-[10px] text-slate-500 uppercase font-mono mt-3 tracking-[0.2em] font-bold">
                                     Verified Templates

@@ -7,15 +7,26 @@ import { unstable_cache } from 'next/cache';
  * Fetches all app metadata from Supabase.
  * Used by the useApps hook to populate the main dashboard grid.
  */
-export async function fetchAllApps(category?: string, search?: string) {
-    let query = supabase.from('apps').select('id, name, slug, category, icon_url');
+export async function fetchAllApps(category?: string, search?: string, minimal: boolean = false) {
+    // If minimal is true, we fetch even fewer fields
+    const fields = minimal ? 'id, name, slug, icon_url' : 'id, name, slug, category, icon_url';
+    
+    let query = supabase.from('apps').select(fields);
+
     if (category && category !== "Dashboard" && category !== "categories") {
         query = query.eq('category', category);
     }
     if (search) {
         query = query.textSearch('name', `${search}:*`);
     }
+
     const { data, error } = await query.order('name', { ascending: true });
+    
+    if (error) {
+        console.error("Error fetching apps:", error);
+        return [];
+    }
+    
     return data || [];
 }
 

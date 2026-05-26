@@ -9,7 +9,7 @@ import {
     Copy,
     Check
 } from 'lucide-react';
-import { useClipboardCopy } from './CopyLogic';
+import { useClipboardCopy } from '../utils/CopyLogic';
 
 // Official Monero SVG
 const MoneroIcon = ({ size = 24 }) => (

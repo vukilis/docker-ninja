@@ -1,7 +1,7 @@
 import { ThemeProvider } from 'next-themes';
 import Preloader from './components/Preloader';
 import './style/globals.css';
-import { AppsProvider } from './components/AppsContext';
+import { AppsProvider } from './context/AppsContext';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

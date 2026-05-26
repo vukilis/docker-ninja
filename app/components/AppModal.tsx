@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { fetchAppDetail, getComposeContent, getGlobalStats, toggleAppLike, checkHasDeviceLiked } from '../actions';
 import SearchInput from './SearchInput';
-import { Counter } from './Counter';
+import { Counter } from '../utils/Counter';
 import { getIcon } from '../hooks/icons';
-import { getOrCreateDeviceUUID } from './Utils';
-import { copyTextToClipboard } from './CopyLogic';
+import { getOrCreateDeviceUUID } from '../utils/Utils';
+import { copyTextToClipboard } from '../utils/CopyLogic';
 import useSWR from 'swr';
 import { CopyButton } from './CopyButton';
-import { useAppsGlobal } from './AppsContext'
+import { useAppsGlobal } from '../context/AppsContext'
 
 
 // --- SHARED TYPES ---
@@ -33,10 +33,10 @@ interface App {
 interface AppModalProps {
     app: App;
     allApps: App[];
-    globalLikes: Record<string, number>;
+    globalLikes?: Record<string, number>;
     onAppChange: (app: App) => void;
     onClose: () => void;
-    onLikeUpdate: (slug: string, newCount: number) => void;
+    onLikeUpdate?: (slug: string, newCount: number) => void;
     setIsRequesting?: (val: boolean) => void; 
     onRandom?: () => void;
 }
@@ -163,6 +163,7 @@ function ModalContent({
 
     // Helper to format large numbers in a compact form (e.g., 1.2K, 3.4M)
     const formatCompactNumber = (number: number) => {
+        if (isNaN(number)) return "0";
         if (number < 1000) return number.toString();
         
         return new Intl.NumberFormat('en-US', {
@@ -434,7 +435,7 @@ function ModalContent({
 }
 
 // --- MAIN EXPORT ---
-export function AppModal({ app, allApps, onAppChange, onClose, onRandom, onLikeUpdate }: AppModalProps) {
+export function AppModal({ app, allApps, onAppChange, onClose, onRandom}: AppModalProps) {
     // Consume global caches from the provider
     const { detailsCache, composeCache, setDetailsCache, 
         setComposeCache, likedStatusCache, setLikedStatusCache, 
@@ -633,7 +634,6 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom, onLikeU
         if (updatedTotal !== -1) {
             // Update global likes count
             setGlobalLikes(prev => ({ ...prev, [app.slug]: updatedTotal }));
-            onLikeUpdate?.(app.slug, updatedTotal);
         } else {
             // Rollback if server failed
             const rollbackState = !futureLikedState;
@@ -668,7 +668,7 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom, onLikeU
                     handleShare={handleShare} setIsRequesting={setIsRequesting}
                     onRandom={onRandom} DeployedCounter={DeployedCounter}
                     handleLikeToggle={handleLikeToggle} isLiked={isLiked}
-                    likesCount={likesCount} onLikeUpdate={onLikeUpdate}
+                    likesCount={likesCount}
                 />
             </div>
             {isRequesting && (
