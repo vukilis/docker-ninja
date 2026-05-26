@@ -8,25 +8,18 @@ export function getOrCreateDeviceUUID(): string {
     const storageKey = 'sys_dev_token';
     let deviceId = '';
 
+    // 1Try to read the ID from localStorage
     try {
         deviceId = localStorage.getItem(storageKey) || '';
     } catch (e) {}
 
-    if (!deviceId && typeof document !== 'undefined') {
-        const match = document.cookie.match(new RegExp('(^| )' + storageKey + '=([^;]+)'));
-        if (match) deviceId = match[2];
-    }
-
+    // If it doesn't exist, create a new random one
     if (!deviceId || deviceId.trim() === '') {
         deviceId = 'dev_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    }
-
-    try {
-        localStorage.setItem(storageKey, deviceId);
-    } catch (e) {}
-
-    if (typeof document !== 'undefined') {
-        document.cookie = `${storageKey}=${deviceId}; max-age=${5 * 365 * 24 * 60 * 60}; path=/; SameSite=Strict`;
+        
+        try {
+            localStorage.setItem(storageKey, deviceId);
+        } catch (e) {}
     }
     
     return deviceId;

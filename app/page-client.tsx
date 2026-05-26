@@ -69,6 +69,19 @@ function useGlobalScrollbar() {
 	}, []);
 }
 
+const getInitialViewState = (initialView: ViewMode) => {
+    if (typeof window === 'undefined') return initialView;
+    
+    const path = window.location.pathname;
+    
+    // Logic for Views
+    const validViews: ViewMode[] = ['dashboard', 'categories', 'About', 'Sponsoring', 'Community'];
+    const currentPathView = validViews.find(v => path.toLowerCase().includes(`/${v.toLowerCase()}`));
+    
+    if (currentPathView) return currentPathView;
+    return initialView;
+};
+
 // --- MAIN DASHBOARD ---
 export default function Home({ initialView = 'dashboard', initialAppSlug }: { initialView?: ViewMode; initialAppSlug?: string; }) {
 
@@ -84,15 +97,19 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 		apps, getCountByCategory 
 	} = useApps();
 
-	// STATE INITIALIZATION (Using Lazy Initializers for SSR safety)
+	// STATE INITIALIZATION
 	const [isMounted, setIsMounted] = useState(false);
-	
+	const initialSelectedApp = useMemo(() => {
+		if (!initialAppSlug || apps.length === 0) return null;
+		return apps.find(a => a.slug === initialAppSlug) || null;
+	}, [apps, initialAppSlug]);
 	const [isStarted, setIsStarted] = useState(() => {
 		if (typeof window === 'undefined') return false;
-		return localStorage.getItem('ninja_isStarted') === 'true';
+		const hasInitialApp = !!initialSelectedApp;
+		return localStorage.getItem('ninja_isStarted') === 'true' || hasInitialApp;
 	});
 
-	const [currentView, setCurrentView] = useState<ViewMode>(initialView);
+	const [currentView, setCurrentView] = useState<ViewMode>(() => getInitialViewState(initialView));
 
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
 		if (typeof window === 'undefined') return false;
@@ -112,23 +129,14 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 
 	// UI States
 	const [sidebarOpen, setSidebarOpen] = useState(false);
-	const [selectedApp, setSelectedApp] = useState<AppData | null>(null);
+	const [selectedApp, setSelectedApp] = useState<AppData | null>(initialSelectedApp);
 	const [isRequesting, setIsRequesting] = useState(false);
 	const [showScrollTop, setShowScrollTop] = useState(false);
 	
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const hasHydrated = useRef(false);
 
-	useEffect(() => {
-    if (apps.length === 0) return;
-		if (initialAppSlug) {
-			const matchedApp = apps.find(a => a.slug === initialAppSlug);
-			if (matchedApp) {
-				setSelectedApp(matchedApp);
-				setIsStarted(true);
-			}
-		}
-	}, [apps, initialAppSlug]);
+	
 
 	// URL SYNC: Listen to navigation and sync URL params to state
 	useEffect(() => {
@@ -155,26 +163,20 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 
 	// MOUNT & INITIAL HYDRATION (Sync URL params to state once)
 	useEffect(() => {
-		if (hasHydrated.current || apps.length === 0) return;
+		if (hasHydrated.current || !apps || apps.length === 0) return;
 		
 		const path = window.location.pathname;
 		const searchParams = new URLSearchParams(window.location.search);
 		const appId = searchParams.get('preview') || searchParams.get('app') || searchParams.get('id');
-		const catParam = searchParams.get('category');
-		
 		let shouldStart = false;
-
-		// 1. Handle Routes (About, Sponsoring, Community)
+		// Handle Routes (About, Sponsoring, Community)
 		const validViews: ViewMode[] = ['categories', 'About', 'Sponsoring', 'Community'];
 		const currentPathView = validViews.find(v => path.toLowerCase().includes(`/${v.toLowerCase()}`));
 		if (currentPathView) {
 			setCurrentView(currentPathView);
 			shouldStart = true;
 		}
-
-		
-
-		// 3. Handle Modal (Including the /app/slug rewrite path)
+		// Handle Modal (Including the /app/slug rewrite path)
 		const slugFromPath = path.startsWith('/app/') ? path.split('/app/')[1] : null;
 		const lookupId = slugFromPath || appId;
 
@@ -192,54 +194,44 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 
 		setIsMounted(true);
 		hasHydrated.current = true;
-	}, [apps, categories]);
+	}, [apps]);
 
 	useEffect(() => {
-		if (!isMounted) return;
-		localStorage.setItem('ninja_isStarted', isStarted.toString());
-		localStorage.setItem('ninja_sidebarCollapsed', sidebarCollapsed.toString());
-		if (activeSubCategory) localStorage.setItem('ninja_activeSubCategory', activeSubCategory);
-		
-		if (!isStarted) {
-			window.history.replaceState({}, '', '/');
-		} else {
-			let newPath = '/containers'; // Default
-			const params = new URLSearchParams(window.location.search);
+        if (!isMounted) return;
 
-			if (currentView === 'About') newPath = '/about';
-			else if (currentView === 'Sponsoring') newPath = '/sponsoring';
-			else if (currentView === 'Community') newPath = '/community';
-			else if (currentView === 'categories') newPath = '/categories';
-			else newPath = '/containers'; // dashboard
+        localStorage.setItem('ninja_isStarted', isStarted.toString());
+        localStorage.setItem('ninja_sidebarCollapsed', sidebarCollapsed.toString());
+        if (activeSubCategory) localStorage.setItem('ninja_activeSubCategory', activeSubCategory);
+        
+        let newPath = '/containers';
+        const params = new URLSearchParams(window.location.search);
 
-			// Handle Modal Preview 
-			if (selectedApp) {
-				if (currentView === 'About' || currentView === 'Community' || currentView === 'Sponsoring' || currentView === 'dashboard') {
-					newPath = '/containers';
-				} else if (currentView === 'categories') {
-					newPath = '/categories';
-				}
-				// Set the preview parameter
-				const appValue = selectedApp.slug || selectedApp.id.toString();
-				params.set('preview', convertToSlug(appValue));
-			} else {
-				params.delete('preview');
-			}
-			// Handle Category parameter
-			if (currentView === 'categories' && activeSubCategory) {
-				params.set('category', convertToSlug(activeSubCategory));
-			} else {
-				params.delete('category');
-			}
-			const qs = params.toString();
-			const newUrl = qs ? `${newPath}?${qs}` : newPath;
-			if (window.location.pathname + window.location.search !== newUrl) {
-				window.history.replaceState({ path: newUrl }, '', newUrl);
-			}
-		}
-		console.log(currentView)
-	}, [isStarted, sidebarCollapsed, currentView, selectedApp, activeSubCategory, isMounted]);
+        if (currentView === 'About') newPath = '/about';
+        else if (currentView === 'Sponsoring') newPath = '/sponsoring';
+        else if (currentView === 'Community') newPath = '/community';
+        else if (currentView === 'categories') newPath = '/categories';
 
+        if (selectedApp) {
+            const appValue = selectedApp.slug || selectedApp.id.toString();
+            params.set('preview', convertToSlug(appValue));
+        } else {
+            params.delete('preview');
+        }
+
+        if (currentView === 'categories' && activeSubCategory) {
+            params.set('category', convertToSlug(activeSubCategory));
+        } else {
+            params.delete('category');
+        }
+
+        const qs = params.toString();
+        const newUrl = qs ? `${newPath}?${qs}` : newPath;
+
+        const currentUrl = window.location.pathname + window.location.search;
+        if (currentUrl === newUrl) return;
+        window.history.replaceState({ path: newUrl }, '', newUrl);
+    }, [isStarted, sidebarCollapsed, currentView, selectedApp, activeSubCategory, isMounted]);
+	
 	// UI LOGIC & HANDLERS
 	const sortedCategories = useMemo(() => {
 		return categories
@@ -278,7 +270,7 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 		if (currentView === "categories" && !activeSubCategory && sortedCategories.length > 0) {
 			setActiveSubCategory(sortedCategories[0]);
 		}
-	}, [sortedCategories, activeSubCategory]);
+	}, [currentView, sortedCategories, activeSubCategory]);
 
 	// --- DYNAMIC VIEW PORT NAVIGATION  ---
 	const activePageForScroll = currentView !== "categories" 
@@ -341,7 +333,7 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 		}
 
 		loadDashboardLikes();
-	}, [apps]);
+	}, [apps, globalLikes]);
 
 	// DYNAMIC PAGINATION PER BREAKPOINT
 	useEffect(() => {
@@ -788,7 +780,7 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 					{/* 1. SURPRISE ME BUTTON */}
 					<button 
 					title="Surprise Me"
-					onClick={(e) => { handleRandomApp(); setSidebarOpen(false); }}
+					onClick={() => { handleRandomApp(); setSidebarOpen(false); }}
 					className={`relative group flex items-center h-9 xl:h-11 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-slate-200 dark:hover:bg-slate-800 transition-all duration-300 cursor-pointer justify-start overflow-hidden
 						${sidebarCollapsed 
 						? 'text-slate-500' 
@@ -1006,7 +998,8 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 
 				{/* SEARCH SECTION */}
 				<div className="flex max-w-[250px] md:max-w-none xl:order-first">
-				<SearchInput apps={apps} search={search} setSearch={setSearch} onAppSelect={handleAppSelect} />
+					<SearchInput apps={apps} search={search} setSearch={setSearch} onAppSelect={(app) => { handleAppSelect((app as AppData))}} />
+				
 				</div>
 			</div>
 			</header>
@@ -1086,18 +1079,34 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 		</main>
 
 		{selectedApp && (
-			<AppModal app={selectedApp} allApps={apps} onAppChange={setSelectedApp} onClose={() => setSelectedApp(null)} onRandom={handleRandomApp} 
+			<AppModal 
+				key={selectedApp.slug || 'default'}
+				app={{
+					...selectedApp,
+					slug: selectedApp.slug || ''
+				}}
+				allApps={apps} 
+				globalLikes={globalLikes} // Pass the full map
+				onAppChange={(app) => setSelectedApp(app as AppData)}
+				onClose={() => setSelectedApp(null)} 
+				onRandom={handleRandomApp} 
 				onLikeUpdate={(slug: string, newCount: number) => {
 					setGlobalLikes(prev => ({
-					...prev,
-					[slug]: newCount
+						...prev,
+						[slug]: newCount
 					}));
 				}}
-				likesCount={globalLikes[selectedApp.slug || ''] || 0}
 			/>
 		)}
 		{isRequesting && (
-			<RequestSearchOverlay allApps={apps} onClose={() => setIsRequesting(false)} onAppSelect={(app: AppData) => { setSelectedApp(app); setIsRequesting(false); }} />
+			<RequestSearchOverlay 
+				allApps={apps} 
+				onClose={() => setIsRequesting(false)} 
+				onAppSelect={(app) => { 
+					setSelectedApp(app as AppData); 
+					setIsRequesting(false); 
+				}} 
+			/>
 		)}
 		</div>
 	);

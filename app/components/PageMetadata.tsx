@@ -67,7 +67,7 @@ export function ClientMetadataController({ isStarted, currentView, selectedApp }
       let finalDesc = data.description;
 
       // Intercept context if a container detail card modal is pulled up
-      if (isStarted && selectedApp && currentView === 'dashboard') {
+      if (isStarted && selectedApp && (currentView === 'dashboard' || currentView === 'categories')) {
         finalTitle = `Previewing ${selectedApp.name} | Docker Ninja`;
         finalDesc = `Read configuration steps, settings, and deployment details for ${selectedApp.name}.`;
       }

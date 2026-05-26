@@ -1,14 +1,17 @@
 import { ThemeProvider } from 'next-themes';
 import Preloader from './components/Preloader';
 import './style/globals.css';
+import { AppsProvider } from './components/AppsContext';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="my-custom-background text-slate-900 dark:text-slate-200">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <Preloader />
-          {children}
+          <AppsProvider>
+            <Preloader />
+            {children}
+          </AppsProvider>
         </ThemeProvider>
       </body>
     </html>

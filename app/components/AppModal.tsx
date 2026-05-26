@@ -1,30 +1,42 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { getComposeContent, incrementCopyCount, getGlobalStats, fetchAppLikes, toggleAppLike, checkHasDeviceLiked } from '../actions';
+import { fetchAppDetail, getComposeContent, getGlobalStats, toggleAppLike, checkHasDeviceLiked } from '../actions';
 import SearchInput from './SearchInput';
 import { Counter } from './Counter';
 import { getIcon } from '../hooks/icons';
 import { getOrCreateDeviceUUID } from './Utils';
+import { copyTextToClipboard } from './CopyLogic';
+import useSWR from 'swr';
+import { CopyButton } from './CopyButton';
+import { useAppsGlobal } from './AppsContext'
+
 
 // --- SHARED TYPES ---
-interface App {
-    id: string | number;
-    slug: string;
-    name: string;
-    category: string;
-    icon_url?: string;
+interface AppDetail extends App {
     website?: string;
     github?: string;
     docs?: string;
     source?: string;
     description?: string;
     run_command?: string;
+    compose_url?: string;
+    fallback_compose?: string;
+}
+
+interface App {
+    id: string | number;
+    slug: string;
+    category: string;
+    name: string;
+    icon_url?: string;
 }
 
 interface AppModalProps {
     app: App;
     allApps: App[];
+    globalLikes: Record<string, number>;
     onAppChange: (app: App) => void;
     onClose: () => void;
+    onLikeUpdate: (slug: string, newCount: number) => void;
     setIsRequesting?: (val: boolean) => void; 
     onRandom?: () => void;
 }
@@ -138,8 +150,6 @@ export function RequestSearchOverlay({ allApps, onClose, onAppSelect }: { allApp
 // --- MODAL CONTENT COMPONENT ---
 function ModalContent({ 
     app, composeCode, loading, categoryApps,
-    copiedYaml, setCopiedYaml, copiedComposeCmd, setCopiedComposeCmd,
-    copiedRunCmd, setCopiedRunCmd, copyToClipboard,
     handlePrev, handleNext, onClose, stopPropagation,
     handleShare, copiedLink, setIsRequesting, onRandom, handleLikeToggle,
     isLiked, likesCount, isSyncing
@@ -196,7 +206,7 @@ function ModalContent({
                                     <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
                                 </svg>
                                 <span className="tabular-nums font-sans text-[12px] font-black leading-none inline-flex items-center">
-                                    {formatCompactNumber(likesCount)}
+                                    {likesCount !== null ? formatCompactNumber(likesCount) : ""}
                                 </span>
                             </button>
                         </div>
@@ -327,7 +337,10 @@ function ModalContent({
                         <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-blue-900/30 p-4 flex flex-col flex-1 overflow-hidden">
                             <h3 className="text-blue-600 dark:text-blue-400 mb-2 font-bold flex justify-between text-[10px] md:text-xs uppercase tracking-widest">
                                 docker-compose.yml 
-                                <button onClick={() => copyToClipboard(composeCode, setCopiedYaml, 'compose_yaml', true)} className={`ml-2 transition-colors cursor-pointer ${copiedYaml ? 'text-green-600 dark:text-green-500' : 'text-slate-500 hover:text-green-500'}`}>{copiedYaml ? "[COPIED!]" : "[COPY]"}</button>
+                                <CopyButton 
+                                    text={composeCode} 
+                                    shouldTrack={true}
+                                />
                             </h3>
                             <div onTouchStart={stopPropagation} className="code-container flex-1 overflow-auto bg-[#f6f4f0]/50 dark:bg-[#0d1117] rounded p-2 border border-slate-200 dark:border-slate-800">
                                 <pre className="text-[10px] md:text-xs text-slate-700 dark:text-slate-300 whitespace-pre">{loading ? "Loading..." : composeCode}</pre>
@@ -336,13 +349,19 @@ function ModalContent({
                         <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-blue-900/30 p-4 space-y-4">
                             <div className="text-[10px] md:text-xs">
                                 <h3 className="text-blue-600 dark:text-blue-400 mb-1 font-bold flex justify-between uppercase">Compose Command
-                                    <button onClick={() => copyToClipboard("docker compose up -d", setCopiedComposeCmd)} className={`cursor-pointer transition-colors ${copiedComposeCmd ? 'text-green-600 dark:text-green-500' : 'text-slate-500 hover:text-green-500'}`}>{copiedComposeCmd ? "[COPIED!]" : "[COPY]"}</button>
+                                    <CopyButton 
+                                        text={"docker compose -d"}  
+                                        shouldTrack={false}
+                                    />
                                 </h3>
                                 <div onTouchStart={stopPropagation} className="code-container bg-[#f6f4f0]/50 dark:bg-[#0d1117] p-2 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 overflow-x-auto whitespace-nowrap">$ docker compose up -d</div>
                             </div>
                             <div className="text-[10px] md:text-xs">
                                 <h3 className="text-blue-600 dark:text-blue-400 mb-1 font-bold flex justify-between uppercase">Docker CLI
-                                    <button onClick={() => copyToClipboard(app.run_command || `docker run -d --name ${app.slug}`, setCopiedRunCmd)} className={`cursor-pointer transition-colors ${copiedRunCmd ? 'text-green-600 dark:text-green-500' : 'text-slate-500 hover:text-green-500'}`}>{copiedRunCmd ? "[COPIED!]" : "[COPY]"}</button>
+                                    <CopyButton 
+                                        text={app.run_command || `docker run -d --name ${app.slug}`} 
+                                        shouldTrack={false}
+                                    />
                                 </h3>
                                 <div onTouchStart={stopPropagation} className="code-container bg-[#f6f4f0]/50 dark:bg-[#0d1117] p-2 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 overflow-x-auto whitespace-nowrap">$ {app.run_command || `docker run -d --name ${app.slug}`}</div>
                             </div>
@@ -415,14 +434,19 @@ function ModalContent({
 }
 
 // --- MAIN EXPORT ---
-export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppModalProps) {
-    // State for content and interactions
-    const [composeCode, setComposeCode] = useState("Loading...");
-    const [copiedYaml, setCopiedYaml] = useState(false);
-    const [copiedComposeCmd, setCopiedComposeCmd] = useState(false);
-    const [copiedRunCmd, setCopiedRunCmd] = useState(false);
-    const [copiedLink, setCopiedLink] = useState(false);
-    const [loading, setLoading] = useState(true);
+export function AppModal({ app, allApps, onAppChange, onClose, onRandom, onLikeUpdate }: AppModalProps) {
+    // Consume global caches from the provider
+    const { detailsCache, composeCache, setDetailsCache, 
+        setComposeCache, likedStatusCache, setLikedStatusCache, 
+        globalLikes, setGlobalLikes 
+    } = useAppsGlobal();
+    
+    // Derived state directly from global cache
+    const details = detailsCache[app?.slug] ?? {};
+    const composeCode = composeCache[app?.slug] ?? "Loading...";
+    
+    // Loading state is determined by whether the cache has data for the current slug
+    const [loading, setLoading] = useState(!detailsCache[app?.slug]);
     const [isRequesting, setIsRequesting] = useState(false);
 
     // Drag state
@@ -443,8 +467,8 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
 
     // Like state
     const [isLiked, setIsLiked] = useState(false);
-    const [likesCount, setLikesCount] = useState<number>();
     const [isSyncing, setIsSyncing] = useState(false);
+    const likesCount = globalLikes[app.slug] ?? 0;
     
     const navigate = useCallback((dir: 'left' | 'right', targetApp: App) => {
         if (status !== 'idle') return;
@@ -514,61 +538,53 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleKeyDown]);
 
-    // Load compose content when app changes
+    // Fetch logic: Only runs if data is missing from global context
     useEffect(() => {
-        async function loadYamlFile() {
-            if (!app?.slug) return;
-            
+        if (!app?.slug || detailsCache[app.slug]) {
+            setLoading(false);
+            return;
+        }
+        
+        async function loadFullData() {
+            setLoading(true);
             try {
-                if (typeof setLoading === 'function') setLoading(true); 
-                const yamlCode = await getComposeContent(app.slug);
-                if (typeof setComposeCode === 'function') {
-                    setComposeCode(yamlCode);
-                }
+                const [yamlCode, fullDetails] = await Promise.all([
+                    getComposeContent(app.slug),
+                    fetchAppDetail(app.slug)
+                ]);
+                
+                // Save to Global context caches
+                setComposeCache(prev => ({ ...prev, [app.slug]: yamlCode }));
+                setDetailsCache(prev => ({ ...prev, [app.slug]: fullDetails }));
             } catch (err) {
-                console.error("Failed loading compose template:", err);
+                console.error("Failed loading app details:", err);
             } finally {
-                if (typeof setLoading === 'function') setLoading(false);
+                setLoading(false);
             }
         }
         
-        loadYamlFile();
+        loadFullData();
     }, [app?.slug]);
 
-    const copyToClipboard = async (text: string, setCopied: (val: boolean) => void, shouldTrack: boolean = false) => {
-        try {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                await navigator.clipboard.writeText(text);
-            } else {
-                const textArea = document.createElement("textarea");
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-            }
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-            if (shouldTrack) await incrementCopyCount();
-        } catch (err) {
-            console.error("Failed to copy: ", err);
-        }
-    };
+    const displayApp = useMemo(() => ({ ...app, ...details }), [app, details]);
 
-    const handleShare = () => {
+    const handleShare = async () => {
         const appSlug = app.slug || app.id;
         const cleanShareUrl = `${window.location.origin}/app/${appSlug}`;
 
         if (navigator.share) {
-            navigator.share({ 
-                title: app.name, 
-                text: `Check out ${app.name} on Docker Ninja`, 
-                url: cleanShareUrl 
-            }).catch(() => {
-                copyToClipboard(cleanShareUrl, setCopiedLink);
-            });
+            try {
+                await navigator.share({ 
+                    title: app.name, 
+                    text: `Check out ${app.name} on Docker Ninja`, 
+                    url: cleanShareUrl 
+                });
+            } catch (err) {
+                console.warn("Native share failed, falling back to copy:", err);
+                copyTextToClipboard(cleanShareUrl); 
+            }
         } else {
-            copyToClipboard(cleanShareUrl, setCopiedLink);
+            copyTextToClipboard(cleanShareUrl);
         }
     };
 
@@ -583,44 +599,46 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
     };
 
     useEffect(() => {
-        if (!app?.slug) return; 
-        
-        async function fetchLikesAndStatus() {
-            const liveCount = await fetchAppLikes(app.slug);
-            setLikesCount(liveCount);
-
-            if (typeof window !== 'undefined') {
-                const browserUuid = getOrCreateDeviceUUID();
-                const hasLikedBefore = await checkHasDeviceLiked(app.slug, browserUuid);
-                setIsLiked(hasLikedBefore);
-            }
+        if (!app?.slug) return;
+        if (likedStatusCache[app.slug] !== undefined) {
+            setIsLiked(likedStatusCache[app.slug]);
+            return;
         }
-        
-        fetchLikesAndStatus();
-    }, [app?.slug]);
 
-    // --- LIKE TOGGLE HANDLER ---
+        async function fetchStatus() {
+            const browserUuid = getOrCreateDeviceUUID();
+            const hasLikedBefore = await checkHasDeviceLiked(app.slug, browserUuid);
+            setIsLiked(hasLikedBefore);
+            setLikedStatusCache(prev => ({ ...prev, [app.slug]: hasLikedBefore }));
+        }
+        fetchStatus();
+    }, [app.slug]);
+
     const handleLikeToggle = async (e: React.MouseEvent) => {
         e.stopPropagation();
         if (isSyncing) return;
 
         const browserUuid = getOrCreateDeviceUUID();
-        if (!browserUuid) return; 
-
         const futureLikedState = !isLiked;
         
+        // Update UI immediately (Optimistic update)
         setIsLiked(futureLikedState);
-        setLikesCount(prev => futureLikedState ? prev + 1 : Math.max(0, prev - 1));
+        
+        // Update Global Cache immediately so it's consistent everywhere
+        setLikedStatusCache(prev => ({ ...prev, [app.slug]: futureLikedState }));
+        
         setIsSyncing(true);
+        const updatedTotal = await toggleAppLike(app.slug, futureLikedState, browserUuid);
 
-        const success = await toggleAppLike(app.slug, futureLikedState, browserUuid);
-
-        if (success) {
-            const freshCount = await fetchAppLikes(app.slug);
-            setLikesCount(freshCount);
+        if (updatedTotal !== -1) {
+            // Update global likes count
+            setGlobalLikes(prev => ({ ...prev, [app.slug]: updatedTotal }));
+            onLikeUpdate?.(app.slug, updatedTotal);
         } else {
-            setIsLiked(!futureLikedState);
-            setLikesCount(prev => futureLikedState ? Math.max(0, prev - 1) : prev + 1);
+            // Rollback if server failed
+            const rollbackState = !futureLikedState;
+            setIsLiked(rollbackState);
+            setLikedStatusCache(prev => ({ ...prev, [app.slug]: rollbackState }));
         }
         setIsSyncing(false);
     };
@@ -643,19 +661,14 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
                 }}
             >
                 <ModalContent 
-                    app={app} composeCode={composeCode} loading={loading} categoryApps={categoryApps}
-                    allApps={allApps} copiedYaml={copiedYaml} setCopiedYaml={setCopiedYaml}
-                    copiedComposeCmd={copiedComposeCmd} setCopiedComposeCmd={setCopiedComposeCmd}
-                    copiedRunCmd={copiedRunCmd} setCopiedRunCmd={setCopiedRunCmd}
-                    copyToClipboard={copyToClipboard} handlePrev={handlePrev} handleNext={handleNext}
+                    app={displayApp as AppDetail} composeCode={composeCode} 
+                    loading={loading} categoryApps={categoryApps}
+                    handlePrev={handlePrev} handleNext={handleNext}
                     onClose={onClose} stopPropagation={stopPropagation}
-                    handleShare={handleShare} copiedLink={copiedLink}
-                    setIsRequesting={setIsRequesting}
-                    onRandom={onRandom}
-                    DeployedCounter={DeployedCounter}
-                    handleLikeToggle={handleLikeToggle}
-                    isLiked={isLiked}
-                    likesCount={likesCount}
+                    handleShare={handleShare} setIsRequesting={setIsRequesting}
+                    onRandom={onRandom} DeployedCounter={DeployedCounter}
+                    handleLikeToggle={handleLikeToggle} isLiked={isLiked}
+                    likesCount={likesCount} onLikeUpdate={onLikeUpdate}
                 />
             </div>
             {isRequesting && (
@@ -666,24 +679,15 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
 }
 
 export function DeployedCounter() {
-    const [stats, setStats] = useState(0);
-    const [loading, setLoading] = useState(true);
+    // Automatically handles the fetch and caching
+    const { data: stats, isLoading } = useSWR('global-stats', getGlobalStats);
 
-    useEffect(() => {
-        const load = async () => {
-            const num = await getGlobalStats();
-            setStats(num);
-            setLoading(false);
-        };
-        load();
-    }, []);
-
-    if (loading) return <div>...</div>;
+    if (isLoading) return <div>...</div>;
 
     return (
         <div>
             <div className="relative flex items-center justify-center text-blue-600 text-3xl mb-1 font-black text-center">
-                <span><Counter value={stats}/></span>
+                <span><Counter value={stats || 0}/></span>
             </div>
             <div className="text-slate-400 dark:text-slate-600 transition-colors group-hover:text-blue-500">Deployed</div>
         </div>

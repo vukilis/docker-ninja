@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
 import { 
     Heart, 
     Coffee,
+    CoffeeIcon,
     ShieldCheck,
     QrCode,
     ExternalLink,
@@ -9,13 +9,7 @@ import {
     Copy,
     Check
 } from 'lucide-react';
-
-const PayPalIcon = ({ size = 18 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944 3.32a.641.641 0 0 1 .633-.54h7.19c3.275 0 5.4 1.488 5.617 4.285.011.135.017.272.017.407 0 3.342-2.146 5.565-5.32 5.565h-1.393a.641.641 0 0 0-.633.54l-.79 5.01a.641.641 0 0 1-.633.54l-.56.01zm11.236-12.783c-.006-.118-.016-.236-.027-.354C18.064 5.373 15.82 4.01 12.764 4.01H6.183L3.197 22.996h4.606l.791-5.01a1.442 1.442 0 0 1 1.424-1.215h1.393c3.96 0 7.04-1.606 7.91-5.914.37-1.84.14-3.414-.908-4.303z"/>
-        <path d="M12.764 4.01c3.056 0 5.3 1.363 5.525 4.192.011.118.021.236.027.354 1.05 0.89 1.28 2.463.908 4.303-.87 4.308-3.95 5.914-7.91 5.914H9.92a1.442 1.442 0 0 0-1.424 1.215l-.79 5.01h4.606l.791-5.01a.641.641 0 0 1 .633-.54h1.393c3.174 0 5.32-2.223 5.32-5.565 0-.135-.006-.272-.017-.407-.217-2.797-2.342-4.285-5.617-4.285h-7.19a.641.641 0 0 0-.633.54l-.234 1.488h6.183z" opacity=".5"/>
-    </svg>
-);
+import { useClipboardCopy } from './CopyLogic';
 
 // Official Monero SVG
 const MoneroIcon = ({ size = 24 }) => (
@@ -24,40 +18,15 @@ const MoneroIcon = ({ size = 24 }) => (
     </svg>
 );
 
-export const Sponsoring = () => {
-    const [copied, setCopied] = useState(false);
-    const [amount, setAmount] = useState('10');
-    const [customAmount, setCustomAmount] = useState('');
-    
+export const Sponsoring = () => {  
+    const { copied, handleCopy } = useClipboardCopy();
     const XMR_ADDRESS = "44AFFq5kSiGBoZ4NMD244AFFq5kSiGBoZ4NMD244AFFq5kSiGBoZ4NMD2";
-    const KOFI_USERNAME = "yourusername";
-    const PAYPAL_EMAIL = "your@email.com";
-
-    const handleCopy = (text) => {
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-9999px";
-        textArea.style.top = "0";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        
-        try {
-            document.execCommand('copy');
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        } catch (err) {
-            console.error('Fallback copy failed', err);
-        }
-        
-        document.body.removeChild(textArea);
-    };
+    const KOFI_USERNAME = "vukilis";
+    const BMC_USERNAME = "vukilis";
 
     const handleAction = (platform) => {
-        const final = amount === 'custom' ? customAmount : amount;
-        if (platform === 'kofi') window.open(`https://ko-fi.com/${KOFI_USERNAME}/?amount=${final}`, '_blank');
-        if (platform === 'paypal') window.open(`https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=${encodeURIComponent(PAYPAL_EMAIL)}&amount=${final}`, '_blank');
+        if (platform === 'kofi') window.open(`https://ko-fi.com/${KOFI_USERNAME}`, '_blank');
+        if (platform === 'bmc') window.open(`https://buymeacoffee.com/${BMC_USERNAME}`, '_blank');
     };
 
     return (
@@ -114,21 +83,21 @@ export const Sponsoring = () => {
                     </div>
                 </section>
 
-                {/* 2. KOFI AND PAYPAL */}
+                {/* 2. KOFI AND BUYMEACOFFEE */}
                 <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-blue-100 dark:bg-[#ddeeffeb] rounded-2xl p-6 flex flex-col justify-between items-start group cursor-pointer hover:ring-4 ring-blue-400/20 transition-all" onClick={() => handleAction('paypal')}>
+                    <div className="bg-amber-500 dark:bg-amber-500/60 rounded-2xl p-6 flex flex-col justify-between items-start group cursor-pointer hover:ring-4 ring-amber-400/20 transition-all" onClick={() => handleAction('bmc')}>
                         <div className="flex justify-between w-full mb-8">
-                            <div className="text-[#0070ba]">
-                                <PayPalIcon size={32} />
+                            <div className="text-[#FFDD00] drop-shadow-sm">
+                                {/* Replace with your preferred Coffee/BMC icon component */}
+                                <CoffeeIcon size={32} fill="#FFDD00" className="text-black" />
                             </div>
-                            <ExternalLink size={18} className="text-slate-600 group-hover:text-[#0070ba] transition-colors" />
+                            <ExternalLink size={18} className="text-slate-600 group-hover:text-[#FFDD00] transition-colors" />
                         </div>
                         <div>
-                            <h3 className="text-[#003087] font-black text-xl uppercase italic">PayPal</h3>
-                            <p className="text-slate-500 text-xs font-mono mt-1">SECURE INSTANT TRANSFER</p>
+                            <h3 className="text-slate-800 dark:text-slate-100 font-black text-xl uppercase tracking-wide">Buy Me A Coffee</h3>
+                            <p className="text-slate-500 dark:text-slate-900 text-xs font-mono mt-1">SUPPORT MY WORK</p>
                         </div>
                     </div>
-
                     <div className="bg-red-300 rounded-2xl p-6 flex flex-col justify-between items-start group cursor-pointer hover:ring-4 ring-white/20 transition-all" onClick={() => handleAction('kofi')}>
                         <div className="flex justify-between w-full mb-8">
                             <div className="bg-white p-2 rounded-lg">
@@ -138,7 +107,7 @@ export const Sponsoring = () => {
                         </div>
                         <div>
                             <h3 className="text-orange-800 font-black text-xl uppercase italic">Ko-fi</h3>
-                            <p className="text-slate-500 text-xs font-mono mt-1">BUY A COFFEE UNIT</p>
+                            <p className="text-slate-500 text-xs font-mono mt-1">SUPPORT MY WORK</p>
                         </div>
                     </div>
                 </section>
@@ -182,7 +151,7 @@ export const Sponsoring = () => {
                                 <button 
                                     onClick={() => handleCopy(XMR_ADDRESS)}
                                     className={`
-                                        flex-shrink-0 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 h-10
+                                        flex-shrink-0 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 h-10 cursor-pointer
                                         ${copied 
                                             ? 'bg-emerald-500 text-white' 
                                             : 'bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20'

@@ -1,7 +1,7 @@
 import { useRef, useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 
-export const NetworkBackground = ({ apps = [] }) => {
+export const NetworkBackground = ({ apps }) => {
   const mountRef = useRef(null);
   const mouse = useRef({ x: 0, y: 0 });
   const targetMouse = useRef({ x: 0, y: 0 });

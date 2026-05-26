@@ -1,40 +1,43 @@
 'use server';
 
 import { supabase } from '../lib/supabase';
+import { unstable_cache } from 'next/cache';
 
 /**
  * Fetches all app metadata from Supabase.
  * Used by the useApps hook to populate the main dashboard grid.
  */
-export async function fetchAllApps() {
-    try {
-        const { data, error } = await supabase
-            .from('apps')
-            .select('*')
-            .order('name', { ascending: true });
-        
-        if (error) {
-            console.error("Supabase Error:", error.message);
-            return [];
-        }
-        
-        return data || [];
-    } catch (err) {
-        console.error("Database connection failed:", err);
-        return [];
+export async function fetchAllApps(category?: string, search?: string) {
+    let query = supabase.from('apps').select('id, name, slug, category, icon_url');
+    if (category && category !== "Dashboard" && category !== "categories") {
+        query = query.eq('category', category);
     }
+    if (search) {
+        query = query.textSearch('name', `${search}:*`);
+    }
+    const { data, error } = await query.order('name', { ascending: true });
+    return data || [];
+}
+
+export async function fetchAppDetail(slug: string) {
+    const { data } = await supabase
+        .from('apps')
+        .select('website, github, docs, source, description, run_command, compose_url, fallback_compose')
+        .eq('slug', slug)
+        .single();
+    return data || {};
 }
 
 /**
  * Retrieves Docker Compose content for a specific app.
  * Logic Flow:
- * 1. Attempt to fetch directly from the provided remote 'compose_url'.
- * 2. If the fetch fails (or URL is missing), fall back to 'fallback_compose' from the database.
+ * handles the DB lookup and the remote fetch,
+ * and caches the final string result for 1 hour
  */
-export async function getComposeContent(appSlug: string): Promise<string> {
-    if (!appSlug) return "Error: Invalid application slug.";
 
-    try {
+const getCachedComposeContent = unstable_cache(
+    async (appSlug: string): Promise<string> => {
+        // Fetch from Supabase
         const { data: app, error } = await supabase
             .from('apps')
             .select('compose_url, fallback_compose')
@@ -42,29 +45,33 @@ export async function getComposeContent(appSlug: string): Promise<string> {
             .single();
 
         if (error || !app) {
-            return "Error: Application not found in database.";
+            return "Error: Application not found.";
         }
 
+        // Attempt remote fetch if URL exists
         if (app.compose_url) {
             try {
                 const response = await fetch(app.compose_url, { 
-                    next: { revalidate: 3600 }, // Cache result for 1 hour
                     headers: { 'Accept': 'text/plain' }
                 });
-                
-                if (response.ok) {
-                    return await response.text();
-                }
+                if (response.ok) return await response.text();
             } catch (e) {
-                console.error(`Remote fetch request failed for ${appSlug}:`, e);
+                console.error(`Remote fetch failed for ${appSlug}:`, e);
             }
         }
 
-        return app.fallback_compose || "No compose configuration found in database!";
-    } catch (err) {
-        console.error("Critical error in getComposeContent server action:", err);
-        return "Error: Internal server configuration failure.";
+        return app.fallback_compose || "No compose configuration found!";
+    },
+    ['compose-content'],
+    { 
+        revalidate: 3600, 
+        tags: ['compose-content']
     }
+);
+
+export async function getComposeContent(appSlug: string): Promise<string> {
+    if (!appSlug) return "Error: Invalid application slug.";
+    return await getCachedComposeContent(appSlug);
 }
 
 /**
@@ -93,20 +100,12 @@ export async function getGlobalStats() {
 /**
  * Increments the global copy counter.
  */
-export async function incrementCopyCount() {
-    try {
-        const { error } = await supabase.rpc('increment_copy_count');
-        
-        if (error) {
-            console.error("RPC Error:", error.message); 
-            return { success: false };
-        }
-        return { success: true };
-    } catch (err) {
-        return { success: false };
-    }
+export async function incrementCopyCount(): Promise<number> {
+    const { data, error } = await supabase.rpc('increment_copy_count');
+    if (error) return -1;
+    return data as number; // Returns the new total
 }
-/// --- LIKES SYSTEM CATEGORIES ---
+/// --- LIKES SYSTEM ---
 export async function fetchAllActiveLikes(): Promise<Record<string, number>> {
     try {
         const { data, error } = await supabase
@@ -131,108 +130,44 @@ export async function fetchAllActiveLikes(): Promise<Record<string, number>> {
     }
 }
 
-/// --- LIKES SYSTEM COUNT ---
-export async function fetchAppLikes(appSlug: string): Promise<number> {
-    try {
-        const { count, error } = await supabase
-            .from('app_likes')
-            .select('*', { count: 'exact', head: true })
-            .eq('app_slug', appSlug)
-            .eq('is_liked', true);
-
-        if (error) return 0;
-        return count || 0;
-    } catch (err) {
-        return 0;
-    }
-}
-
 /**
  * Check if this unique device string exists inside the backend table row
  */
 export async function checkHasDeviceLiked(appSlug: string, deviceUuid: string): Promise<boolean> {
-    try {
-        if (!deviceUuid) return false;
-        
-        const { data, error } = await supabase
-            .from('app_likes')
-            .select('id')
-            .eq('app_slug', appSlug)
-            .eq('device_uuid', deviceUuid)
-            .eq('is_liked', true)
-            .maybeSingle();
+    const { data } = await supabase
+        .from('app_likes')
+        .select('id')
+        .eq('app_slug', appSlug)
+        .eq('device_uuid', deviceUuid)
+        .maybeSingle();
 
-        if (error || !data) return false;
-        return true;
-    } catch (err) {
-        return false;
-    }
+    return !!data;
 }
 
 /**
  * Adds or removes row items from our public tracker table based on flag condition
  */
-export async function toggleAppLike(appSlug: string, isIncrement: boolean, deviceUuid: string): Promise<boolean> {
+export async function toggleAppLike(appSlug: string, isIncrement: boolean, deviceUuid: string): Promise<number> {
     try {
-        if (!deviceUuid) return false;
-
         if (isIncrement) {
-            const { data: existing } = await supabase
+            await supabase
                 .from('app_likes')
-                .select('id')
-                .eq('app_slug', appSlug)
-                .eq('device_uuid', deviceUuid)
-                .maybeSingle();
-
-            if (existing) {
-                const { error } = await supabase
-                    .from('app_likes')
-                    .update({ is_liked: true })
-                    .eq('id', existing.id);
-                return !error;
-            }
-
-            const { data: allRows } = await supabase
-                .from('app_likes')
-                .select('id')
-                .order('id', { ascending: true });
-
-            let nextId = 1;
-            if (allRows && allRows.length > 0) {
-                for (let i = 0; i < allRows.length; i++) {
-                    if (allRows[i].id === nextId) {
-                        nextId++;
-                    } else if (allRows[i].id > nextId) {
-                        break;
-                    }
-                }
-            }
-
-            const { error } = await supabase
-                .from('app_likes')
-                .insert({ 
-                    id: nextId,
-                    app_slug: appSlug, 
-                    device_uuid: deviceUuid, 
-                    is_liked: true 
-                });
-
-            if (error) {
-                console.error("Insert error:", error.message);
-                return false;
-            }
+                .upsert({ app_slug: appSlug, device_uuid: deviceUuid, is_liked: true }, { onConflict: 'app_slug, device_uuid' });
         } else {
-            const { error } = await supabase
+            await supabase
                 .from('app_likes')
                 .delete()
                 .eq('app_slug', appSlug)
                 .eq('device_uuid', deviceUuid);
-
-            if (error) return false;
         }
 
-        return true;
+        const { count } = await supabase
+            .from('app_likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('app_slug', appSlug);
+            
+        return count || 0;
     } catch (err) {
-        return false;
+        return -1;
     }
 }
