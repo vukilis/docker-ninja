@@ -42,3 +42,6 @@ next-env.d.ts
 
 # tests
 middleware.ts
+
+# features
+app/features/ChatAI.tsx
