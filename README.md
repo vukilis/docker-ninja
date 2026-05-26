@@ -44,6 +44,15 @@ Your shortcut from container search to docker compose up:
 
 ---
 
+## Privacy & Compliance
+
+This project is built with privacy by design and aligns with **GDPR / DSGVO** requirements:
+
+- **Minimal Data:** Only anonymous technical performance metrics are collected.
+- **No IP logging** - IPs are never stored
+- **No Persistent Tracking:** Session identifiers are randomly generated, transient, and do not persist cross-session or track your behavior across websites.
+- **Fully Transparent:** The entire application codebase is open source and verifiable.
+
 ## Contributing
 
 This project thrives on community contributions. Whether you want to share a new container stack, optimize an existing configuration, or report a bug — every bit helps master the universe.
