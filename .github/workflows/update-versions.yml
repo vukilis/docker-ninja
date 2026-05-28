@@ -16,6 +16,6 @@ jobs:
       - name: Sync Versions
         run: node sync-versions.mjs
         env:
-          SUPABASE_URL: ${{ secrets.CLIENT_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.CLIENT_KEY }}
-          GITHUB_TOKEN: ${{ secrets.CLIENT_TOKEN }}
+          CLIENT_URL: ${{ secrets.CLIENT_URL }}
+          CLIENT_KEY: ${{ secrets.CLIENT_KEY }}
+          CLIENT_TOKEN: ${{ secrets.CLIENT_TOKEN }}
