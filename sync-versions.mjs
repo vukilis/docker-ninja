@@ -1,26 +1,14 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-    process.env.CLIENT_URL,
-    process.env.CLIENT_KEY,
-    {
-        auth: { persistSession: false },
-        realtime: { enabled: false } 
-    }
-);
-
+// sync-versions.mjs
 async function syncVersions() {
     console.log("Starting version sync...");
+    const url = process.env.CLIENT_URL;
+    const key = process.env.CLIENT_KEY;
 
-    const { data: apps, error } = await supabase
-        .from('apps')
-        .select('id, github')
-        .like('github', '%github.com%');
-
-    if (error) {
-        console.error("Error fetching apps:", error);
-        return;
-    }
+    // Fetch apps
+    const appsRes = await fetch(`${url}/rest/v1/apps?select=id,github&github=like.%github.com%`, {
+        headers: { 'apikey': key, 'Authorization': `Bearer ${key}` }
+    });
+    const apps = await appsRes.json();
 
     for (const app of apps) {
         const match = app.github.match(/github\.com\/([^/]+)\/([^/]+)/);
@@ -29,6 +17,7 @@ async function syncVersions() {
         const [_, owner, repo] = match;
 
         try {
+            // etch from GitHub API
             const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`, {
                 headers: { 'Authorization': `Bearer ${process.env.CLIENT_TOKEN}` }
             });
@@ -36,15 +25,23 @@ async function syncVersions() {
             if (!res.ok) continue;
 
             const data = await res.json();
+            
+            // Update Supabase
             if (data.tag_name) {
-                await supabase
-                    .from('apps')
-                    .update({ version: data.tag_name })
-                    .eq('id', app.id);
+                await fetch(`${url}/rest/v1/apps?id=eq.${app.id}`, {
+                    method: 'PATCH',
+                    headers: { 
+                        'apikey': key, 
+                        'Authorization': `Bearer ${key}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({ version: data.tag_name })
+                });
                 console.log(`✅ Updated ${repo} to ${data.tag_name}`);
             }
         } catch (e) {
-            console.error(`❌ Failed to update ${repo}:`, e.message);
+            console.error(`❌ Failed:`, e.message);
         }
     }
 }
