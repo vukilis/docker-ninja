@@ -1,7 +1,7 @@
 name: Update App Versions
 on:
   schedule:
-    - cron: '0 3 * * *' # Runs at 3 AM daily
+    - cron: '0 3 * * 0' # Runs once a week
   workflow_dispatch:
 
 jobs:
