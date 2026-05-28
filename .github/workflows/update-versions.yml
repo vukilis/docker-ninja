@@ -1,0 +1,21 @@
+name: Update App Versions
+on:
+  schedule:
+    - cron: '0 3 * * *' # Runs at 3 AM daily
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - run: npm install @supabase/supabase-js
+      - name: Sync Versions
+        run: node sync-versions.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.CLIENT_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.CLIENT_KEY }}
+          GITHUB_TOKEN: ${{ secrets.CLIENT_TOKEN }}
