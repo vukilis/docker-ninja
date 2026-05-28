@@ -20,18 +20,27 @@ async function syncVersions() {
     const apps = await appsRes.json();
 
     for (const app of apps) {
+        // Safety check: ensure app.github exists and is a string
+        if (!app.github || typeof app.github !== 'string') {
+            console.log(`⚠️ Skipping id ${app.id}: No GitHub URL found.`);
+            continue;
+        }
+        
         const match = app.github.match(/github\.com\/([^/]+)\/([^/]+)/);
         if (!match) continue;
 
         const [_, owner, repo] = match;
 
         try {
-            // etch from GitHub API
+            // Fetch from GitHub API
             const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`, {
                 headers: { 'Authorization': `Bearer ${process.env.CLIENT_TOKEN}` }
             });
 
-            if (!res.ok) continue;
+            if (!res.ok) {
+                console.log(`ℹ️ Skipping ${repo}: No release found or private repo.`);
+                continue;
+            }
 
             const data = await res.json();
             
@@ -49,8 +58,12 @@ async function syncVersions() {
                 });
                 console.log(`✅ Updated ${repo} to ${data.tag_name}`);
             }
+
+            // Wait 500ms between requests
+            await new Promise(resolve => setTimeout(resolve, 500));
+
         } catch (e) {
-            console.error(`❌ Failed:`, e.message);
+            console.error(`❌ Failed to update ${repo}:`, e.message);
         }
     }
 }
