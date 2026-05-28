@@ -5,9 +5,15 @@ async function syncVersions() {
     const key = process.env.CLIENT_KEY;
 
     // Fetch apps
-    const appsRes = await fetch(`${url}/rest/v1/apps?select=id,github&github=like.%github.com%`, {
+    const appsRes = await fetch(`${url.replace(/\/$/, "")}/rest/v1/apps?select=id,github&github=like.%github.com%`, {
         headers: { 'apikey': key, 'Authorization': `Bearer ${key}` }
     });
+
+    if (!appsRes.ok) {
+        const errorText = await appsRes.text();
+        console.error("Supabase Error:", errorText);
+        return;
+    }
     const apps = await appsRes.json();
 
     for (const app of apps) {
