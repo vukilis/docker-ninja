@@ -2,7 +2,11 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
     process.env.CLIENT_URL,
-    process.env.CLIENT_KEY
+    process.env.CLIENT_KEY,
+    {
+        auth: { persistSession: false },
+        realtime: { enabled: false } 
+    }
 );
 
 async function syncVersions() {
