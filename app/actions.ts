@@ -8,7 +8,6 @@ import { unstable_cache } from 'next/cache';
  * Used by the useApps hook to populate the main dashboard grid.
  */
 export async function fetchAllApps(category?: string, search?: string, minimal: boolean = false) {
-    // If minimal is true, we fetch even fewer fields
     const fields = minimal ? 'id, name, slug, icon_url' : 'id, name, slug, category, icon_url';
     
     let query = supabase.from('apps').select(fields);
@@ -33,7 +32,7 @@ export async function fetchAllApps(category?: string, search?: string, minimal: 
 export async function fetchAppDetail(slug: string) {
     const { data } = await supabase
         .from('apps')
-        .select('website, github, docs, source, description, run_command, compose_url, fallback_compose')
+        .select('website, github, docs, source, description, run_command, updated_at, version')
         .eq('slug', slug)
         .single();
     return data || {};
@@ -58,8 +57,9 @@ const getCachedComposeContent = unstable_cache(
         if (error || !app) {
             return "Error: Application not found.";
         }
-
-        // Attempt remote fetch if URL exists
+        if (app.fallback_compose) {
+            return app.fallback_compose;
+        }
         if (app.compose_url) {
             try {
                 const response = await fetch(app.compose_url, { 
@@ -70,12 +70,11 @@ const getCachedComposeContent = unstable_cache(
                 console.error(`Remote fetch failed for ${appSlug}:`, e);
             }
         }
-
-        return app.fallback_compose || "No compose configuration found!";
+        return "No compose configuration found!";
     },
     ['compose-content'],
     { 
-        revalidate: 3600, 
+        revalidate: 3600, // 3600 prod
         tags: ['compose-content']
     }
 );

@@ -324,11 +324,11 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 			if (width >= 1536) {       // 2xl breakpoint
 				setAppsPerPage(64);
 			} else if (width >= 1280) { // xl breakpoint
-				setAppsPerPage(64);
+				setAppsPerPage(60);
 			} else if (width >= 1024) { // lg breakpoint
-				setAppsPerPage(64);
+				setAppsPerPage(60);
 			} else if (width >= 768) {  // md breakpoint
-				setAppsPerPage(64);
+				setAppsPerPage(60);
 			} else if (width >= 640) {  // sm breakpoint
 				setAppsPerPage(64);
 			} else {                    // Mobile layout
@@ -437,7 +437,7 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 			const paginatedApps = processedApps.slice(indexOfFirstApp, indexOfLastApp);
 			return (
 				<div className="space-y-6">
-					<div className="grid grid-cols-3 2x1:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
+					<div className="grid grid-cols-3 2x1:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
 						{paginatedApps.map((app) => (
 							<AppCard key={app.id} app={app} onClick={() => handleAppSelect(app)} />
 						))}
@@ -479,7 +479,7 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 				<div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white dark:from-[#0d1117] to-transparent pointer-events-none md:hidden" />
 				</div>
 				
-				<div className="grid grid-cols-3 2x1:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
+				<div className="grid grid-cols-3 2x1:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4">
 				{paginatedCategoryApps.map((app) => (
 					<AppCard key={app.id} app={app} onClick={() => handleAppSelect(app)} />
 				))}
