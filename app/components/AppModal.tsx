@@ -4,9 +4,9 @@ import SearchInput from './SearchInput';
 import { Counter } from '../utils/Counter';
 import { getIcon } from '../hooks/icons';
 import { getOrCreateDeviceUUID } from '../utils/Utils';
-import { copyTextToClipboard } from '../utils/CopyLogic';
 import useSWR from 'swr';
 import { CopyButton } from './CopyButton';
+import { ShareButton } from './ShareButton';
 import { useAppsGlobal } from '../context/AppsContext'
 
 
@@ -20,6 +20,7 @@ interface AppDetail extends App {
     run_command?: string;
     compose_url?: string;
     fallback_compose?: string;
+    updated_at?: string;
 }
 
 interface App {
@@ -151,7 +152,7 @@ export function RequestSearchOverlay({ allApps, onClose, onAppSelect }: { allApp
 function ModalContent({ 
     app, composeCode, loading, categoryApps,
     handlePrev, handleNext, onClose, stopPropagation,
-    handleShare, copiedLink, setIsRequesting, onRandom, handleLikeToggle,
+    setIsRequesting, onRandom, handleLikeToggle,
     isLiked, likesCount, isSyncing
 }: any) {
     if (!app) return null;
@@ -170,6 +171,25 @@ function ModalContent({
             notation: 'compact',
             maximumFractionDigits: 1
         }).format(number);
+    };
+    
+    // Removes 'version/', 'v', or 'release/' prefix, case-insensitive
+    const formatVersion = (tag) => {
+    if (!tag) return "";
+    return tag.replace(/^(version\/|v|release\/)/i, '');
+    };
+
+    // Show/Hide warning message
+    const [showWarning, setShowWarning] = useState(() => 
+        typeof window !== 'undefined' ? localStorage.getItem('docker_ninja_warning') !== 'true' : true
+    );
+
+    const toggleWarning = () => {
+        setShowWarning(prev => {
+            const nextState = !prev;
+            localStorage.setItem('docker_ninja_warning', (!nextState).toString());
+            return nextState;
+        });
     };
 
     return (
@@ -218,11 +238,25 @@ function ModalContent({
                             </span>
                         </div>
                     </div>
-                    <button onClick={onClose} className="md:hidden group relative flex items-center justify-center w-10 h-10 rounded-full border border-slate-200 dark:border-red-950">
-                        <svg className="w-4 h-4 text-slate-500 dark:text-red-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                    </button>
+                    <div className="flex items-center gap-2 md:hidden">
+                        <button 
+                            onClick={toggleWarning}
+                            className={`relative flex items-center justify-center w-10 h-10 rounded-full border transition-all cursor-pointer
+                                ${showWarning 
+                                    ? 'border-orange-500 bg-orange-500 text-slate-200 dark:text-orange-500 dark:bg-orange-600/20' 
+                                    : 'border-orange-500 dark:border-orange-500/20 text-orange-500 hover:border-orange-500/50 dark:bg-orange-950/10 hover:bg-orange-500/5 hover:text-orange-500'}`}
+                            aria-label={showWarning ? "Hide security notice" : "Show security notice"}
+                        >
+                            <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                            </svg>
+                        </button>
+                        <button onClick={onClose} className="group relative flex items-center justify-center w-10 h-10 rounded-full border border-red-700 dark:border-red-950">
+                            <svg className="w-4 h-4 text-red-700 dark:text-red-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex items-center justify-between md:justify-end gap-2 shrink-0">
@@ -264,27 +298,18 @@ function ModalContent({
                             <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(168,85,247,0.15)]" />
                         </a>
                         <button 
-                            onClick={handleShare} 
-                            className={`group relative flex items-center justify-center w-10 h-10 rounded-full border transition-all duration-300 cursor-pointer 
-                                ${copiedLink 
-                                    ? 'border-green-500 bg-green-500/10' 
-                                    : 'border-slate-200 dark:border-blue-950 md:border-slate-200 md:dark:border-slate-800 md:hover:border-blue-500/50 md:hover:bg-blue-500/5'
-                                }`}
+                            onClick={toggleWarning}
+                            className={`hidden md:flex items-center justify-center w-10 h-10 rounded-full border transition-all cursor-pointer
+                                ${showWarning 
+                                    ? 'border-orange-500 bg-orange-500 text-slate-200 dark:text-orange-500 dark:bg-orange-600/20' 
+                                    : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:border-orange-500/50 hover:bg-orange-500/5 text-slate-500 hover:text-orange-500'}`}
+                            aria-label={showWarning ? "Hide security notice" : "Show security notice"}
                         >
-                            {copiedLink ? (
-                                <svg className="w-4 h-4 text-green-500 animate-in zoom-in duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M20 6L9 17l-5-5" />
-                                </svg>
-                            ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-blue-500 md:text-slate-500 md:group-hover:text-blue-500">
-                                    <path d="M3 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path>
-                                    <path d="M15 6a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path>
-                                    <path d="M15 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path>
-                                    <path d="M8.7 10.7l6.6 -3.4"></path>
-                                    <path d="M8.7 13.3l6.6 3.4"></path>
-                                </svg>
-                            )}
+                            <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                            </svg>
                         </button>
+                        <ShareButton app={app} shouldTrack={false} />
                         <button onClick={onClose} className="hidden md:flex group relative items-center justify-center w-10 h-10 rounded-full border border-slate-200 dark:border-slate-800 hover:border-red-500/50 hover:bg-red-500/5 transition-all duration-300 cursor-pointer">
                             <svg className="w-4 h-4 text-slate-500 group-hover:text-red-500 group-hover:rotate-90 transition-all duration-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                                 <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -296,10 +321,23 @@ function ModalContent({
 
             {/* BODY */}
             <div className="overflow-y-auto p-4 md:p-8 flex-1">
+                {showWarning && (
+                    <div className="mb-6 flex items-start justify-between gap-3 rounded-md border border-amber-200 bg-amber-50/50 p-4 text-xs md:text-sm text-amber-800 dark:border-amber-900/30 dark:bg-amber-950/20 dark:text-amber-300 transition-all duration-300">
+                        <div className="flex items-start gap-3">
+                            <svg className="h-5 w-5 shrink-0 text-orange-500 dark:text-orange-400 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                            </svg>
+                            <div>
+                                <span className="font-bold uppercase tracking-wide text-orange-900 dark:text-orange-400 block mb-0.5">Be Aware:</span>
+                                Don't blindly run commands. Always inspect the code, understand what it does, and verify it fits your environment before executing.
+                            </div>
+                        </div>
+                    </div>
+                )}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-slate-900 dark:text-slate-200">
                     <div className="space-y-4 text-xs md:text-sm">
-                        <div className="flex flex-row-reverse items-start justify-between bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-blue-900/30 p-4 rounded-md">
-                            <div className="relative w-24 h-24 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 ml-4">
+                        <div className="relative bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-blue-900/30 p-4 rounded-md">
+                            <div className="absolute top-4 right-4 w-24 h-24 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                                 {icon?.type === 'url' && icon.src ? (
                                     <img 
                                         src={icon.src} 
@@ -317,25 +355,43 @@ function ModalContent({
                                     <span className="text-sm font-bold text-slate-400">{app.name.charAt(0)}</span>
                                 )}
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <h3 className="text-slate-500 dark:text-slate-400 uppercase text-xs mb-2 font-black tracking-widest">App Details</h3>
+                            <div className="w-full">
+                                <h3 className="font-bold text-slate-900 dark:text-slate-400 uppercase text-xs mb-2 font-black tracking-widest">App Details</h3>
                                 <div className="space-y-1 text-sm text-slate-700 dark:text-slate-300">
-                                    {app.website && <p>Website: <a href={app.website} target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline">Link</a></p>}
-                                    {app.github && <p>GitHub: <a href={app.github} target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline">Repo</a></p>}
-                                    {app.docs && <p>Docs: <a href={app.docs} target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline">Link</a></p>}
-                                    {app.source && <p>Docker Hub: <a href={app.source} target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline">View</a></p>}
+                                    {app.website && <p>Website: <a href={app.website} target="_blank" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Link</a></p>}
+                                    {app.github && <p>GitHub: <a href={app.github} target="_blank" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Repo</a></p>}
+                                    {app.docs && <p>Docs: <a href={app.docs} target="_blank" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Link</a></p>}
+                                    {app.source && <p>Docker Hub: <a href={app.source} target="_blank" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Link</a></p>}
+                                    <div className="py-2.5">
+                                        <div className="h-[2px] w-2/3 rounded-full bg-gradient-to-r from-cyan-500 via-blue-500 to-transparent dark:from-cyan-400 dark:via-blue-600 opacity-80 shadow-[0_0_8px_rgba(34,211,238,0.3)]" />
+                                    </div>
+                                    {app.version && (<p>Version:{" "}
+                                        <span className="font-semibold text-green-700 dark:text-green-300">
+                                        {formatVersion(app.version)}</span></p>
+                                    )}
+                                    {app.updated_at && (
+                                        <p>
+                                            Latest Change: <span className="font-semibold text-green-700 dark:text-green-300">
+                                                {new Date(app.updated_at).toLocaleDateString(undefined, {
+                                                    year: 'numeric',
+                                                    month: 'short',
+                                                    day: 'numeric'
+                                                })}
+                                            </span>
+                                        </p>
+                                    )}
                                     <p>Category: <span className="text-blue-600 dark:text-blue-400 font-semibold">{app.category}</span></p>
                                 </div>
                             </div>
                         </div>
                         <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-blue-900/30 p-4 rounded-md">
-                            <h3 className="text-slate-500 dark:text-slate-400 uppercase text-xs mb-2 tracking-widest font-black">About</h3>
+                            <h3 className="font-bold text-slate-900 dark:text-slate-400 uppercase text-xs mb-2 tracking-widest font-black">About</h3>
                             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium">{app.description || "No description."}</p>
                         </div>
                     </div>
 
                     <div className="flex flex-col gap-4 min-h-[300px]">
-                        <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-blue-900/30 p-4 flex flex-col flex-1 overflow-hidden">
+                        <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-blue-900/30 p-4 flex flex-col flex-1 max-h-[400px] overflow-y-auto">
                             <h3 className="text-blue-600 dark:text-blue-400 mb-2 font-bold flex justify-between text-[10px] md:text-xs uppercase tracking-widest">
                                 docker-compose.yml 
                                 <CopyButton 
@@ -348,6 +404,7 @@ function ModalContent({
                             </div>
                         </div>
                         <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-blue-900/30 p-4 space-y-4">
+                            {/* Compose Command Section */}
                             <div className="text-[10px] md:text-xs">
                                 <h3 className="text-blue-600 dark:text-blue-400 mb-1 font-bold flex justify-between uppercase">Compose Command
                                     <CopyButton 
@@ -357,17 +414,31 @@ function ModalContent({
                                 </h3>
                                 <div onTouchStart={stopPropagation} className="code-container bg-[#f6f4f0]/50 dark:bg-[#0d1117] p-2 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 overflow-x-auto whitespace-nowrap">$ docker compose up -d</div>
                             </div>
+                            {/* Docker CLI Section */}
                             <div className="text-[10px] md:text-xs">
-                                <h3 className="text-blue-600 dark:text-blue-400 mb-1 font-bold flex justify-between uppercase">Docker CLI
+                                <h3 className="text-blue-600 dark:text-blue-400 mb-1 font-bold flex justify-between uppercase">
+                                    Docker CLI
                                     <CopyButton 
-                                        text={app.run_command || `docker run -d --name ${app.slug}`} 
+                                        text={
+                                            app.run_command 
+                                                ? app.run_command.replace(/\\\s*\n/g, '\\\n').trim() 
+                                                : `docker run -d \\\n  --name ${app.slug}`
+                                        } 
                                         shouldTrack={false}
                                     />
                                 </h3>
-                                <div onTouchStart={stopPropagation} className="code-container bg-[#f6f4f0]/50 dark:bg-[#0d1117] p-2 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 overflow-x-auto whitespace-nowrap">$ {app.run_command || `docker run -d --name ${app.slug}`}</div>
+                                <div 
+                                    onTouchStart={stopPropagation} 
+                                    className="code-container max-h-[200px] overflow-y-auto overflow-x-auto bg-[#f6f4f0]/50 dark:bg-[#0d1117] p-3 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 whitespace-pre font-mono leading-relaxed"
+                                >
+                                    $ {app.run_command ? (
+                                        app.run_command.replace(/\\\s*\n/g, '\\\n').trim()
+                                    ) : (
+                                        `docker run -d \\\n  --name ${app.slug}`
+                                    )}
+                                </div>
                             </div>
                         </div>
-
                         <div className="flex items-center justify-end gap-3 w-full">
                             <button 
                                 onClick={onRandom}
@@ -569,26 +640,6 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom}: AppMod
 
     const displayApp = useMemo(() => ({ ...app, ...details }), [app, details]);
 
-    const handleShare = async () => {
-        const appSlug = app.slug || app.id;
-        const cleanShareUrl = `${window.location.origin}/app/${appSlug}`;
-
-        if (navigator.share) {
-            try {
-                await navigator.share({ 
-                    title: app.name, 
-                    text: `Check out ${app.name} on Docker Ninja`, 
-                    url: cleanShareUrl 
-                });
-            } catch (err) {
-                console.warn("Native share failed, falling back to copy:", err);
-                copyTextToClipboard(cleanShareUrl); 
-            }
-        } else {
-            copyTextToClipboard(cleanShareUrl);
-        }
-    };
-
     const stopPropagation = (e: any) => e.stopPropagation();
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
     const getTransform = () => {
@@ -665,7 +716,7 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom}: AppMod
                     loading={loading} categoryApps={categoryApps}
                     handlePrev={handlePrev} handleNext={handleNext}
                     onClose={onClose} stopPropagation={stopPropagation}
-                    handleShare={handleShare} setIsRequesting={setIsRequesting}
+                    setIsRequesting={setIsRequesting}
                     onRandom={onRandom} DeployedCounter={DeployedCounter}
                     handleLikeToggle={handleLikeToggle} isLiked={isLiked}
                     likesCount={likesCount}
