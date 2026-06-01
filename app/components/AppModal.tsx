@@ -18,8 +18,10 @@ interface AppDetail extends App {
     source?: string;
     description?: string;
     run_command?: string;
+    cli_update_command?: string;
     bash_command?: string;
     update_command?: string;
+    env_file?: string;
     compose_url?: string;
     fallback_compose?: string;
     updated_at?: string;
@@ -158,8 +160,8 @@ function ModalContent({
     isLiked, likesCount, isSyncing
 }: any) {
     // State Hooks for Tabs
-    const [composeTab, setComposeTab] = useState<'run' | 'update'>('run');
-    const [cliTab, setCliTab] = useState<'cli' | 'bash'>('cli');
+    const [composeTab, setComposeTab] = useState<'run' | 'update' | 'env'>('run');
+    const [cliTab, setCliTab] = useState<'cli' | 'update' | 'bash'>('cli');
 
     if (!app) return null;
 
@@ -202,6 +204,9 @@ function ModalContent({
     const runCommand = app.run_command?.replace(/\\\s*\n/g, '\\\n').trim() || '';
     const bashCommand = app.bash_command?.trim() || '';
     const updateCommand = app.update_command?.trim() || '';
+    const cliUpdateCommand = app.cli_update_command?.trim() || '';
+    const envFile = app.env_file?.trim() || '';
+
     // Reusable styles for tab buttons
     const tabBtnStyle = (isActive: boolean) => `
         px-2.5 py-0.5 text-[9px] md:text-[11px] font-black uppercase tracking-wider rounded border transition-all duration-200 font-sans
@@ -435,15 +440,29 @@ function ModalContent({
                                         >
                                             Run
                                         </button>
-                                        <button 
-                                            onClick={() => setComposeTab('update')} 
-                                            className={tabBtnStyle(composeTab === 'update')}
-                                        >
-                                            Update
-                                        </button>
+                                        {updateCommand && (
+                                            <button 
+                                                onClick={() => setComposeTab('update')} 
+                                                className={tabBtnStyle(composeTab === 'update')}
+                                            >
+                                                Update
+                                            </button>
+                                        )}
+                                        {envFile && (
+                                            <button 
+                                                onClick={() => setComposeTab('env')} 
+                                                className={tabBtnStyle(composeTab === 'env')}
+                                            >
+                                                .env
+                                            </button>
+                                        )}
                                     </div>
                                     <CopyButton 
-                                        text={composeTab === 'run' ? "docker compose up -d" : updateCommand}  
+                                        text={
+                                            (composeTab === 'update' && updateCommand) ? updateCommand : 
+                                            (composeTab === 'env' && envFile) ? envFile : 
+                                            "docker compose up -d"
+                                        }  
                                         shouldTrack={false}
                                     />
                                 </div>
@@ -452,14 +471,19 @@ function ModalContent({
                                     onTouchStart={stopPropagation} 
                                     className="code-container max-h-[200px] overflow-y-auto overflow-x-auto bg-[#f6f4f0]/50 dark:bg-[#0d1117] p-3 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 whitespace-pre font-mono leading-relaxed"
                                 >
-                                    {composeTab === 'run' ? (
-                                        <span>$ docker compose up -d</span>
-                                    ) : (
+                                    {/* active tab */}
+                                    {composeTab === 'update' && updateCommand ? (
                                         <span>
                                             {updateCommand.split('\n').map((line, idx) => (
                                                 <span key={idx} className="block">$ {line}</span>
                                             ))}
                                         </span>
+                                    ) : composeTab === 'env' && envFile ? (
+                                        <span>
+                                            {envFile}
+                                        </span>
+                                    ) : (
+                                        <span>$ docker compose up -d</span>
                                     )}
                                 </div>
                             </div>
@@ -476,8 +500,6 @@ function ModalContent({
                                             >
                                                 Docker CLI
                                             </button>
-                                            
-                                            {/* Only render Bash tab button if bashCommand is NOT empty */}
                                             {bashCommand && (
                                                 <button 
                                                     onClick={() => setCliTab('bash')} 
@@ -486,11 +508,21 @@ function ModalContent({
                                                     Bash
                                                 </button>
                                             )}
+                                            {cliUpdateCommand && (
+                                                <button 
+                                                    onClick={() => setCliTab('update')} 
+                                                    className={tabBtnStyle(cliTab === 'update')}
+                                                >
+                                                    Update
+                                                </button>
+                                            )}
                                         </div>
-                                        
-                                        {/* Fallback to runCommand if Bash is hidden but state somehow got stuck on 'bash' */}
                                         <CopyButton 
-                                            text={(cliTab === 'bash' && bashCommand) ? bashCommand : runCommand} 
+                                            text={
+                                                (cliTab === 'bash' && bashCommand) ? bashCommand :
+                                                (cliTab === 'update' && cliUpdateCommand) ? cliUpdateCommand : 
+                                                runCommand
+                                            } 
                                             shouldTrack={false}
                                         />
                                     </div>
@@ -500,7 +532,11 @@ function ModalContent({
                                         onTouchStart={stopPropagation} 
                                         className="code-container max-h-[200px] overflow-y-auto overflow-x-auto bg-[#f6f4f0]/50 dark:bg-[#0d1117] p-3 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 whitespace-pre font-mono leading-relaxed"
                                     >
-                                        $ {(cliTab === 'bash' && bashCommand) ? bashCommand : runCommand}
+                                        $ {
+                                            (cliTab === 'bash' && bashCommand) ? bashCommand :
+                                            (cliTab === 'update' && cliUpdateCommand) ? cliUpdateCommand : 
+                                            runCommand
+                                        }
                                     </div>
                                 </div>
                             )}
