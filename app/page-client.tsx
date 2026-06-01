@@ -865,7 +865,7 @@ export default function Home({ initialView = 'dashboard', initialAppSlug }: { in
 					{/* 4. GITHUB LINK */}
 					<a 
 					title="GitHub"
-					href="https://github.com/vukilis" 
+					href="https://github.com/vukilis/docker-ninja" 
 					target="_blank" 
 					rel="noreferrer" 
 					className={`relative group flex items-center h-9 xl:h-11 rounded-xl font-bold uppercase text-xs tracking-wider hover:bg-slate-200 dark:hover:bg-slate-800 transition-all duration-300 justify-start overflow-hidden
