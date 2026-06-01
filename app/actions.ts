@@ -32,7 +32,7 @@ export async function fetchAllApps(category?: string, search?: string, minimal: 
 export async function fetchAppDetail(slug: string) {
     const { data } = await supabase
         .from('apps')
-        .select('website, github, docs, source, description, run_command, updated_at, version')
+        .select('website, github, docs, source, description, run_command, bash_command, update_command, updated_at, version')
         .eq('slug', slug)
         .single();
     return data || {};
