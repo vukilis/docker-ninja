@@ -18,6 +18,8 @@ interface AppDetail extends App {
     source?: string;
     description?: string;
     run_command?: string;
+    bash_command?: string;
+    update_command?: string;
     compose_url?: string;
     fallback_compose?: string;
     updated_at?: string;
@@ -155,6 +157,10 @@ function ModalContent({
     setIsRequesting, onRandom, handleLikeToggle,
     isLiked, likesCount, isSyncing
 }: any) {
+    // State Hooks for Tabs
+    const [composeTab, setComposeTab] = useState<'run' | 'update'>('run');
+    const [cliTab, setCliTab] = useState<'cli' | 'bash'>('cli');
+
     if (!app) return null;
 
     // Find the current app's index within its category for pagination display
@@ -175,8 +181,8 @@ function ModalContent({
     
     // Removes 'version/', 'v', or 'release/' prefix, case-insensitive
     const formatVersion = (tag) => {
-    if (!tag) return "";
-    return tag.replace(/^(version\/|v|release\/)/i, '');
+        if (!tag) return "";
+        return tag.replace(/^(version\/|v|release\/)/i, '');
     };
 
     // Show/Hide warning message
@@ -191,6 +197,19 @@ function ModalContent({
             return nextState;
         });
     };
+
+    // --- Added Tab String Variables ---
+    const runCommand = app.run_command?.replace(/\\\s*\n/g, '\\\n').trim() || '';
+    const bashCommand = app.bash_command?.trim() || '';
+    const updateCommand = app.update_command?.trim() || '';
+    // Reusable styles for tab buttons
+    const tabBtnStyle = (isActive: boolean) => `
+        px-2.5 py-0.5 text-[9px] md:text-[11px] font-black uppercase tracking-wider rounded border transition-all duration-200 font-sans
+        ${isActive 
+            ? 'bg-blue-600 border-blue-600 text-white dark:bg-blue-500/20 dark:border-blue-500/40 dark:text-blue-400' 
+            : 'bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
+        }
+    `;
 
     return (
         <div className="flex flex-col h-full">
@@ -302,7 +321,7 @@ function ModalContent({
                             className={`hidden md:flex items-center justify-center w-10 h-10 rounded-full border transition-all cursor-pointer
                                 ${showWarning 
                                     ? 'border-orange-500 bg-orange-500 text-slate-200 dark:text-orange-500 dark:bg-orange-600/20' 
-                                    : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:border-orange-500/50 hover:bg-orange-500/5 text-slate-500 hover:text-orange-500'}`}
+                                    : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:border-orange-500/5 hover:bg-orange-500/5 text-slate-500 hover:text-orange-500'}`}
                             aria-label={showWarning ? "Hide security notice" : "Show security notice"}
                         >
                             <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3" stroke="currentColor">
@@ -403,42 +422,90 @@ function ModalContent({
                                 <pre className="text-[10px] md:text-xs text-slate-700 dark:text-slate-300 whitespace-pre">{loading ? "Loading..." : composeCode}</pre>
                             </div>
                         </div>
-                        <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-blue-900/30 p-4 space-y-4">
-                            {/* Compose Command Section */}
-                            <div className="text-[10px] md:text-xs">
-                                <h3 className="text-blue-600 dark:text-blue-400 mb-1 font-bold flex justify-between uppercase">Compose Command
+
+                        <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-blue-900/30 p-4 space-y-4 rounded-md">
+                            
+                            {/* Compose Command */}
+                            <div className="text-[10px] md:text-xs space-y-2">
+                                <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800/60 pb-1.5">
+                                    <div className="flex gap-1.5">
+                                        <button 
+                                            onClick={() => setComposeTab('run')} 
+                                            className={tabBtnStyle(composeTab === 'run')}
+                                        >
+                                            Run
+                                        </button>
+                                        <button 
+                                            onClick={() => setComposeTab('update')} 
+                                            className={tabBtnStyle(composeTab === 'update')}
+                                        >
+                                            Update
+                                        </button>
+                                    </div>
                                     <CopyButton 
-                                        text={"docker compose -d"}  
+                                        text={composeTab === 'run' ? "docker compose up -d" : updateCommand}  
                                         shouldTrack={false}
                                     />
-                                </h3>
-                                <div onTouchStart={stopPropagation} className="code-container bg-[#f6f4f0]/50 dark:bg-[#0d1117] p-2 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 overflow-x-auto whitespace-nowrap">$ docker compose up -d</div>
-                            </div>
-                            {/* Docker CLI Section */}
-                            <div className="text-[10px] md:text-xs">
-                                <h3 className="text-blue-600 dark:text-blue-400 mb-1 font-bold flex justify-between uppercase">
-                                    Docker CLI
-                                    <CopyButton 
-                                        text={
-                                            app.run_command 
-                                                ? app.run_command.replace(/\\\s*\n/g, '\\\n').trim() 
-                                                : `docker run -d \\\n  --name ${app.slug}`
-                                        } 
-                                        shouldTrack={false}
-                                    />
-                                </h3>
+                                </div>
+                                
                                 <div 
                                     onTouchStart={stopPropagation} 
                                     className="code-container max-h-[200px] overflow-y-auto overflow-x-auto bg-[#f6f4f0]/50 dark:bg-[#0d1117] p-3 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 whitespace-pre font-mono leading-relaxed"
                                 >
-                                    $ {app.run_command ? (
-                                        app.run_command.replace(/\\\s*\n/g, '\\\n').trim()
+                                    {composeTab === 'run' ? (
+                                        <span>$ docker compose up -d</span>
                                     ) : (
-                                        `docker run -d \\\n  --name ${app.slug}`
+                                        <span>
+                                            {updateCommand.split('\n').map((line, idx) => (
+                                                <span key={idx} className="block">$ {line}</span>
+                                            ))}
+                                        </span>
                                     )}
                                 </div>
                             </div>
+
+                            {/* Docker CLI Section */}
+                            {runCommand && (
+                                <div className="text-[10px] md:text-xs space-y-2">
+                                    <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800/60 pb-1.5">
+                                        {/* Tabs Navigation */}
+                                        <div className="flex gap-1.5">
+                                            <button 
+                                                onClick={() => setCliTab('cli')} 
+                                                className={tabBtnStyle(cliTab === 'cli')}
+                                            >
+                                                Docker CLI
+                                            </button>
+                                            
+                                            {/* Only render Bash tab button if bashCommand is NOT empty */}
+                                            {bashCommand && (
+                                                <button 
+                                                    onClick={() => setCliTab('bash')} 
+                                                    className={tabBtnStyle(cliTab === 'bash')}
+                                                >
+                                                    Bash
+                                                </button>
+                                            )}
+                                        </div>
+                                        
+                                        {/* Fallback to runCommand if Bash is hidden but state somehow got stuck on 'bash' */}
+                                        <CopyButton 
+                                            text={(cliTab === 'bash' && bashCommand) ? bashCommand : runCommand} 
+                                            shouldTrack={false}
+                                        />
+                                    </div>
+                                    
+                                    {/* Dynamic Content Display */}
+                                    <div 
+                                        onTouchStart={stopPropagation} 
+                                        className="code-container max-h-[200px] overflow-y-auto overflow-x-auto bg-[#f6f4f0]/50 dark:bg-[#0d1117] p-3 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 whitespace-pre font-mono leading-relaxed"
+                                    >
+                                        $ {(cliTab === 'bash' && bashCommand) ? bashCommand : runCommand}
+                                    </div>
+                                </div>
+                            )}
                         </div>
+
                         <div className="flex items-center justify-end gap-3 w-full">
                             <button 
                                 onClick={onRandom}
