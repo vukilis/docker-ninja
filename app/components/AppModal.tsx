@@ -170,7 +170,7 @@ const WarningNotice = ({ show, onClick, className = "" }: { show: boolean; onCli
 		className={`relative flex items-center justify-center w-10 h-10 rounded-full border transition-all cursor-pointer ${
 			show
 				? "border-orange-500 bg-orange-500 text-slate-200 dark:text-orange-500 dark:bg-orange-600/20"
-				: "border-orange-500 dark:border-orange-500/20 text-orange-500 hover:border-orange-500/50 dark:bg-orange-950/10 hover:bg-orange-500/5 hover:text-orange-500"
+				: "sm:border-slate-200 border-orange-500 dark:border-orange-500/20 sm:dark:border-slate-500/20 text-orange-500 sm:text-slate-500 hover:border-orange-500/50 sm:dark:bg-slate-950/10 hover:bg-orange-500/5 hover:text-orange-500"
 		} ${className}`}
 		aria-label={show ? "Hide security notice" : "Show security notice"}
 	>
@@ -300,18 +300,16 @@ function ModalContent({
 				<div className="flex justify-between items-start md:block">
 					<div className="flex flex-col gap-1 min-w-0">
 						<div className="flex items-center gap-3 flex-wrap max-w-full">
-							<h2 className="text-xl md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter truncate">
+							<h2 className="text-xl md:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter truncate">
 								{app.name}
 							</h2>
 
 							{/* LIKE BUTTON */}
 							<button
 								onClick={handleLikeToggle}
-								className={`group inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold transition-all duration-300 transform active:scale-95 cursor-pointer select-none ${
-									isLiked
-										? "bg-rose-500/10 border-rose-500/30 text-rose-500"
-										: "bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-rose-500/40 hover:text-rose-500"
-								} ${isSyncing ? "opacity-80" : ""}`}
+								className={`inline-flex items-center justify-center gap-1 transition-all duration-200 cursor-pointer select-none ${
+									isLiked ? "text-rose-500" : "text-slate-500 dark:text-slate-400 hover:text-rose-500"
+								} ${isSyncing ? "opacity-80" : ""} ${isSyncing ? "" : "cursor-pointer"}`}
 							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
@@ -321,13 +319,13 @@ function ModalContent({
 									strokeWidth="2.5"
 									strokeLinecap="round"
 									strokeLinejoin="round"
-									className={`w-3.5 h-3.5 shrink-0 transition-transform duration-300 ${
+									className={`w-4 h-4 md:w-4.5 md:h-4.5 pb-0.5 shrink-0 transition-transform duration-300 ${
 										isLiked ? "animate-in zoom-in-75 duration-200 scale-110" : "group-hover:scale-110"
 									}`}
 								>
 									<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
 								</svg>
-								<span className="tabular-nums font-sans text-[12px] font-black leading-none inline-flex items-center">
+								<span className="tabular-nums text-[14px] font-black leading-none inline-flex items-center">
 									{likesCount !== null ? FormattingUtils.formatCompactNumber(likesCount) : ""}
 								</span>
 							</button>
@@ -337,15 +335,14 @@ function ModalContent({
 							<span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em]">{app.category}</span>
 						</div>
 					</div>
-					<div className="flex items-center gap-2 md:hidden">
-						<WarningNotice show={showWarning} onClick={toggleWarning} />
-						<CloseButton onClick={onClose} className="border-red-700 dark:border-red-950">
-							<svg className="w-4 h-4 text-red-700 dark:text-red-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-								<line x1="18" y1="6" x2="6" y2="18" />
-								<line x1="6" y1="6" x2="18" y2="18" />
-							</svg>
-						</CloseButton>
-					</div>
+				<div className="flex items-center gap-2 md:hidden">
+					<CloseButton onClick={onClose} className="border-red-700 dark:border-red-950">
+						<svg className="w-4 h-4 text-red-700 dark:text-red-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+							<line x1="18" y1="6" x2="6" y2="18" />
+							<line x1="6" y1="6" x2="18" y2="18" />
+						</svg>
+					</CloseButton>
+				</div>
 				</div>
 
 				<div className="flex items-center justify-between md:justify-end gap-2 shrink-0">
@@ -377,38 +374,27 @@ function ModalContent({
 						<a
 							href={`${GITHUB_NEW_ISSUE_URL}?template=issue-report.md&title=${encodeURIComponent(`[BUG] ${app.name}`)}&labels=bug`}
 							target="_blank"
-							className="relative group flex items-center gap-2 px-7 md:px-5 py-3 text-[10px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-purple-600/30 hover:border-purple-500/60 bg-purple-100 dark:bg-purple-950/5 backdrop-blur-sm"
+							className="lg:relative group flex items-center justify-center w-10 h-10 rounded-full border border-slate-200 dark:border-purple-600/30 hover:border-purple-500/60 bg-purple-100 dark:bg-purple-950/5 backdrop-blur-sm transition-all duration-300 cursor-pointer"
 						>
-							<div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-600/20 via-fuchsia-900/5 to-transparent" />
-							<div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-purple-400/10 to-transparent" />
-							<div className="relative flex items-center gap-2 text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-900 dark:group-hover:text-fuchsia-400 transition-colors duration-300">
-								<div className="relative">
-									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
-										<rect width="8" height="14" x="8" y="6" rx="4" />
-										<path d="m19 7-3 2" />
-										<path d="m5 7 3 2" />
-										<path d="m19 19-3-2" />
-										<path d="m5 19 3-2" />
-										<path d="M20 13h-4" />
-										<path d="M4 13h4" />
-										<path d="m10 4 1 2" />
-										<path d="m14 4-1 2" />
-									</svg>
-									<span className="absolute -top-1 -right-1 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
-										<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-400 opacity-75"></span>
-										<span className="relative inline-flex rounded-full h-1 w-1 bg-fuchsia-300"></span>
-									</span>
-								</div>
-								<span className="tracking-[0.2em] font-sans">Report</span>
-							</div>
-							<div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(168,85,247,0.15)]" />
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-900 dark:group-hover:text-fuchsia-400 transition-colors duration-300 drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
+								<rect width="8" height="14" x="8" y="6" rx="4" />
+								<path d="m19 7-3 2" />
+								<path d="m5 7 3 2" />
+								<path d="m19 19-3-2" />
+								<path d="m5 19 3-2" />
+								<path d="M20 13h-4" />
+								<path d="M4 13h4" />
+								<path d="m10 4 1 2" />
+								<path d="m14 4-1 2" />
+							</svg>
+							<span className="absolute -top-1 -right-1 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
+								<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-400 opacity-75"></span>
+								<span className="relative inline-flex rounded-full h-1 w-1 bg-fuchsia-300"></span>
+							</span>
 						</a>
-						<WarningNotice show={showWarning} onClick={toggleWarning} className="hidden md:flex" />
+						<WarningNotice show={showWarning} onClick={toggleWarning} />
 						<ShareButton app={app} shouldTrack={false} />
-						<CloseButton
-							onClick={onClose}
-							className="hidden md:flex border-slate-200 dark:border-slate-800 hover:border-red-500/50 hover:bg-red-500/5"
-						/>
+						<CloseButton onClick={onClose} className="hidden md:flex border-slate-200 dark:border-slate-800 hover:border-red-600 dark:hover:border-red-800" />
 					</div>
 				</div>
 			</div>
@@ -525,17 +511,17 @@ function ModalContent({
 							<div className="text-[10px] md:text-xs space-y-2">
 								<div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800/60 pb-1.5">
 									<div className="flex gap-1.5">
+										{envFile && (
+											<TabButton isActive={composeTab === "env"} onClick={() => setComposeTab("env")}>
+												.env
+											</TabButton>
+										)}
 										<TabButton isActive={composeTab === "run"} onClick={() => setComposeTab("run")}>
 											Run
 										</TabButton>
 										{updateCommand && (
 											<TabButton isActive={composeTab === "update"} onClick={() => setComposeTab("update")}>
 												Update
-											</TabButton>
-										)}
-										{envFile && (
-											<TabButton isActive={composeTab === "env"} onClick={() => setComposeTab("env")}>
-												.env
 											</TabButton>
 										)}
 									</div>
@@ -567,14 +553,14 @@ function ModalContent({
 								<div className="text-[10px] md:text-xs space-y-2">
 									<div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800/60 pb-1.5">
 										<div className="flex gap-1.5">
-											<TabButton isActive={cliTab === "cli"} onClick={() => setCliTab("cli")}>
-												Docker CLI
-											</TabButton>
 											{bashCommand && (
 												<TabButton isActive={cliTab === "bash"} onClick={() => setCliTab("bash")}>
 													Bash
 												</TabButton>
 											)}
+											<TabButton isActive={cliTab === "cli"} onClick={() => setCliTab("cli")}>
+												Docker CLI
+											</TabButton>
 											{cliUpdateCommand && (
 												<TabButton isActive={cliTab === "update"} onClick={() => setCliTab("update")}>
 													Update
