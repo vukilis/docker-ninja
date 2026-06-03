@@ -3,7 +3,7 @@ import { useClipboardCopy } from '../utils/CopyLogic';
 interface ShareButtonProps {
     app: {
         slug?: string;
-        id: string;
+        id: string | number;
         name: string;
     };
     shouldTrack?: boolean;

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import Image from 'next/image';
 
 // Interface for type safety
 interface App {
@@ -7,6 +8,7 @@ interface App {
     name: string;
     category: string;
     icon_url?: string;
+    [key: string]: unknown;
 }
 
 interface SearchInputProps {
@@ -168,7 +170,7 @@ export default function SearchInput({ apps = [], search, setSearch, onAppSelect 
                                     >
                                         <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-700 flex-shrink-0">
                                             {app.icon_url ? (
-                                                <img src={app.icon_url} alt="" className="w-full h-full object-cover" />
+                                                <Image src={app.icon_url} alt={app.name} width={64} height={64} unoptimized className="w-full h-full object-cover" />
                                             ) : (
                                                 <span className="text-sm font-bold text-slate-400 uppercase">{app.name.charAt(0)}</span>
                                             )}

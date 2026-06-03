@@ -3,13 +3,18 @@
 import { supabase } from '../lib/supabase';
 import { unstable_cache } from 'next/cache';
 
-/**
- * Fetches all app metadata from Supabase.
- * Used by the useApps hook to populate the main dashboard grid.
- */
-export async function fetchAllApps(category?: string, search?: string, minimal: boolean = false) {
+export interface AppRow {
+    id: string | number;
+    slug: string;
+    name: string;
+    category: string;
+    icon_url?: string;
+    [key: string]: unknown;
+}
+
+export async function fetchAllApps(category?: string, search?: string, minimal: boolean = false): Promise<AppRow[]> {
     const fields = minimal ? 'id, name, slug, icon_url' : 'id, name, slug, category, icon_url';
-    
+
     let query = supabase.from('apps').select(fields);
 
     if (category && category !== "Dashboard" && category !== "categories") {
@@ -20,13 +25,21 @@ export async function fetchAllApps(category?: string, search?: string, minimal: 
     }
 
     const { data, error } = await query.order('name', { ascending: true });
-    
+
     if (error) {
         console.error("Error fetching apps:", error);
         return [];
     }
-    
-    return data || [];
+
+    return ((data || []) as unknown[]).filter((item): item is AppRow => {
+        const record = item as Record<string, unknown>;
+        return (
+            (typeof record.id === 'string' || typeof record.id === 'number') &&
+            typeof record.slug === 'string' &&
+            typeof record.name === 'string' &&
+            typeof record.category === 'string'
+        );
+    });
 }
 
 export async function fetchAppDetail(slug: string) {
@@ -74,7 +87,7 @@ const getCachedComposeContent = unstable_cache(
     },
     ['compose-content'],
     { 
-        revalidate: 3600, // 3600 prod
+        revalidate: 10, // 3600 prod
         tags: ['compose-content']
     }
 );
@@ -157,27 +170,45 @@ export async function checkHasDeviceLiked(appSlug: string, deviceUuid: string): 
 /**
  * Adds or removes row items from our public tracker table based on flag condition
  */
-export async function toggleAppLike(appSlug: string, isIncrement: boolean, deviceUuid: string): Promise<number> {
+export async function toggleAppLike(appSlug: string, isLiked: boolean, deviceUuid: string): Promise<number> {
+    if (!appSlug || !deviceUuid) return -1;
+
     try {
-        if (isIncrement) {
-            await supabase
+        if (isLiked) {
+            const { error: insertError } = await supabase
                 .from('app_likes')
-                .upsert({ app_slug: appSlug, device_uuid: deviceUuid, is_liked: true }, { onConflict: 'app_slug, device_uuid' });
+                .insert({ app_slug: appSlug, device_uuid: deviceUuid, is_liked: true });
+
+            if (insertError) {
+                console.error('Error liking app:', insertError);
+                return -1;
+            }
         } else {
-            await supabase
+            const { error: deleteError } = await supabase
                 .from('app_likes')
                 .delete()
                 .eq('app_slug', appSlug)
                 .eq('device_uuid', deviceUuid);
+
+            if (deleteError) {
+                console.error('Error unliking app:', deleteError);
+                return -1;
+            }
         }
 
-        const { count } = await supabase
+        const { count, error: countError } = await supabase
             .from('app_likes')
             .select('*', { count: 'exact', head: true })
             .eq('app_slug', appSlug);
-            
-        return count || 0;
+
+        if (countError) {
+            console.error('Error counting likes:', countError);
+            return -1;
+        }
+
+        return typeof count === 'number' ? count : -1;
     } catch (err) {
+        console.error('Unexpected error toggling like:', err);
         return -1;
     }
 }

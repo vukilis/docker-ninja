@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { getIcon } from '../hooks/icons';
 
 interface AppCardProps {
@@ -7,7 +8,7 @@ interface AppCardProps {
         slug?: string;
         name: string;
         icon_url?: string;
-        [key: string]: any;
+        [key: string]: unknown;
     };
     onClick: () => void;
 }
@@ -22,8 +23,15 @@ export const AppCard: React.FC<AppCardProps> = ({ app, onClick }) => {
         >
             <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="relative w-11 h-11 flex items-center justify-center group-hover:scale-110 transition-transform duration-500 ease-out">
-                {icon?.type === 'url' ? (
-                    <img src={icon.src} alt={app.name} className="w-full h-full object-contain filter dark:drop-shadow-[0_0_8px_rgba(255,255,255,0.1)] group-hover:drop-shadow-[0_0_12px_rgba(37,99,235,0.3)] transition-all" />
+                {icon?.type === 'url' && icon.src ? (
+                    <Image
+                        src={icon.src}
+                        alt={app.name}
+                        width={96}
+                        height={96}
+                        unoptimized
+                        className="w-full h-full object-contain filter dark:drop-shadow-[0_0_8px_rgba(255,255,255,0.1)] group-hover:drop-shadow-[0_0_12px_rgba(37,99,235,0.3)] transition-all"
+                    />
                 ) : icon?.svg ? (
                     <div 
                         dangerouslySetInnerHTML={{ __html: icon.svg }} 
