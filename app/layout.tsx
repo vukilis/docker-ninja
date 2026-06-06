@@ -1,21 +1,24 @@
-import { ThemeProvider } from 'next-themes';
+import { ThemeProvider } from './components/ThemeProvider';
+import { QueryProvider } from './components/QueryProvider';
 import Preloader from './components/Preloader';
 import './style/globals.css';
 import { AppsProvider } from './context/AppsContext';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="my-custom-background text-slate-900 dark:text-slate-200">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-          <AppsProvider>
-            <Preloader />
-            {children}
-          </AppsProvider>
-        </ThemeProvider>
-      </body>
-    </html>
-  );
+	return (
+		<html lang="en" suppressHydrationWarning>
+			<body className="my-custom-background text-slate-900 dark:text-slate-200">
+				<ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+					<QueryProvider>
+						<AppsProvider>
+							<Preloader />
+							{children}
+						</AppsProvider>
+					</QueryProvider>
+				</ThemeProvider>
+			</body>
+		</html>
+	);
 }
 
 export const metadata = {

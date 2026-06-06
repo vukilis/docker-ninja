@@ -5,7 +5,7 @@ import SearchInput from "./SearchInput";
 import { Counter } from "../utils/Counter";
 import { getIcon } from "../hooks/icons";
 import { getOrCreateDeviceUUID } from "../utils/Utils";
-import useSWR from "swr";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CopyButton } from "./CopyButton";
 import { ShareButton } from "./ShareButton";
 import { useAppsGlobal } from "../context/AppsContext";
@@ -661,6 +661,7 @@ function ModalContent({
 // --- MAIN EXPORT ---
 export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppModalProps) {
 	const { detailsCache, composeCache, setDetailsCache, setComposeCache, likedStatusCache, setLikedStatusCache, globalLikes, setGlobalLikes } = useAppsGlobal();
+	const queryClient = useQueryClient();
 
 	const details = detailsCache[app?.slug] ?? {};
 	const composeCode = composeCache[app?.slug] ?? "Loading...";
@@ -684,10 +685,57 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
 	const nextApp = categoryApps[(currentIndex + 1) % categoryApps.length];
 	const prevApp = categoryApps[(currentIndex - 1 + categoryApps.length) % categoryApps.length];
 
-	// Like state
-	const [isLiked, setIsLiked] = useState(false);
+	const likeQueryKey = ["like-status", app.slug];
+	const likeStatusQuery = useQuery({
+		queryKey: likeQueryKey,
+		queryFn: async () => {
+			const browserUuid = getOrCreateDeviceUUID();
+			const hasLiked = await checkHasDeviceLiked(app.slug, browserUuid);
+			return hasLiked;
+		},
+		enabled: !!app.slug && likedStatusCache[app.slug] === undefined,
+		staleTime: 1000 * 60 * 5,
+	});
+
+	const isLiked = likedStatusCache[app.slug] ?? likeStatusQuery.data ?? false;
 	const [isSyncing, setIsSyncing] = useState(false);
 	const likesCount = globalLikes[app.slug] ?? 0;
+
+	const likeMutation = useMutation({
+		mutationFn: async ({ appSlug, liked, deviceUuid }: { appSlug: string; liked: boolean; deviceUuid: string }) => {
+			const total = await toggleAppLike(appSlug, liked, deviceUuid);
+			if (total === -1) throw new Error("Failed to toggle like");
+			return total;
+		},
+		onMutate: async ({ appSlug, liked }) => {
+			await queryClient.cancelQueries({ queryKey: likeQueryKey });
+			const previousLiked = likedStatusCache[appSlug] ?? likeStatusQuery.data ?? false;
+			setLikedStatusCache((prev) => ({ ...prev, [appSlug]: liked }));
+			setGlobalLikes((prev) => {
+				const current = prev[appSlug] ?? 0;
+				return { ...prev, [appSlug]: liked ? current + 1 : Math.max(0, current - 1) };
+			});
+			return { previousLiked };
+		},
+		onError: (_err, _vars, context) => {
+			if (context?.previousLiked !== undefined) {
+				setLikedStatusCache((prev) => ({ ...prev, [app.slug]: context.previousLiked }));
+			}
+		},
+		onSettled: () => {
+			queryClient.invalidateQueries({ queryKey: likeQueryKey });
+		},
+	});
+
+	const handleLikeToggle = async (e: React.MouseEvent) => {
+		e.stopPropagation();
+		if (isSyncing || likeMutation.isPending) return;
+		const browserUuid = getOrCreateDeviceUUID();
+		const futureLikedState = !isLiked;
+		setIsSyncing(true);
+		await likeMutation.mutateAsync({ appSlug: app.slug, liked: futureLikedState, deviceUuid: browserUuid });
+		setIsSyncing(false);
+	};
 
 	const navigate = useCallback(
 		(exitDir: "left" | "right", entryDir: "left" | "right", targetApp: AppBase) => {
@@ -763,30 +811,37 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
 		return () => window.removeEventListener("keydown", handleKeyDown);
 	}, [handleKeyDown]);
 
-	// Fetch logic: Only runs if data is missing from global context
+	const composeQueryKey = ["compose", app.slug];
+	const detailsQueryKey = ["appDetail", app.slug];
+	const composeQuery = useQuery({
+		queryKey: composeQueryKey,
+		queryFn: () => getComposeContent(app.slug),
+		enabled: !!app.slug,
+		staleTime: 1000 * 60 * 5,
+	});
+	const detailsQuery = useQuery({
+		queryKey: detailsQueryKey,
+		queryFn: () => fetchAppDetail(app.slug),
+		enabled: !!app.slug,
+		staleTime: 1000 * 60 * 5,
+	});
+
 	useEffect(() => {
-		if (!app?.slug || detailsCache[app.slug]) {
-			setLoading(false);
-			return;
+		if (!app?.slug) return;
+		const yamlCode = composeQuery.data;
+		const fullDetails = detailsQuery.data;
+		if (yamlCode && !composeCache[app.slug]) {
+			setComposeCache((prev) => ({ ...prev, [app.slug]: yamlCode }));
 		}
-
-		async function loadFullData() {
+		if (fullDetails && !detailsCache[app.slug]) {
+			setDetailsCache((prev) => ({ ...prev, [app.slug]: fullDetails }));
+		}
+		if (composeQuery.isLoading || detailsQuery.isLoading) {
 			setLoading(true);
-			try {
-				const [yamlCode, fullDetails] = await Promise.all([getComposeContent(app.slug), fetchAppDetail(app.slug)]);
-
-				// Save to Global context caches
-				setComposeCache((prev) => ({ ...prev, [app.slug]: yamlCode }));
-				setDetailsCache((prev) => ({ ...prev, [app.slug]: fullDetails }));
-			} catch (err) {
-				console.error("Failed loading app details:", err);
-			} finally {
-				setLoading(false);
-			}
+		} else {
+			setLoading(false);
 		}
-
-		loadFullData();
-	}, [app?.slug, detailsCache, setComposeCache, setDetailsCache]);
+	}, [app?.slug, composeQuery.data, detailsQuery.data, composeCache, detailsCache, setComposeCache, setDetailsCache]);
 
 	const displayApp = useMemo(() => ({ ...app, ...details }), [app, details]);
 
@@ -803,46 +858,16 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
 	useEffect(() => {
 		if (!app?.slug) return;
 		if (likedStatusCache[app.slug] !== undefined) {
-			setIsLiked(likedStatusCache[app.slug]);
 			return;
 		}
 
 		async function fetchStatus() {
 			const browserUuid = getOrCreateDeviceUUID();
 			const hasLikedBefore = await checkHasDeviceLiked(app.slug, browserUuid);
-			setIsLiked(hasLikedBefore);
 			setLikedStatusCache((prev) => ({ ...prev, [app.slug]: hasLikedBefore }));
 		}
 		fetchStatus();
 	}, [app.slug]);
-
-	const handleLikeToggle = async (e: React.MouseEvent) => {
-		e.stopPropagation();
-		if (isSyncing) return;
-
-		const browserUuid = getOrCreateDeviceUUID();
-		const futureLikedState = !isLiked;
-
-		// Update UI immediately (Optimistic update)
-		setIsLiked(futureLikedState);
-
-		// Update Global Cache immediately so it's consistent everywhere
-		setLikedStatusCache((prev) => ({ ...prev, [app.slug]: futureLikedState }));
-
-		setIsSyncing(true);
-		const updatedTotal = await toggleAppLike(app.slug, futureLikedState, browserUuid);
-
-		if (updatedTotal !== -1) {
-			// Update global likes count
-			setGlobalLikes((prev) => ({ ...prev, [app.slug]: updatedTotal }));
-		} else {
-			// Rollback if server failed
-			const rollbackState = !futureLikedState;
-			setIsLiked(rollbackState);
-			setLikedStatusCache((prev) => ({ ...prev, [app.slug]: rollbackState }));
-		}
-		setIsSyncing(false);
-	};
 
 	return (
 		<div
@@ -864,8 +889,8 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
 			>
 				<ModalContent
 					app={displayApp as AppDetail}
-					composeCode={composeCode}
-					loading={loading}
+					composeCode={composeQuery.data ?? composeCode}
+					loading={composeQuery.isLoading || detailsQuery.isLoading}
 					categoryApps={categoryApps}
 					handlePrev={handlePrev}
 					handleNext={handleNext}
@@ -885,7 +910,12 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
 }
 
 export function DeployedCounter() {
-	const { data: stats, isLoading } = useSWR("global-stats", getGlobalStats);
+	const { data: stats, isLoading} = useQuery({
+		queryKey: ["global-stats"],
+		queryFn: getGlobalStats,
+		staleTime: 0,
+		gcTime: 0,
+	});
 
 	if (isLoading) return <div>...</div>;
 

@@ -324,7 +324,7 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 			default:
 				return items;
 		}
-	}, [filteredApps, sortBy, globalLikes]);
+	}, [filteredApps, sortBy]);
 
 	// Ensure a subcategory is always active when "categories" is selected
 	useEffect(() => {
