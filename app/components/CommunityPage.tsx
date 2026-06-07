@@ -6,8 +6,6 @@ import {
     Heart, 
     Users, 
     MessageSquare, 
-    Coffee, 
-    Zap,
     ExternalLink
 } from 'lucide-react';
 import { Navigation } from '../hooks/navigation';
@@ -54,7 +52,7 @@ const SHOUTOUTS = [
         name: "Community Scripts",
         role: "Project Inspiration",
         reason: "A fundamental inspiration for this project. Their work in streamlining deployments through automated scripts set the standard for modern homelab efficiency.",
-        tag: "roots",
+        tag: "inspiration",
         link: "https://community-scripts.org/"
     },
     {
@@ -62,7 +60,7 @@ const SHOUTOUTS = [
         role: "Beta Testers & Architects",
         reason: "Every person who broke a stack, found a bug, and helped improve the documentation.",
         tag: "core",
-        link: "#"
+        link: "https://github.com/vukilis/docker-ninja/discussions"
     }
 ];
 

@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 
-export type PageMetaKey = 'landing' | 'dashboard' | 'categories' | 'about' | 'community' | 'sponsoring';
+export type PageMetaKey = 'landing' | 'dashboard' | 'categories' | 'about' | 'community' | 'sponsoring' | 'docs';
 
 export interface MetadataProperties {
   title: string;
@@ -34,11 +34,15 @@ const metadataMap: Record<PageMetaKey, MetadataProperties> = {
     title: 'Sponsoring | Docker Ninja',
     description: 'If these compose files saved you hours of debugging or helped you learn something new, consider sending a one-time donation to keep the lights on and the registry growing. Your support keeps the servers running and the code open source.',
   },
+  docs: {
+    title: 'Documentation | Docker Ninja',
+    description: 'Professional reference for installing Docker, Docker Compose, structuring compose files, and configuring .env variables. Official links and annotated examples included.',
+  }
 };
 
 interface DynamicMetadataProps {
   isStarted: boolean;
-  currentView: 'dashboard'| 'categories' | 'About' | 'Sponsoring' | 'Community';
+  currentView: 'dashboard'| 'categories' | 'About' | 'Sponsoring' | 'Community' | 'Docs';
   selectedApp: { name: string } | null;
 }
 
@@ -56,6 +60,8 @@ export function ClientMetadataController({ isStarted, currentView, selectedApp }
         activeKey = 'community';
       } else if (currentView === 'categories') {
         activeKey = 'categories';
+      } else if (currentView === 'Docs') {
+        activeKey = 'docs';
       } else {
         activeKey = 'dashboard';
       }

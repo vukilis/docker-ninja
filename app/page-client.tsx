@@ -11,13 +11,14 @@ import SearchInput from "./components/SearchInput";
 import AboutPage from "./components/AboutPage";
 import { Sponsoring } from "./components/Sponsoring";
 import CommunityPage from "./components/CommunityPage";
+import DocsPage from "./components/DocsPage";
 import { Navigation } from "./hooks/navigation";
 import { Pagination } from "./components/Paginations";
 import { ClientMetadataController } from "./components/PageMetadata";
 import { Counter } from "./utils/Counter";
 
 // --- TYPES ---
-export type ViewMode = "dashboard" | "categories" | "About" | "Sponsoring" | "Community";
+export type ViewMode = "dashboard" | "categories" | "About" | "Sponsoring" | "Community" | "Docs";
 
 export interface AppData {
 	id: string | number;
@@ -42,7 +43,7 @@ const convertToSlug = (text: string): string => {
 const getInitialViewState = (initialView: ViewMode): ViewMode => {
 	if (typeof window === "undefined") return initialView;
 	const path = window.location.pathname;
-	const validViews: ViewMode[] = ["dashboard", "categories", "About", "Sponsoring", "Community"];
+	const validViews: ViewMode[] = ["dashboard", "categories", "About", "Sponsoring", "Community", "Docs"];
 	const currentPathView = validViews.find((v) => path.toLowerCase().includes(`/${v.toLowerCase()}`));
 	return currentPathView || initialView;
 };
@@ -216,9 +217,9 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 			if (!isStartedLoc || path === "") {
 				setCurrentView("dashboard");
 			} else {
-				const validViews: ViewMode[] = ["categories", "About", "Sponsoring", "Community"];
-				const matchedView = validViews.find((v) => v.toLowerCase() === path);
-				setCurrentView(matchedView || "dashboard");
+                    const validViews: ViewMode[] = ["categories", "About", "Sponsoring", "Community", "Docs"];
+                    const matchedView = validViews.find((v) => v.toLowerCase() === path);
+                    setCurrentView(matchedView || "dashboard");
 			}
 		};
 
@@ -238,12 +239,12 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 		let shouldStart = false;
 
 		// Handle Routes (About, Sponsoring, Community)
-		const validViews: ViewMode[] = ["categories", "About", "Sponsoring", "Community"];
-		const currentPathView = validViews.find((v) => path.toLowerCase().includes(`/${v.toLowerCase()}`));
-		if (currentPathView) {
-			setCurrentView(currentPathView);
-			shouldStart = true;
-		}
+			const validViews: ViewMode[] = ["categories", "About", "Sponsoring", "Community", "Docs"];
+			const currentPathView = validViews.find((v) => path.toLowerCase().includes(`/${v.toLowerCase()}`));
+			if (currentPathView) {
+				setCurrentView(currentPathView);
+				shouldStart = true;
+			}
 
 		// Handle Modal (Including the /app/slug rewrite path)
 		const slugFromPath = path.startsWith("/app/") ? path.split("/app/")[1] : null;
@@ -279,6 +280,7 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 		else if (currentView === "Sponsoring") newPath = "/sponsoring";
 		else if (currentView === "Community") newPath = "/community";
 		else if (currentView === "categories") newPath = "/categories";
+		else if (currentView === "Docs") newPath = "/docs";
 
 		if (selectedApp) {
 			const appValue = selectedApp.slug || selectedApp.id.toString();
@@ -714,6 +716,35 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 									<path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
 								</svg>
 							}
+							label="Docs"
+							isActive={currentView === "Docs"}
+							onClick={() => {
+								setCurrentView("Docs");
+								setSidebarOpen(false);
+							}}
+							collapsed={sidebarCollapsed}
+							size="small"
+						/>
+
+						<SidebarItem
+							icon={
+								<svg 
+									className="w-4 h-4 shrink-0" 
+									viewBox="0 0 24 24" 
+									fill="none" 
+									stroke="currentColor" 
+									strokeWidth="2" 
+									strokeLinecap="round" 
+									strokeLinejoin="round"
+								>
+									{/* Outer Ring */}
+									<circle cx="12" cy="12" r="10" />
+									
+									{/* Info Details */}
+									<line x1="12" y1="16" x2="12" y2="12" />
+									<line x1="12" y1="8" x2="12.01" y2="8" />
+								</svg>
+							}
 							label="About"
 							isActive={currentView === "About"}
 							onClick={() => {
@@ -943,6 +974,8 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 				<section ref={scrollContainerRef} className="flex-1 overflow-y-auto p-0 scroll-smooth" style={{ scrollbarGutter: "stable" }}>
 					{currentView === "About" ? (
 						<AboutPage />
+					) : currentView === "Docs" ? (
+						<DocsPage />
 					) : currentView === "Sponsoring" ? (
 						<Sponsoring />
 					) : currentView === "Community" ? (
