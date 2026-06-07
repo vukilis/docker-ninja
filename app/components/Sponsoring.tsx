@@ -1,9 +1,10 @@
-import { 
-    Heart, 
+import Image from 'next/image';
+import qrcode from '..//monero-qrcode.png';
+import {
+    Heart,
     Coffee,
     CoffeeIcon,
     ShieldCheck,
-    QrCode,
     ExternalLink,
     Lock,
     Copy,
@@ -20,7 +21,7 @@ const MoneroIcon = ({ size = 24 }) => (
 
 export const Sponsoring = () => {  
     const { copied, handleCopy } = useClipboardCopy();
-    const XMR_ADDRESS = "44AFFq5kSiGBoZ4NMD244AFFq5kSiGBoZ4NMD244AFFq5kSiGBoZ4NMD2";
+    const XMR_ADDRESS = "8ADT6hA7YrbASv4A6gh8UJRmm5qBU4Mo12nkB37e8WWEKkG54STuf2m7DYFFZjwGdnRWT2BBgEFzgZrhJ2NBYmvhM6ZqhYt";
     const KOFI_USERNAME = "vukilis";
     const BMC_USERNAME = "vukilis";
 
@@ -69,7 +70,7 @@ export const Sponsoring = () => {
                             <div className="ml-4 space-y-3 mt-2 text-slate-300">
                                 <p className="max-w-3xl">
                                     If these <span className="text-blue-400">compose files</span> saved you hours of debugging or 
-                                    helped you learn something new, consider sending a one-time 
+                                    helped you learn something new, consider sending a 
                                     donation to keep the lights on and the registry growing.
                                 </p>
                                 <p className="max-w-3xl">
@@ -119,17 +120,9 @@ export const Sponsoring = () => {
                     </div>
                     
                     <div className="flex flex-col md:flex-row items-center gap-10 relative">
-                        <div className="flex-shrink-0 bg-white p-4 rounded-2xl shadow-[0_0_50px_rgba(255,102,0,0.2)] group relative">
-                            {/* SVG Placeholder for QR Code */}
-                            <div className="w-40 h-40 bg-slate-100 flex items-center justify-center relative overflow-hidden rounded-lg">
-                                <QrCode size={120} className="text-slate-900 opacity-20" />
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                        <MoneroIcon size={48} />
-                                </div>
-                            </div>
-                            <div className="absolute inset-0 bg-orange-500/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
-                                <span className="bg-orange-500 text-white text-[10px] font-bold px-3 py-1 rounded-full">SCAN TO PAY</span>
-                            </div>
+                        <div className="flex-shrink-0 bg-orange-500/10 p-4 rounded-2xl shadow-[0_0_50px_rgba(255,102,0,0.2)] group relative">
+                            {/* QR Code */}
+                            <Image src={qrcode} alt="Monero QR Code" width={192} height={192} className="rounded-md" unoptimized />
                         </div>
 
                         <div className="flex-grow min-w-0 space-y-4 w-full text-center md:text-left">
@@ -139,7 +132,7 @@ export const Sponsoring = () => {
                             </div>
                             
                             <p className="text-slate-400 font-mono text-xs leading-relaxed max-w-md mx-auto md:mx-0">
-                                The gold standard for private transactions. Supports the project without leaving a digital footprint.
+                                Scan the QR code or copy the address below to send XMR directly. No account or personal information required.
                             </p>
 
                             <div className="bg-black/40 border border-slate-800 rounded-2xl p-2 pl-4 flex items-left gap-2 group max-w-full items-center">
