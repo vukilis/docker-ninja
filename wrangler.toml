@@ -1,0 +1,7 @@
+name = "docker-ninja"
+compatibility_date = "2026-06-08"
+main = ".cloudflare/dist/index.js"
+
+[assets]
+directory = ".cloudflare/dist"
+binding = "ASSETS"
