@@ -1,6 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient, createServerClient } from '@supabase/ssr';
 
-let client: ReturnType<typeof createClient> | null = null;
+type SupabaseClient = ReturnType<typeof createBrowserClient> | ReturnType<typeof createServerClient>;
+
+let client: SupabaseClient | null = null;
 
 export const getSupabase = () => {
     if (!client) {
@@ -11,7 +13,16 @@ export const getSupabase = () => {
             return null;
         }
         
-        client = createClient(supabaseUrl, supabaseKey);
+        if (typeof window !== 'undefined') {
+            client = createBrowserClient(supabaseUrl, supabaseKey);
+        } else {
+            client = createServerClient(supabaseUrl, supabaseKey, {
+                cookies: {
+                    getAll() { return []; },
+                    setAll() {},
+                },
+            });
+        }
     }
     return client;
 };

@@ -1,7 +1,8 @@
 'use client';
 import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import { fetchAllApps, fetchAllActiveLikes } from '../actions';
-import { getSupabase } from '../../lib/supabase';
+import { createBrowserClient } from '@supabase/ssr';
+// import { createBrowserClient } from '@supabase/ssr';
 
 // --- TYPES ---
 export interface App {
@@ -64,8 +65,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
 	const getCountByCategory = (category: string) => apps.filter((a) => a.category === category).length;
 
 	useEffect(() => {
-		let cancelled = false;
-		const supabase = getSupabase();
+		const cancelled = false;
 
 		async function initializeData() {
 			try {
@@ -86,35 +86,39 @@ export function AppsProvider({ children }: { children: ReactNode }) {
 		}
 
 		initializeData();
+	}, [fetchAllApps, fetchAllActiveLikes]);
 
-		const channel = supabase
-			? supabase
-					.channel('apps-sync')
-					.on('postgres_changes', { event: '*', schema: 'public', table: 'apps' }, (payload) => {
-						setApps((current) => {
-							if (payload.eventType === 'INSERT') {
-								const next = payload.new as unknown;
-								if (isAppRecord(next)) return [...current, next];
-								return current;
-							}
-							if (payload.eventType === 'UPDATE') {
-								const next = payload.new as unknown;
-								if (isAppRecord(next)) return current.map((a) => (a.id === next.id ? next : a));
-								return current;
-							}
-							if (payload.eventType === 'DELETE') return current.filter((a) => a.id !== payload.old.id);
-							return current;
-						});
-					})
-					.subscribe()
-			: undefined;
+	useEffect(() => {
+		if (typeof window === 'undefined') return;
+
+		const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+		const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
+		if (!supabaseUrl || !supabaseKey) return;
+
+		const client = createBrowserClient(supabaseUrl, supabaseKey);
+
+		const channel = client
+			.channel('apps-sync')
+			.on('postgres_changes', { event: '*', schema: 'public', table: 'apps' }, (payload) => {
+				setApps((current) => {
+					if (payload.eventType === 'INSERT') {
+						const next = payload.new as unknown;
+						if (isAppRecord(next)) return [...current, next];
+						return current;
+					}
+					if (payload.eventType === 'UPDATE') {
+						const next = payload.new as unknown;
+						if (isAppRecord(next)) return current.map((a) => (a.id === next.id ? next : a));
+						return current;
+					}
+					if (payload.eventType === 'DELETE') return current.filter((a) => a.id !== payload.old.id);
+					return current;
+				});
+			})
+			.subscribe();
 
 		return () => {
-			cancelled = true;
-			if (supabase && channel) {
-				// supabase may be null, so guard before removing channel
-				supabase.removeChannel(channel);
-			}
+			client.removeChannel(channel);
 		};
 	}, []);
 

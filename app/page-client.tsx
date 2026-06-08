@@ -6,7 +6,6 @@ import { AppModal, RequestSearchOverlay, DeployedCounter } from "./components/Ap
 import { AppCard } from "./components/AppCard";
 import { ThemeSwitcher } from "./components/ThemeSwitcher";
 import { RotatingMessage } from "./components/RotatingMessage";
-import { NetworkBackground } from "./components/NetworkMap";
 import SearchInput from "./components/SearchInput";
 import AboutPage from "./components/AboutPage";
 import { Sponsoring } from "./components/Sponsoring";
@@ -16,7 +15,12 @@ import { Navigation } from "./hooks/navigation";
 import { Pagination } from "./components/Paginations";
 import { ClientMetadataController } from "./components/PageMetadata";
 import { Counter } from "./utils/Counter";
+import dynamic from 'next/dynamic';
 
+const NetworkBackground = dynamic(
+	() => import('./components/NetworkMap').then((mod) => mod.NetworkBackground),
+	{ ssr: false }
+);
 // --- TYPES ---
 export type ViewMode = "dashboard" | "categories" | "About" | "Sponsoring" | "Community" | "Docs";
 

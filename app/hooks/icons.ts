@@ -1,15 +1,19 @@
-import * as si from 'simple-icons';
+import { siDocker } from 'simple-icons';
+import { siGithub } from 'simple-icons';
+import { siPostgresql } from 'simple-icons';
+import { siSupabase } from 'simple-icons';
+
+const iconRegistry: Record<string, typeof siDocker> = {
+    docker: siDocker,
+    github: siGithub,
+    postgresql: siPostgresql,
+    supabase: siSupabase,
+};
 
 export const getIcon = (id: string, iconUrl?: string) => {
-    // 1. If custom URL exists, return it immediately
     if (iconUrl) {
         return { type: 'url', src: iconUrl };
     }
-
-    // 2. Otherwise, perform the simple-icons lookup
-    const capitalized = id.charAt(0).toUpperCase() + id.slice(1);
-    const iconKey = `si${capitalized}` as keyof typeof si;
-    const icon = si[iconKey];
-
+    const icon = iconRegistry[id.toLowerCase()];
     return icon ? { type: 'svg', svg: icon.svg } : null;
 };
