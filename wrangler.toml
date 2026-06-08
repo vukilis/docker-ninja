@@ -1,0 +1,8 @@
+name = "docker-ninja"
+main = ".open-next/worker"
+site = { bucket = ".open-next/static" }
+compatibility_flags = ["nodejs_compat"]
+compatibility_date = "2025-06-08"
+
+[build]
+command = "pnpm run build"
