@@ -177,7 +177,7 @@ export const Sponsoring = () => {
                 </section>
 
                 {/* Footer Metadata */}
-                <div className="text-center pt-8 border-t border-slate-900 font-mono">
+                <div className="text-center pt-8 border-t border-slate-200 dark:border-slate-900 font-mono">
                     <div className="inline-flex items-center gap-4 text-xs text-slate-600 uppercase tracking-[0.3em]">
                         <span>Secure SSL</span>
                         <div className="w-1 h-1 rounded-full bg-slate-800" />

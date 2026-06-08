@@ -126,7 +126,7 @@ const InfoCard = ({ children, type = "info" }: { children: React.ReactNode; type
 export default function DocsPage() {
     return (
         <div className="min-h-screen dark:bg-[#0d1117] dark:text-slate-300 text-slate-300 font-sans p-4 md:p-0">
-            <div className="max-w-5xl mx-auto pt-10 md:pt-20">
+            <div className="max-w-5xl mx-auto pt-10 md:pt-20 md:pb-20">
                 {/* Header */}
                 <div className="text-center mb-10">
                     <div className="inline-block px-3 py-1 mb-5 text-xs font-mono uppercase font-medium text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-full border border-blue-500/20">
@@ -226,7 +226,7 @@ export default function DocsPage() {
 
                         <CodeBox>{`services:
   web:
-    container_name: docker-ninja-web    # Human-readable container label
+    container_name: docker-ninja-web  # Human-readable container label
     build:
     context: .                        # Build context directory
     dockerfile: Dockerfile            # Dockerfile to use
@@ -236,7 +236,7 @@ export default function DocsPage() {
     - NODE_ENV=production             # Inline environment variable
     env_file:
     - .env.local                      # External env file(s)
-    restart: unless-stopped             # Restart policy`}</CodeBox>
+    restart: unless-stopped           # Restart policy`}</CodeBox>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
                             <div className="rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4">
@@ -387,19 +387,19 @@ JWT_SECRET=very-secret-key-2026`}</CodeBox>
                                 </div>
                             </a>
                             <a
-                                href="https://docs.docker.com/config/"
+                                href="https://docs.docker.com/desktop/"
                                 target="_blank"
                                 rel="noreferrer"
                                 className="group flex items-start gap-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 hover:border-blue-600/50 transition-colors"
                             >
-                                <div className="text-2xl leading-none">⚙️</div>
+                                <div className="text-2xl leading-none">🖥️</div>
                                 <div>
-                                    <h4 className="text-sm font-black text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">Docker Config</h4>
-                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">daemon.json, storage, logging, and runtime tuning.</p>
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mt-2 block">docs.docker.com/config/</span>
+                                    <h4 className="text-sm font-black text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">Docker Desktop</h4>
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Installation, volumes, settings, extensions, and GUI management.</p>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mt-2 block">docs.docker.com/desktop/</span>
                                 </div>
                             </a>
-                        </div>
+                            </div>
 
                         <InfoCard type="info" className="mt-4">
                             These links form the canonical knowledge base for all Docker Ninja compose stacks. All templates in this project follow these specifications unless explicitly noted.
@@ -408,7 +408,7 @@ JWT_SECRET=very-secret-key-2026`}</CodeBox>
                 </div>
 
                 {/* Footer note */}
-                <div className="pt-8 pb-4 text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-600 border-t border-slate-200 dark:border-slate-800 mt-8">
+                <div className="pt-8 pb-4 text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-600 border-t border-slate-200 dark:border-slate-900 mt-8">
                     Referenced from official Docker documentation
                 </div>
             </div>
