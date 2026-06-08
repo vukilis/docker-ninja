@@ -55,8 +55,8 @@ function useGlobalScrollbar() {
 		let activeElement: HTMLElement | null = null;
 
 		const handleGlobalScroll = (e: Event) => {
-			const target = e.target as HTMLElement;
-			if (!target || target === document) return;
+			const target = e.target;
+			if (!(target instanceof HTMLElement)) return;
 			if (activeElement && activeElement !== target) activeElement.classList.remove("show-scrollbar");
 			activeElement = target;
 			target.classList.add("show-scrollbar");

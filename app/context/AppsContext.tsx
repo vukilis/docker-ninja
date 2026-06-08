@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import { fetchAllApps, fetchAllActiveLikes } from '../actions';
-import { supabase } from '../../lib/supabase';
+import { getSupabase } from '../../lib/supabase';
 
 // --- TYPES ---
 export interface App {
@@ -65,6 +65,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
 
 	useEffect(() => {
 		let cancelled = false;
+		const supabase = getSupabase();
 
 		async function initializeData() {
 			try {
@@ -87,28 +88,33 @@ export function AppsProvider({ children }: { children: ReactNode }) {
 		initializeData();
 
 		const channel = supabase
-			.channel('apps-sync')
-			.on('postgres_changes', { event: '*', schema: 'public', table: 'apps' }, (payload) => {
-				setApps((current) => {
-					if (payload.eventType === 'INSERT') {
-						const next = payload.new as unknown;
-						if (isAppRecord(next)) return [...current, next];
-						return current;
-					}
-					if (payload.eventType === 'UPDATE') {
-						const next = payload.new as unknown;
-						if (isAppRecord(next)) return current.map((a) => (a.id === next.id ? next : a));
-						return current;
-					}
-					if (payload.eventType === 'DELETE') return current.filter((a) => a.id !== payload.old.id);
-					return current;
-				});
-			})
-			.subscribe();
+			? supabase
+					.channel('apps-sync')
+					.on('postgres_changes', { event: '*', schema: 'public', table: 'apps' }, (payload) => {
+						setApps((current) => {
+							if (payload.eventType === 'INSERT') {
+								const next = payload.new as unknown;
+								if (isAppRecord(next)) return [...current, next];
+								return current;
+							}
+							if (payload.eventType === 'UPDATE') {
+								const next = payload.new as unknown;
+								if (isAppRecord(next)) return current.map((a) => (a.id === next.id ? next : a));
+								return current;
+							}
+							if (payload.eventType === 'DELETE') return current.filter((a) => a.id !== payload.old.id);
+							return current;
+						});
+					})
+					.subscribe()
+			: undefined;
 
 		return () => {
 			cancelled = true;
-			supabase.removeChannel(channel);
+			if (supabase && channel) {
+				// supabase may be null, so guard before removing channel
+				supabase.removeChannel(channel);
+			}
 		};
 	}, []);
 

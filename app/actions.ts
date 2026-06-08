@@ -1,6 +1,6 @@
 'use server';
 
-import { supabase } from '../lib/supabase';
+import { getSupabase } from '../lib/supabase';
 import { unstable_cache } from 'next/cache';
 
 export interface AppRow {
@@ -14,6 +14,8 @@ export interface AppRow {
 
 export async function fetchAllApps(category?: string, search?: string, minimal: boolean = false): Promise<AppRow[]> {
     const fields = minimal ? 'id, name, slug, icon_url' : 'id, name, slug, category, icon_url';
+    const supabase = getSupabase();
+    if (!supabase) return [];
 
     let query = supabase.from('apps').select(fields);
 
@@ -43,6 +45,9 @@ export async function fetchAllApps(category?: string, search?: string, minimal: 
 }
 
 export async function fetchAppDetail(slug: string) {
+    const supabase = getSupabase();
+    if (!supabase) return {};
+
     const { data } = await supabase
         .from('apps')
         .select('website, github, docs, source, description, run_command, cli_update_command, bash_command, update_command, env_file, updated_at, version')
@@ -60,12 +65,15 @@ export async function fetchAppDetail(slug: string) {
 
 const getCachedComposeContent = unstable_cache(
     async (appSlug: string): Promise<string> => {
-        // Fetch from Supabase
-        const { data: app, error } = await supabase
+        const supabase = getSupabase();
+        if (!supabase) return "Error: Application not found.";
+
+        const { data: appRaw, error } = await supabase
             .from('apps')
             .select('compose_url, fallback_compose')
             .eq('slug', appSlug)
             .single();
+        const app = appRaw as { compose_url: string | null; fallback_compose: string | null } | null;
 
         if (error || !app) {
             return "Error: Application not found.";
@@ -101,19 +109,23 @@ export async function getComposeContent(appSlug: string): Promise<string> {
  * Gets the total copy count from the analytics table.
  */
 export async function getGlobalStats() {
+    const supabase = getSupabase();
+    if (!supabase) return 5;
+
     try {
-        const { data, error } = await supabase
+        const { data: analyticsRaw, error } = await supabase
             .from('analytics')
             .select('copy_count')
             .single();
+        const analytics = analyticsRaw as { copy_count: number } | null;
 
-        if (error) {
-            console.error("SUPABASE ERROR:", error.message, error.details);
+        if (error || !analytics) {
+            console.error("SUPABASE ERROR:", error?.message, error?.details);
             return 5;
         }
 
-        console.log("DATABASE FETCHED:", data.copy_count);
-        return data.copy_count;
+        console.log("DATABASE FETCHED:", analytics.copy_count);
+        return analytics.copy_count;
     } catch (err) {
         console.error("CATCH ERROR:", err);
         return 0;
@@ -124,22 +136,29 @@ export async function getGlobalStats() {
  * Increments the global copy counter.
  */
 export async function incrementCopyCount(): Promise<number> {
+    const supabase = getSupabase();
+    if (!supabase) return -1;
+
     const { data, error } = await supabase.rpc('increment_copy_count');
     if (error) return -1;
     return data as number; // Returns the new total
 }
 /// --- LIKES SYSTEM ---
 export async function fetchAllActiveLikes(): Promise<Record<string, number>> {
+    const supabase = getSupabase();
+    if (!supabase) return {};
+
     try {
-        const { data, error } = await supabase
+        const { data: likesRaw, error } = await supabase
             .from('app_likes')
             .select('app_slug')
             .eq('is_liked', true);
+        const likes = likesRaw as { app_slug: string }[] | null;
             
-        if (error || !data) return {};
+        if (error || !likes) return {};
         const likesMap: Record<string, number> = {};
         
-        data.forEach(item => {
+        likes.forEach(item => {
             const slug = item.app_slug;
             if (slug) {
                 likesMap[slug] = (likesMap[slug] || 0) + 1;
@@ -157,6 +176,9 @@ export async function fetchAllActiveLikes(): Promise<Record<string, number>> {
  * Check if this unique device string exists inside the backend table row
  */
 export async function checkHasDeviceLiked(appSlug: string, deviceUuid: string): Promise<boolean> {
+    const supabase = getSupabase();
+    if (!supabase) return false;
+
     const { data } = await supabase
         .from('app_likes')
         .select('id')
@@ -172,12 +194,14 @@ export async function checkHasDeviceLiked(appSlug: string, deviceUuid: string): 
  */
 export async function toggleAppLike(appSlug: string, isLiked: boolean, deviceUuid: string): Promise<number> {
     if (!appSlug || !deviceUuid) return -1;
+    const supabase = getSupabase();
+    if (!supabase) return -1;
 
     try {
         if (isLiked) {
             const { error: insertError } = await supabase
                 .from('app_likes')
-                .insert({ app_slug: appSlug, device_uuid: deviceUuid, is_liked: true });
+                .insert([{ app_slug: appSlug, device_uuid: deviceUuid, is_liked: true }] as never);
 
             if (insertError) {
                 console.error('Error liking app:', insertError);

@@ -1,11 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Fallback to empty strings to prevent build-time crashes
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
+let client: ReturnType<typeof createClient> | null = null;
 
-if (!supabaseUrl || !supabaseKey) {
-    // console.warn("Supabase credentials missing. Check your .env.local file.");
-}
-
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const getSupabase = () => {
+    if (!client) {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || '';
+        
+        if (!supabaseUrl || !supabaseKey) {
+            return null;
+        }
+        
+        client = createClient(supabaseUrl, supabaseKey);
+    }
+    return client;
+};

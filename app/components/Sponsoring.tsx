@@ -25,7 +25,7 @@ export const Sponsoring = () => {
     const KOFI_USERNAME = "vukilis";
     const BMC_USERNAME = "vukilis";
 
-    const handleAction = (platform) => {
+    const handleAction = (platform: "kofi" | "bmc") => {
         if (platform === 'kofi') window.open(`https://ko-fi.com/${KOFI_USERNAME}`, '_blank');
         if (platform === 'bmc') window.open(`https://buymeacoffee.com/${BMC_USERNAME}`, '_blank');
     };

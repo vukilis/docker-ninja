@@ -44,12 +44,12 @@ const Badge = ({ children }: { children: React.ReactNode }) => (
     </span>
 );
 
-const OutboundLink = ({ href, children }: { href: string; children: React.ReactNode }) => (
+const OutboundLink = ({ href, children, className = "" }: { href: string; children: React.ReactNode; className?: string }) => (
     <a
         href={href}
         target="_blank"
         rel="noreferrer"
-        className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors group"
+        className={`inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors group ${className}`}
     >
         {children}
         <svg
@@ -105,7 +105,7 @@ const FileBox = ({ name, icon, color, children }: { name: string; icon: string; 
     </div>
 );
 
-const InfoCard = ({ children, type = "info" }: { children: React.ReactNode; type?: "info" | "warning" | "success" }) => {
+const InfoCard = ({ children, type = "info", className = "" }: { children: React.ReactNode; type?: "info" | "warning" | "success"; className?: string }) => {
     const styles: Record<string, string> = {
         info: "bg-blue-50 dark:bg-blue-900/10 border-blue-600/20 text-blue-800 dark:text-blue-300",
         warning: "bg-amber-50 dark:bg-amber-900/10 border-amber-600/20 text-amber-800 dark:text-amber-300",
@@ -114,7 +114,7 @@ const InfoCard = ({ children, type = "info" }: { children: React.ReactNode; type
     const icons: Record<string, string> = { info: "ℹ️", warning: "⚠️", success: "✅" };
 
     return (
-        <div className={`rounded-lg border px-4 py-3 text-xs font-bold leading-relaxed ${styles[type]}`}>
+        <div className={`rounded-lg border px-4 py-3 text-xs font-bold leading-relaxed ${styles[type]} ${className}`}>
             <div className="flex gap-2 items-start">
                 <span className="shrink-0">{icons[type]}</span>
                 <div>{children}</div>
