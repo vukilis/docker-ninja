@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Use standalone output for optimized production builds
-  output: 'standalone',
+  // output: 'standalone',
   // Rewrites for SPA routing
   async rewrites() {
     return [

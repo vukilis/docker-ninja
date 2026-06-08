@@ -1,7 +1,10 @@
+"$schema" = "./node_modules/wrangler/config-schema.json"
+main = ".open-next/worker.js"
 name = "docker-ninja"
+# Set this to today's date
 compatibility_date = "2026-06-08"
-main = ".cloudflare/dist/index.js"
+compatibility_flags = [ "nodejs_compat" ]
 
 [assets]
-directory = ".cloudflare/dist"
+directory = ".open-next/assets"
 binding = "ASSETS"
