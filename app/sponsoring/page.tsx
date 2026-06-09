@@ -14,5 +14,5 @@ export const metadata: Metadata = {
 };
 
 export default function SponsoringRoute() {
-    return <Home initialView="Sponsoring" />;
+    return <Home initialView="sponsoring" />;
 }

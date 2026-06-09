@@ -1,8 +1,8 @@
-// hooks/useCustomNavigation.ts
+// hooks/navigation.ts
 export function Navigation() {
     const navigateTo = (path: 'landing' | 'dashboard' | 'About' | 'Sponsoring' | 'Community' | 'Docs') => {
-        let newUrl = '/'; // Default to root
-        
+        let newUrl = '/';
+
         if (path === 'landing') {
             localStorage.setItem('ninja_isStarted', 'false');
         } else if (path === 'dashboard') {

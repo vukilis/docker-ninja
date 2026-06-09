@@ -14,5 +14,5 @@ export const metadata: Metadata = {
 };
 
 export default function CommunityRoute() {
-    return <Home initialView="Community" />;
+    return <Home initialView="community" />;
 }

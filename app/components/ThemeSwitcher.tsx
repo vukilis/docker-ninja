@@ -46,7 +46,7 @@ export const ThemeSwitcher = ({ collapsed }: { collapsed?: boolean }) => {
                 bg-slate-200/60 dark:bg-slate-900/80 
                 backdrop-blur-md 
                 border border-slate-300/40 dark:border-slate-800/50
-                ${collapsed ? 'flex-col gap-1' : 'flex-row gap-0.5'}
+                ${collapsed ? 'xl:flex-col gap-1 flex-row gap-0.5' : 'flex-row gap-0.5'}
             `}
         >
             {modes.map((mode) => {

@@ -1,25 +1,9 @@
 import { ThemeProvider } from './components/ThemeProvider';
 import { QueryProvider } from './components/QueryProvider';
 import Preloader from './components/Preloader';
-import './style/globals.css';
 import { AppsProvider } from './context/AppsContext';
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-	return (
-		<html lang="en" suppressHydrationWarning>
-			<body className="my-custom-background text-slate-900 dark:text-slate-200">
-				<ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-					<QueryProvider>
-						<AppsProvider>
-							<Preloader />
-							{children}
-						</AppsProvider>
-					</QueryProvider>
-				</ThemeProvider>
-			</body>
-		</html>
-	);
-}
+import { fetchAllApps, fetchAllActiveLikes } from './actions';
+import './style/globals.css';
 
 export const metadata = {
   metadataBase: new URL('https://dockerninja.org'),
@@ -71,4 +55,22 @@ export const viewport = {
     themeColor: '#000000',
     width: 'device-width',
     initialScale: 1,
+}
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+	const [apps, likes] = await Promise.all([fetchAllApps(), fetchAllActiveLikes()]);
+	return (
+		<html lang="en" suppressHydrationWarning>
+			<body className="my-custom-background text-slate-900 dark:text-slate-200">
+				<ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+					<QueryProvider>
+						<AppsProvider initialApps={apps} initialGlobalLikes={likes}>
+							<Preloader />
+							{children}
+						</AppsProvider>
+					</QueryProvider>
+				</ThemeProvider>
+			</body>
+		</html>
+	);
 }

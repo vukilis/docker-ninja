@@ -44,15 +44,15 @@ function isAppRecord(value: unknown): value is App {
 	) && typeof record.name === 'string' && typeof record.category === 'string' && typeof record.slug === 'string';
 }
 
-export function AppsProvider({ children }: { children: ReactNode }) {
-	const [apps, setApps] = useState<App[]>([]);
-	const [loading, setLoading] = useState(true);
+export function AppsProvider({ children, initialApps = [], initialGlobalLikes = {} }: { children: ReactNode; initialApps?: App[]; initialGlobalLikes?: Record<string, number> }) {
+	const [apps, setApps] = useState<App[]>(initialApps);
+	const [loading, setLoading] = useState(false);
 	const [search, setSearch] = useState('');
 
 	const [detailsCache, setDetailsCache] = useState<Record<string, unknown>>({});
 	const [composeCache, setComposeCache] = useState<Record<string, string>>({});
 	const [likedStatusCache, setLikedStatusCache] = useState<Record<string, boolean>>({});
-	const [globalLikes, setGlobalLikes] = useState<Record<string, number>>({});
+	const [globalLikes, setGlobalLikes] = useState<Record<string, number>>(initialGlobalLikes);
 
 	const totalCount = useMemo(() => apps.length, [apps]);
 
@@ -65,7 +65,11 @@ export function AppsProvider({ children }: { children: ReactNode }) {
 	const getCountByCategory = (category: string) => apps.filter((a) => a.category === category).length;
 
 	useEffect(() => {
-		const cancelled = false;
+		if (initialApps.length > 0 || Object.keys(initialGlobalLikes).length > 0) {
+			return;
+		}
+
+		let cancelled = false;
 
 		async function initializeData() {
 			try {
@@ -86,7 +90,11 @@ export function AppsProvider({ children }: { children: ReactNode }) {
 		}
 
 		initializeData();
-	}, [fetchAllApps, fetchAllActiveLikes]);
+
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 
 	useEffect(() => {
 		if (typeof window === 'undefined') return;

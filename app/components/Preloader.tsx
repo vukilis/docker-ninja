@@ -62,7 +62,7 @@ export default function Preloader({ onComplete }: { onComplete?: () => void }) {
             </div>
 
             {/* Brand Name appearing after logo connects */}
-            <div className={`text-xs md:text-lg font-black tracking-[0.5em] text-slate-400 mb-8 transition-all duration-1000 transform select-none
+            <div className={`text-xs md:text-lg font-black tracking-[0.5em] text-slate-400 mb-8 ml-2 transition-all duration-1000 transform select-none
             ${phase === 'assembling' ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'}`}>
             DOCKER <span className="text-blue-600">NINJA</span>
             </div>

@@ -14,5 +14,5 @@ export const metadata: Metadata = {
 };
 
 export default function AboutRoute() {
-    return <Home initialView="About" />;
+    return <Home initialView="about" />;
 }

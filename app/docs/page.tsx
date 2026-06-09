@@ -14,5 +14,5 @@ export const metadata: Metadata = {
 };
 
 export default function DocsRoute() {
-    return <Home initialView="Docs" />;
+    return <Home initialView="docs" />;
 }

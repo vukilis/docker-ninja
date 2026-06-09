@@ -42,7 +42,7 @@ const metadataMap: Record<PageMetaKey, MetadataProperties> = {
 
 interface DynamicMetadataProps {
   isStarted: boolean;
-  currentView: 'dashboard'| 'categories' | 'About' | 'Sponsoring' | 'Community' | 'Docs';
+  currentView: 'dashboard'| 'categories' | 'about' | 'sponsoring' | 'community' | 'docs';
   selectedApp: { name: string } | null;
 }
 
@@ -52,15 +52,15 @@ export function ClientMetadataController({ isStarted, currentView, selectedApp }
 
     // Resolve primary active keys based on current sidebar and engine state
     if (isStarted) {
-      if (currentView === 'About') {
+      if (currentView === 'about') {
         activeKey = 'about';
-      } else if (currentView === 'Sponsoring') {
+      } else if (currentView === 'sponsoring') {
         activeKey = 'sponsoring';
-      } else if (currentView === 'Community') {
+      } else if (currentView === 'community') {
         activeKey = 'community';
       } else if (currentView === 'categories') {
         activeKey = 'categories';
-      } else if (currentView === 'Docs') {
+      } else if (currentView === 'docs') {
         activeKey = 'docs';
       } else {
         activeKey = 'dashboard';

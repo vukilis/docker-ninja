@@ -14,5 +14,5 @@ export const metadata: Metadata = {
 };
 
 export default function CategoriesRoute() {
-    return <Home initialView="dashboard" />;
+    return <Home initialView="categories" />;
 }
