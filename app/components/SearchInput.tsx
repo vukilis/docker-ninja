@@ -145,13 +145,13 @@ export default function SearchInput({ apps = [], search, setSearch, onAppSelect,
                     </div>
 
                     {/* Keyboard Shortcut */}
-                    <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 select-none hidden md:inline-flex items-center gap-1 px-1.5 py-0.5 font-sans text-[10px] font-bold tracking-wide text-slate-200 bg-slate-950/40 backdrop-blur-sm border border-slate-800 rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),_0_1px_2px_0_rgba(0,0,0,0.4)]">
+                    <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 select-none hidden md:inline-flex items-center px-1.5 py-0.5 font-sans text-[10px] font-bold tracking-wide text-slate-200 bg-[#b7c7cd] dark:bg-slate-950/40 backdrop-blur-sm border border-[#b7c7cd] dark:border-slate-800 rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),_0_1px_2px_0_rgba(0,0,0,0.4)]">
                         <span className="w-3 h-3 flex items-center justify-center">
-                            <svg className="w-2.5 h-2.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <svg className="w-2.5 h-2.5 text-blue-600 dark:text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                 <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
                             </svg>
                         </span>
-                        <span className="w-3 h-3 flex items-center justify-center leading-none">K</span>
+                        <span className="text-blue-600 dark:text-slate-400 w-3 h-3 flex items-center justify-center leading-none">K</span>
                     </kbd>
 
                     {/* Clear Button*/}
