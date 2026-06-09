@@ -9,7 +9,13 @@ export const metadata: Metadata = {
         description: 'Containerization redefined my reality, yet I constantly hit a ceiling. I grew tired of the fragmented search for reliable infrastructure code and the endless scouring for inspiration. I built this universe to collapse the hurdles. Whether you are a student exploring the basics, a tinkerer building a homelab or a pro architecting a stack, this is the perfect place for you.',
         url: 'https://dockerninja.org/about',
         type: 'website',
-        images: [{ url: 'https://dockerninja.org/favicon.ico', width: 1200, height: 630, alt: 'About Page Banner' }],
+        images: [{ url: 'https://dockerninja.org/og-landing.jpg', width: 1200, height: 630, alt: 'About Page Banner' }],
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'About | Docker Ninja',
+        description: 'Whether you are a student exploring the basics, a tinkerer building a homelab or a pro architecting a stack, this is the perfect place for you.',
+        images: ['https://dockerninja.org/og-landing.jpg'],
     },
 };
 

@@ -7,7 +7,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const apps = await fetchAllApps();
     const app = apps.find((a) => a.slug === slug || String(a.id) === slug);
     const name = app?.name || 'Container Preview';
-    
+    const imageUrl = 'https://dockerninja.org/og-landing.jpg';
+
     return {
         title: `Previewing ${name} | Docker Ninja`,
         description: `Read configuration steps, settings, and deployment details for ${name}.`,
@@ -16,7 +17,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         description: `Read configuration steps, settings, and deployment details for ${name}.`,
         url: `https://dockerninja.org/app/${encodeURIComponent(slug)}`,
         type: 'website',
-        images: [{ url: '/og-image.png', width: 1200, height: 630 }],
+        images: [{ url: imageUrl, width: 1200, height: 630, alt: name }],
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: `Previewing ${name} | Docker Ninja`,
+            description: `Read configuration steps, settings, and deployment details for ${name}.`,
+            images: [imageUrl],
         },
     };
 }

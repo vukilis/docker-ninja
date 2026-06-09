@@ -18,6 +18,12 @@ export const metadata: Metadata = {
       },
     ],
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Docker Ninja | Explore the Infinite Stack',
+    description: 'Master your containerization universe with official compose stacks for any application, all in one place.',
+    images: ['https://dockerninja.org/og-landing.jpg'],
+  },
 };
 
 export default function RootRoute() {

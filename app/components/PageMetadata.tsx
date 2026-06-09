@@ -43,7 +43,7 @@ const metadataMap: Record<PageMetaKey, MetadataProperties> = {
 interface DynamicMetadataProps {
   isStarted: boolean;
   currentView: 'dashboard'| 'categories' | 'about' | 'sponsoring' | 'community' | 'docs';
-  selectedApp: { name: string } | null;
+  selectedApp: { name: string; image?: string } | null;
 }
 
 export function ClientMetadataController({ isStarted, currentView, selectedApp }: DynamicMetadataProps) {
@@ -91,17 +91,31 @@ export function ClientMetadataController({ isStarted, currentView, selectedApp }
         element.setAttribute('content', contentValue);
       };
 
-      // Synchronize All Key Social Architecture Core Head Meta Targets
-      // Standard Target
+      const updateTwitterCard = (selector: string, propertyValue: string, contentValue: string) => {
+        let element = document.querySelector(selector);
+        if (!element) {
+          element = document.createElement('meta');
+          element.setAttribute('name', propertyValue);
+          document.head.appendChild(element);
+        }
+        element.setAttribute('content', contentValue);
+      };
+
+      const defaultImage = 'https://dockerninja.org/og-landing.jpg';
+      let selectedAppImage = defaultImage;
+      if (isStarted && selectedApp && (currentView === 'dashboard' || currentView === 'categories')) {
+        selectedAppImage = selectedApp.image || defaultImage;
+      }
+
       updateMetaTag('meta[name="description"]', 'name', 'description', finalDesc);
-      
-      // OpenGraph Targets
+
       updateMetaTag('meta[property="og:title"]', 'property', 'og:title', finalTitle);
       updateMetaTag('meta[property="og:description"]', 'property', 'og:description', finalDesc);
-      
-      // Twitter Card Targets 
-      updateMetaTag('meta[name="twitter:title"]', 'name', 'twitter:title', finalTitle);
-      updateMetaTag('meta[name="twitter:description"]', 'name', 'twitter:description', finalDesc);
+      updateMetaTag('meta[property="og:image"]', 'property', 'og:image', selectedAppImage);
+
+      updateTwitterCard('meta[name="twitter:title"]', 'twitter:title', finalTitle);
+      updateTwitterCard('meta[name="twitter:description"]', 'twitter:description', finalDesc);
+      updateTwitterCard('meta[name="twitter:image"]', 'twitter:image', selectedAppImage);
     }
   }, [isStarted, currentView, selectedApp]);
 
