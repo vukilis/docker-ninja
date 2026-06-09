@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import Image from 'next/image';
+import { useShortcutKeys } from './useShortcutKeys';
 
 // Interface for type safety
 interface App {
@@ -16,13 +17,16 @@ interface SearchInputProps {
     search: string;
     setSearch: (val: string) => void;
     onAppSelect?: (app: App) => void;
+    inputRef?: React.RefObject<HTMLInputElement>;
 }
 
-export default function SearchInput({ apps = [], search, setSearch, onAppSelect }: SearchInputProps) {
+export default function SearchInput({ apps = [], search, setSearch, onAppSelect, inputRef }: SearchInputProps & { inputRef?: React.RefObject<HTMLInputElement> }) {
     const [isFocused, setIsFocused] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(-1);
     const containerRef = useRef<HTMLDivElement>(null);
     const activeItemRef = useRef<HTMLButtonElement>(null);
+    const searchRef = useRef<HTMLInputElement>(null);
+    useShortcutKeys({ searchRef });
 
     // Optimized filtering: only recalculates when apps or search string changes
     const dropdownMatches = useMemo(() => {
@@ -119,6 +123,7 @@ export default function SearchInput({ apps = [], search, setSearch, onAppSelect 
                 <div className={`absolute -inset-0.5 bg-blue-500/20 rounded-xl blur transition duration-500 ${isFocused ? 'opacity-100' : 'opacity-0'}`} />
                 <div className="relative">
                     <input 
+                        ref={searchRef}
                         type="text" 
                         placeholder="Search container..." 
                         value={search} 
@@ -128,9 +133,10 @@ export default function SearchInput({ apps = [], search, setSearch, onAppSelect 
                             if (!isFocused) setIsFocused(true);
                         }} 
                         onKeyDown={handleKeyDown}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-blue-600/30 hover:border-blue-500/60 rounded-full border px-10 py-2 text-sm focus:ring-2 ring-blue-500 transition-all outline-none text-slate-900 dark:text-white" 
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-blue-600/30 hover:border-blue-500/60 rounded-full px-10 pr-10 py-2 text-sm focus:ring-2 ring-blue-500 transition-all outline-none text-slate-900 dark:text-white" 
                     />
                     
+                    {/* Search Icon */}
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <circle cx="11" cy="11" r="8"></circle>
@@ -138,8 +144,22 @@ export default function SearchInput({ apps = [], search, setSearch, onAppSelect 
                         </svg>
                     </div>
 
+                    {/* Keyboard Shortcut */}
+                    <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 select-none hidden md:inline-flex items-center gap-1 px-1.5 py-0.5 font-sans text-[10px] font-bold tracking-wide text-slate-200 bg-slate-950/40 backdrop-blur-sm border border-slate-800 rounded-md shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),_0_1px_2px_0_rgba(0,0,0,0.4)]">
+                        <span className="w-3 h-3 flex items-center justify-center">
+                            <svg className="w-2.5 h-2.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
+                            </svg>
+                        </span>
+                        <span className="w-3 h-3 flex items-center justify-center leading-none">K</span>
+                    </kbd>
+
+                    {/* Clear Button*/}
                     {search && (
-                        <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-400 transition-colors">
+                        <button 
+                            onClick={() => setSearch('')} 
+                            className="absolute right-3 md:right-14 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                        >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>

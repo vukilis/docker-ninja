@@ -16,6 +16,7 @@ import { Pagination } from "./components/Paginations";
 import { ClientMetadataController } from "./components/PageMetadata";
 import { Counter } from "./utils/Counter";
 import dynamic from 'next/dynamic';
+import { useShortcutKeys } from "./components/useShortcutKeys";
 
 const NetworkBackground = dynamic(
 	() => import('./components/NetworkMap').then((mod) => mod.NetworkBackground),
@@ -206,6 +207,11 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 	const [selectedApp, setSelectedApp] = useState<AppData | null>(initialSelectedApp);
 	const [isRequesting, setIsRequesting] = useState(false);
 	const [showScrollTop, setShowScrollTop] = useState(false);
+	const handleWarpClick = () => !isStarted && navigateTo("dashboard");
+	// BUTTON REFS FOR SHORTCUTS
+	const warpButtonRef = useRef<HTMLButtonElement>(null);
+	const searchRef = useRef<HTMLInputElement>(null);
+	useShortcutKeys({ searchRef, warpButtonRef });
 
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const hasHydrated = useRef(false);
@@ -602,20 +608,39 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 							</div>
 						</div>
 						<div className="pt-2 md:pt-10 flex flex-col items-center gap-4">
-							<button
-								onClick={() => navigateTo("dashboard")}
-								className="group relative px-10 py-5 bg-blue-600 text-white font-black text-xl rounded-2xl shadow-2xl shadow-blue-500/40 hover:bg-blue-700 hover:-translate-y-1 active:scale-95 transition-all cursor-pointer uppercase tracking-[0.2em] overflow-hidden"
-							>
-								<div className="relative z-10 flex items-center gap-4">
-									<span>Initiate Warp</span>
-									<svg className="w-6 h-6 transform transition-transform duration-300 group-hover:translate-x-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-										<line x1="5" y1="12" x2="19" y2="12" />
-										<polyline points="12 5 19 12 12 19" />
-									</svg>
-								</div>
-								<div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-							</button>
-							<p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-500 animate-pulse">Explore the Infinite Stack</p>
+							<div className="relative">
+								<button
+									ref={warpButtonRef}
+									onClick={handleWarpClick}
+									className="group relative px-10 py-5 bg-blue-600 text-white font-black text-xl rounded-2xl shadow-2xl shadow-blue-500/40 hover:bg-blue-700 hover:-translate-y-1 active:scale-95 transition-all duration-200 cursor-pointer uppercase tracking-[0.2em] overflow-hidden outline-none focus-visible:ring-4 focus-visible:ring-blue-400"
+								>
+									<div className="relative z-10 flex items-center gap-4">
+										<span>Initiate Warp</span>
+										<svg 
+											className="w-6 h-6 transition-transform duration-300 group-hover:translate-x-2" 
+											viewBox="0 0 24 24" 
+											fill="none" 
+											stroke="currentColor" 
+											strokeWidth="3" 
+											strokeLinecap="round" 
+											strokeLinejoin="round"
+											aria-hidden="true"
+										>
+											<line x1="5" y1="12" x2="19" y2="12" />
+											<polyline points="12 5 19 12 12 19" />
+										</svg>
+									</div>
+									<div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+								</button>
+							</div>
+							<p className="flex flex-wrap items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 animate-pulse">
+								<span className="hidden md:inline">Press</span>
+								<kbd className="hidden md:inline-flex items-center justify-center px-2 py-0.5 min-w-14 h-5 rounded bg-slate-900 border border-slate-700 text-white text-[12px] font-bold tracking-normal normal-case shadow-lg">
+									SPACE
+								</kbd>
+								<span className="hidden md:inline">to</span>
+								<span>explore the Infinite Stack</span>
+							</p>
 						</div>
 					</div>
 					<div className="mt-10 md:mt-20 flex flex-wrap justify-center gap-5 lg:gap-20 uppercase text-[10px] font-black tracking-[0.3em]">
@@ -934,7 +959,7 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 								/>
 
 								<div className="flex max-w-[250px] md:max-w-none xl:order-first">
-									<SearchInput apps={apps} search={search} setSearch={setSearch} onAppSelect={(app) => handleAppSelect(app as AppData)} />
+									<SearchInput apps={apps} search={search} setSearch={setSearch} onAppSelect={(app) => handleAppSelect(app as AppData)} inputRef={searchRef as React.RefObject<HTMLInputElement>} />
 								</div>
 							</div>
 						</header>

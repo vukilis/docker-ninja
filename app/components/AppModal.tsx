@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CopyButton } from "./CopyButton";
 import { ShareButton } from "./ShareButton";
 import { useAppsGlobal } from "../context/AppsContext";
+import { useShortcutKeys } from "./useShortcutKeys";
 
 // --- CONSTANTS ---
 const GITHUB_NEW_ISSUE_URL = "https://github.com/vukilis/docker-ninja/issues/new";
@@ -57,6 +58,8 @@ interface AppModalProps {
 // --- OVERLAY COMPONENT ---
 export function RequestSearchOverlay({ allApps, onClose, onAppSelect }: { allApps: AppBase[]; onClose: () => void; onAppSelect: (app: AppBase) => void }) {
 	const [search, setSearch] = useState("");
+	const searchRef = useRef<HTMLInputElement>(null);
+	useShortcutKeys({ searchRef });
 
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
@@ -110,7 +113,7 @@ export function RequestSearchOverlay({ allApps, onClose, onAppSelect }: { allApp
 						}`}
 					>
 						<div className="flex-1 min-w-0 [&_input]:border-none [&_input]:focus:ring-0 [&_div]:border-none">
-							<SearchInput apps={allApps} search={search} setSearch={setSearch} onAppSelect={(app) => setSearch(app.name)} />
+							<SearchInput apps={allApps} search={search} setSearch={setSearch} onAppSelect={(app) => setSearch(app.name)} inputRef={searchRef as React.RefObject<HTMLInputElement>} />
 						</div>
 
 						<div className="flex items-center shrink-0 pr-1 md:pr-2">
