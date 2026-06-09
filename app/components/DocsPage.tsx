@@ -125,8 +125,8 @@ const InfoCard = ({ children, type = "info", className = "" }: { children: React
 
 export default function DocsPage() {
     return (
-        <div className="min-h-screen dark:bg-[#0d1117] dark:text-slate-300 text-slate-300 font-sans p-4 md:p-0">
-            <div className="max-w-5xl mx-auto pt-10 md:pt-20 md:pb-20">
+        <div className="min-h-screen dark:bg-[#0d1117] dark:text-slate-300 text-slate-300 font-sans p-4 md:p-20">
+            <div className="max-w-5xl mx-auto pt-10 md:pt-0">
                 {/* Header */}
                 <div className="text-center mb-10">
                     <div className="inline-block px-3 py-1 mb-5 text-xs font-mono uppercase font-medium text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 rounded-full border border-blue-500/20">

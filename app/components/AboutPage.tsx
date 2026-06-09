@@ -30,7 +30,7 @@ export default function AboutPage() {
     ];
 
     return (
-        <div className="min-h-screen dark:bg-[#0d1117] text-slate-900 dark:text-slate-100 p-4 md:p-20 pb-12 px-4 sm:px-6 lg:px-8 font-sans">
+        <div className="min-h-screen dark:bg-[#0d1117] dark:text-slate-300 text-slate-300 font-sans p-4 md:p-20">
             <div className="max-w-5xl mx-auto pt-10 md:pt-0">
                 {/* Header Section */}
                 <div className="text-center mb-16">
