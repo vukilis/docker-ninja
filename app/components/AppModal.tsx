@@ -58,6 +58,21 @@ interface AppModalProps {
 export function RequestSearchOverlay({ allApps, onClose, onAppSelect }: { allApps: AppBase[]; onClose: () => void; onAppSelect: (app: AppBase) => void }) {
 	const [search, setSearch] = useState("");
 
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key === "Escape") {
+				e.preventDefault();
+				e.stopPropagation();
+				onClose();
+			}
+			if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+				e.stopPropagation();
+			}
+		};
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [onClose]);
+
 	const exactMatch = useMemo(
 		() => {
 			if (!search.trim()) return null;
@@ -69,12 +84,6 @@ export function RequestSearchOverlay({ allApps, onClose, onAppSelect }: { allApp
 	return (
 		<div
 			className="fixed inset-0 z-[110] flex justify-center p-4 bg-slate-950/95 backdrop-blur-xl animate-in fade-in duration-500"
-			onKeyDown={(e) => {
-				if (e.key === "Escape") {
-					e.stopPropagation();
-					onClose();
-				}
-			}}
 			onClick={(e) => {
 				e.stopPropagation();
 				onClose();
@@ -796,12 +805,10 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
 
 	const handleKeyDown = useCallback(
 		(event: KeyboardEvent) => {
+			if (isRequesting) return;
 			if (event.key === "ArrowRight") handleNext();
 			else if (event.key === "ArrowLeft") handlePrev();
-			else if (event.key === "Escape") {
-				if (isRequesting) setIsRequesting(false);
-				else onClose();
-			}
+			else if (event.key === "Escape") onClose();
 		},
 		[handleNext, handlePrev, onClose, isRequesting]
 	);
