@@ -2,7 +2,8 @@
 main = ".open-next/worker.js"
 name = "docker-ninja"
 compatibility_date = "2026-06-08"
-compatibility_flags = [ "nodejs_compat" ]
+compatibility_flags = ["asynclocalstorage", "nodejs_compat"]
+
 
 [assets]
 directory = ".open-next/assets"
