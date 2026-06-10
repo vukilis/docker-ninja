@@ -82,7 +82,7 @@ This project thrives on community contributions. Whether you want to share a new
     <img src="https://img.shields.io/badge/Support_on_Ko--fi-FF5F5F?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support on Ko-fi" />
   </a>
   &nbsp;
-  <a href="https://dockerninja.org/?view=sponsoring">
+  <a href="https://dockerninja.org/sponsoring">
     <img src="https://img.shields.io/badge/DockerNinja.org%2Fsponsoring-60a9fa?style=for-the-badge" alt="Donate via dockerninja.org" />
   </a>
 </div>
