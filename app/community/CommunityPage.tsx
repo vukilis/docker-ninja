@@ -289,7 +289,7 @@ export default function CommunityPage() {
                     {/* Footer Signature */}
                     <div className="text-center pt-8 border-t border-slate-200 dark:border-slate-900 font-mono">
                         <p className="text-slate-600 dark:text-slate-500 text-xs uppercase tracking-[0.2em]">
-                        Built by Vuk1lis &mdash; Powered by the Community
+                        Built by Vuk1lis &mdash; Powered by the <a href="https://github.com/vukilis/docker-ninja" target="_blank" className="text-purple-400 hover:text-purple-300">Community</a>
                         </p>
                     </div>
                     </section>
