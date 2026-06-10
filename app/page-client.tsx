@@ -158,6 +158,30 @@ const SidebarFooter = ({ collapsed, navigateTo }: { collapsed: boolean; navigate
 	</div>
 );
 
+const REPO = "vukilis/docker-ninja";
+
+function useLatestVersion() {
+	const [version, setVersion] = useState<string | null>(null);
+	const mounted = useRef(true);
+
+	useEffect(() => {
+		mounted.current = true;
+		fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
+			headers: { Accept: "application/vnd.github+json" },
+		})
+			.then((r) => r.ok ? r.json() : Promise.reject())
+			.then((d) => { if (mounted.current && d.tag_name) setVersion(d.tag_name); })
+			.catch(() => {});
+		return () => { mounted.current = false; };
+	}, []);
+
+	return version;
+}
+
+function formatVersion(tag: string) {
+	return tag.startsWith("v") || tag.startsWith("V") ? tag.slice(1) : tag;
+}
+
 // --- MAIN DASHBOARD ---
 export default function Home({ initialView = "dashboard", initialAppSlug }: { initialView?: ViewMode; initialAppSlug?: string }) {
 	// --- GLOBAL CONTEXT & NAVIGATION ---
@@ -212,6 +236,8 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 	const warpButtonRef = useRef<HTMLButtonElement>(null);
 	const searchRef = useRef<HTMLInputElement>(null);
 	useShortcutKeys({ searchRef, warpButtonRef });
+
+	const latestGithubVersion = useLatestVersion();
 
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const hasHydrated = useRef(false);
@@ -906,8 +932,13 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 												</svg>
 											</div>
 										</div>
-										<div className="flex items-center flex-1 pr-4 min-w-0 transition-all duration-300 ease-in-out relative z-10">
-											<span className="text-[10px] xl:text-xs truncate whitespace-nowrap overflow-hidden text-left">GitHub</span>
+										<div className={`flex items-center pr-4 min-w-0 transition-all duration-300 ease-in-out relative z-10 gap-2 ${sidebarCollapsed ? "opacity-0 -translate-x-2 w-0 overflow-hidden" : "opacity-100 translate-x-0 flex-1"}`}>
+											<span className="text-[10px] xl:text-xs truncate whitespace-nowrap overflow-hidden text-left font-bold">GitHub</span>
+											{latestGithubVersion ? (
+												<span className="hidden xl:inline-flex items-center px-1.5 py-0.5 rounded text-[9px] xl:text-[10px] font-semibold leading-none bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 dark:border-indigo-400/20 group-hover:bg-indigo-500/15 transition-colors whitespace-nowrap">
+													v{formatVersion(latestGithubVersion)}
+												</span>
+											) : null}
 										</div>
 									</a>
 								</div>
