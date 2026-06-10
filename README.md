@@ -5,11 +5,13 @@
   <p><strong>Master your container universe with perfectly crafted stacks for any application — all in one place</strong></p>
 
   <p>
-    <img width=94px src="https://img.shields.io/badge/Nix_Shell-5277C3?style=flat-square&logo=nixos&logoColor=white" />
-    <img width=108px src="https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=next.js&logoColor=white" />
-    <img width=99px src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black" />
-    <img width=126px src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white" />
-    <img width=148px src="https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white" />
+    <img width=90px src="https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=next.js&logoColor=white" />
+    <img width=81px src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black" />
+    <img width=108px src="https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript&logoColor=white" />
+    <img width=128px src="https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white" />
+    <img width=80px src="https://img.shields.io/badge/Nix_Shell-5277C3?style=flat-square&logo=nixos&logoColor=white" />
+    <img width=70px src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" />
+    <img width=86px src="https://img.shields.io/badge/Cloudflare-F6821F?style=flat-square&logo=cloudflare&logoColor=white" />
   </p>
 </div>
 
