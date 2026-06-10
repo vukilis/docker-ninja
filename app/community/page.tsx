@@ -9,13 +9,13 @@ export const metadata: Metadata = {
         description: 'Found a bug? Have a stack suggestion? Want to just say hi? Our core is built on open communication and shared curiosity.',
         url: 'https://dockerninja.org/community',
         type: 'website',
-        images: [{ url: 'https://dockerninja.org/og-landing.jpg', width: 1200, height: 630, alt: 'Community Page Banner' }],
+        images: [{ url: 'https://raw.githubusercontent.com/vukilis/docker-ninja/refs/heads/main/app/page_preview.png', width: 1200, height: 630, alt: 'Community Page Banner' }],
     },
     twitter: {
         card: 'summary_large_image',
         title: 'Community | Docker Ninja',
         description: 'Found a bug? Have a stack suggestion? Want to just say hi? Our core is built on open communication and shared curiosity.',
-        images: ['https://dockerninja.org/og-landing.jpg'],
+        images: ['https://raw.githubusercontent.com/vukilis/docker-ninja/refs/heads/main/app/page_preview.png'],
     },
 };
 

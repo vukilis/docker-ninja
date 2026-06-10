@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: 'https://dockerninja.org/og-landing.jpg',
+        url: 'https://raw.githubusercontent.com/vukilis/docker-ninja/refs/heads/main/app/page_preview.png',
         width: 1200,
         height: 630,
         alt: 'Docker Ninja Home Page Banner',
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Docker Ninja | Explore the Infinite Stack',
     description: 'Master your containerization universe with official compose stacks for any application, all in one place.',
-    images: ['https://dockerninja.org/og-landing.jpg'],
+    images: ['https://raw.githubusercontent.com/vukilis/docker-ninja/refs/heads/main/app/page_preview.png'],
   },
 };
 

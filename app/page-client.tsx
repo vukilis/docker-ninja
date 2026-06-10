@@ -619,7 +619,11 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 								<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
 								<span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
 							</span>
-							V1.0 Live Now
+							{latestGithubVersion ? (
+								<span>
+									v{formatVersion(latestGithubVersion)} Live Now
+								</span>
+							) : null}
 						</div>
 						<h1 className="text-7xl md:text-9xl font-black text-white dark:text-white tracking-tighter">
 							DOCKER

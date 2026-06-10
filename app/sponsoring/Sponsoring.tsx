@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import qrcode from '..//monero-qrcode.png';
+import qrcode from '../monero-qrcode.png';
 import {
     Heart,
     Coffee,
