@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Disallow: /api/
+Disallow: /private/
+Disallow: /_next/data/
+
+Sitemap: https://dockerninja.org/sitemap.xml

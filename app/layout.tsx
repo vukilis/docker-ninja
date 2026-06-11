@@ -21,7 +21,7 @@ export const metadata = {
     locale: 'en_US',
     images: [
       {
-        url: '/og-image.png',
+        url: '/page_preview.png',
         width: 1200,
         height: 630,
       },
@@ -30,11 +30,18 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     creator: '@vukilis',
-    images: ['/og-image.png'],
+    images: ['/page_preview.png'],
   },
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
   alternates: {
     canonical: 'https://dockerninja.org',
@@ -61,7 +68,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 	const [apps, likes] = await Promise.all([fetchAllApps(), fetchAllActiveLikes()]);
 	return (
 		<html lang="en" suppressHydrationWarning>
-			<body className="my-custom-background text-slate-900 dark:text-slate-200">
+  	<body className="my-custom-background text-slate-900 dark:text-slate-200">
 				<ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
 					<QueryProvider>
 						<AppsProvider initialApps={apps} initialGlobalLikes={likes}>

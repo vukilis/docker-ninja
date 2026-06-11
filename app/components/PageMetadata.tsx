@@ -101,7 +101,7 @@ export function ClientMetadataController({ isStarted, currentView, selectedApp }
         element.setAttribute('content', contentValue);
       };
 
-      const defaultImage = 'https://raw.githubusercontent.com/vukilis/docker-ninja/refs/heads/main/app/page_preview.png';
+      const defaultImage = '/page_preview.png';
       let selectedAppImage = defaultImage;
       if (isStarted && selectedApp && (currentView === 'dashboard' || currentView === 'categories')) {
         selectedAppImage = selectedApp.image || defaultImage;

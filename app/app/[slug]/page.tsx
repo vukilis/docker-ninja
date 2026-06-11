@@ -7,7 +7,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const apps = await fetchAllApps();
     const app = apps.find((a) => a.slug === slug || String(a.id) === slug);
     const name = app?.name || 'Container Preview';
-    const imageUrl = 'https://raw.githubusercontent.com/vukilis/docker-ninja/refs/heads/main/app/page_preview.png';
+    const imageUrl = '/page_preview.png';
 
     return {
         title: `Previewing ${name} | Docker Ninja`,

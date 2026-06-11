@@ -30,7 +30,7 @@ const ToggleSection = ({ title, defaultOpen = true, children }: { title: string;
                 className="overflow-hidden transition-all duration-300 ease-in-out"
                 style={{ maxHeight: isOpen ? "5000px" : "0px", opacity: isOpen ? 1 : 0 }}
             >
-                <div className="px-5 pb-6 space-y-4 border-t border-slate-100 dark:border-slate-800/50">
+                <div className="px-5 pb-6 pt-4 space-y-4 border-t border-slate-100 dark:border-slate-800/50">
                     {children}
                 </div>
             </div>
