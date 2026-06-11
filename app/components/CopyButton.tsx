@@ -1,4 +1,4 @@
-import { useClipboardCopy } from '../utils/CopyLogic'; 
+import { useClipboardCopy } from '../utils/ButtonLogic'; 
 
 interface CopyButtonProps {
     text: string;

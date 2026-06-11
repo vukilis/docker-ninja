@@ -32,7 +32,6 @@ export const useClipboardCopy = (duration: number = 2000) => {
             setCopied(true);
             setTimeout(() => setCopied(false), duration);
 
-            // Handle optional tracking logic
             if (shouldTrack) {
                 const newTotal = await incrementCopyCount();
                 if (newTotal !== -1) {
@@ -43,4 +42,45 @@ export const useClipboardCopy = (duration: number = 2000) => {
     };
 
     return { copied, handleCopy };
+};
+
+export const downloadTextFile = async (text: string, filename: string): Promise<boolean> => {
+    const mimeType = filename === ".env.local" ? "text/plain;charset=utf-8" : "text/yaml;charset=utf-8";
+    try {
+        const blob = new Blob([text], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        return true;
+    } catch (err) {
+        console.error("File export failed:", err);
+        return false;
+    }
+};
+
+export const useExportFile = (duration: number = 2000) => {
+    const [exported, setExported] = useState(false);
+
+    const handleExport = async (text: string, filename: string, shouldTrack: boolean = false) => {
+        const success = await downloadTextFile(text, filename);
+        
+        if (success) {
+            setExported(true);
+            setTimeout(() => setExported(false), duration);
+
+            if (shouldTrack) {
+                const newTotal = await incrementCopyCount();
+                if (newTotal !== -1) {
+                    mutate('global-stats', newTotal, false);
+                }
+            }
+        }
+    };
+
+    return { exported, handleExport };
 };

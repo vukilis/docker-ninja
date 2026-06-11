@@ -7,6 +7,7 @@ import { getIcon } from "../hooks/icons";
 import { getOrCreateDeviceUUID } from "../utils/Utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CopyButton } from "./CopyButton";
+import { ExportButton } from "./ExportButton";
 import { ShareButton } from "./ShareButton";
 import { useAppsGlobal } from "../context/AppsContext";
 import { useShortcutKeys } from "./useShortcutKeys";
@@ -511,7 +512,10 @@ function ModalContent({
 						<div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-blue-900/30 p-4 flex flex-col flex-1 max-h-[400px] overflow-y-auto">
 							<h3 className="text-blue-600 dark:text-blue-400 mb-2 font-bold flex justify-between text-[10px] md:text-xs uppercase tracking-widest">
 								docker-compose.yml
-								<CopyButton text={composeCode} shouldTrack={true} />
+								<div className="flex items-center">
+									<ExportButton text={composeCode} shouldTrack={true} />
+									<CopyButton text={composeCode} shouldTrack={true} />
+								</div>
 							</h3>
 							<div onTouchStart={stopPropagation} className="code-container flex-1 overflow-auto bg-[#f6f4f0]/50 dark:bg-[#0d1117] rounded p-2 border border-slate-200 dark:border-slate-800">
 								<pre className="text-[10px] md:text-xs text-slate-700 dark:text-slate-300 whitespace-pre">{loading ? "Loading..." : composeCode}</pre>
@@ -537,7 +541,10 @@ function ModalContent({
 											</TabButton>
 										)}
 									</div>
-									<CopyButton text={getCopyText()} shouldTrack={false} />
+									<div className="flex items-center">
+										{composeTab === "env" && envFile && <ExportButton text={envFile} filename=".env.local" shouldTrack={false} />}
+										<CopyButton text={getCopyText()} shouldTrack={false} />
+									</div>
 								</div>
 
 								<div
