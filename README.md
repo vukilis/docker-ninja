@@ -78,8 +78,12 @@ This project thrives on community contributions. Whether you want to share a new
 ## Fuel the Project 🚀
 
 <div align="center">
+  <a a href="https://buymeacoffee.com/vukilis">
+    <img src="https://img.shields.io/badge/Support_on_buymeacoffee-FF5F5F?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support on Ko-fi" />
+  </a>
+  &nbsp;
   <a href="https://ko-fi.com/vukilis">
-    <img src="https://img.shields.io/badge/Support_on_Ko--fi-FF5F5F?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support on Ko-fi" />
+    <img src="https://img.shields.io/badge/Support_on_Ko--fi-FF2F5F?style=for-the-badge&logo=ko-fi&logoColor=white" alt="Support on Ko-fi" />
   </a>
   &nbsp;
   <a href="https://dockerninja.org/sponsoring">
