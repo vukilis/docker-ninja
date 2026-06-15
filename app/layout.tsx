@@ -12,7 +12,7 @@ export const metadata = {
     template: '%s | Docker Ninja',
   },
   description: `Containerization redefined my reality, yet I constantly hit a ceiling. I grew tired of the fragmented search for reliable infrastructure code and the endless scouring for inspiration. I built this universe to collapse the hurdles. Whether you are a student exploring the basics, a tinkerer building a homelab or a pro architecting a stack, this is the perfect place for you.`,
-  keywords: ['Docker', 'Self-hosting', 'Templates', 'Compose'],
+  keywords: ['Docker Compose', 'Docker stacks', 'self-hosted apps', 'homelab', 'containers', 'Docker templates', 'Docker Ninja', 'compose generator', 'AdGuard Home', 'Home Assistant', 'Plex', 'Nginx Proxy Manager', 'media server', 'reverse proxy', 'Traefik', 'Docker deployment', 'container templates', 'ready-to-use docker configs'],
   authors: [{ name: 'Vuk Lekic' }],
   creator: 'Vuk Lekic',
   openGraph: {
@@ -68,7 +68,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 	const [apps, likes] = await Promise.all([fetchAllApps(), fetchAllActiveLikes()]);
 	return (
 		<html lang="en" suppressHydrationWarning>
-  	<body className="my-custom-background text-slate-900 dark:text-slate-200">
+  	  <body className="my-custom-background text-slate-900 dark:text-slate-200">
 				<ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
 					<QueryProvider>
 						<AppsProvider initialApps={apps} initialGlobalLikes={likes}>
@@ -77,6 +77,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 						</AppsProvider>
 					</QueryProvider>
 				</ThemeProvider>
+        <script defer src='https://static.cloudflareinsights.com/beacon.min.js' 
+          crossOrigin="anonymous" 
+          data-cf-beacon='{"token":"51e8e00a7c2847b5b7203f2f5b5ce676","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}'
+        />
 			</body>
 		</html>
 	);
