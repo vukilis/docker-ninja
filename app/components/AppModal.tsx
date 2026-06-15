@@ -542,7 +542,7 @@ function ModalContent({
 										)}
 									</div>
 									<div className="flex items-center">
-										{composeTab === "env" && envFile && <ExportButton text={envFile} filename=".env.local" shouldTrack={false} />}
+										{composeTab === "env" && envFile && <ExportButton text={envFile} filename=".env" shouldTrack={false} />}
 										<CopyButton text={getCopyText()} shouldTrack={false} />
 									</div>
 								</div>
