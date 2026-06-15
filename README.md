@@ -1,5 +1,5 @@
 <div align="center" style="padding-top:30px;">
-  <img src="https://raw.githubusercontent.com/vukilis/docker-ninja/refs/heads/main/app/android-chrome-512x512.png" width="192" alt="Docker Ninja" />
+  <img src="https://dockerninja.org/apple-touch-icon.png" width="192" alt="Docker Ninja" />
   <h1>Docker Ninja</h1>
   <h3>The official frontend application for dockerninja.org 🚀</h3>
   <p><strong>Master your container universe with perfectly crafted stacks for any application — all in one place</strong></p>
@@ -105,6 +105,18 @@ This project thrives on community contributions. Whether you want to share a new
     <span style="color: #f472b6;"><i><b>"Individual contributions ensure a decentralized future for self-hosters."</b></i></span>
   </blockquote>
 </div>
+
+---
+
+## Project Activity
+
+<p align="center">
+  <img
+    src="https://repobeats.axiom.co/api/embed/5f464f4b23c29ab84d83edfe312c8baef8716162.svg"
+    alt="Repository activity"
+    width="700"
+  />
+</p>
 
 ---
 
