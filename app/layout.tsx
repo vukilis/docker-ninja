@@ -4,6 +4,7 @@ import Preloader from './components/Preloader';
 import { AppsProvider } from './context/AppsContext';
 import { fetchAllApps, fetchAllActiveLikes } from './actions';
 import './style/globals.css';
+import Script from 'next/script';
 
 export const metadata = {
   metadataBase: new URL('https://dockerninja.org'),
@@ -77,8 +78,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 						</AppsProvider>
 					</QueryProvider>
 				</ThemeProvider>
-        <script defer src='https://static.cloudflareinsights.com/beacon.min.js' 
-          crossOrigin="anonymous" 
+        <Script
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          crossOrigin="anonymous"
           data-cf-beacon='{"token":"51e8e00a7c2847b5b7203f2f5b5ce676","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}'
         />
 			</body>
