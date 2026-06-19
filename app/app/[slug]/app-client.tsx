@@ -39,7 +39,7 @@ export default function AppPageClient({ slug, initialApp }: { slug: string; init
 	const [cliTab, setCliTab] = useState<"cli" | "update" | "bash">("cli");
 	const [showWarning, setShowWarning] = useState(true);
 	const [showExpandedCompose, setShowExpandedCompose] = useState(false);
-const [showEnvCode, setShowEnvCode] = useState(false);
+	const [showEnvCode, setShowEnvCode] = useState(false);
 	useEffect(() => {
 		setShowWarning(localStorage.getItem("docker_ninja_warning") !== "true");
 	}, []);
@@ -91,6 +91,32 @@ const [showEnvCode, setShowEnvCode] = useState(false);
 	}), [baseApp, detailQuery.data]);
 
 	const safeCategory = (app?.category ?? (baseApp?.category as string | undefined) ?? "").trim();
+
+	useEffect(() => {
+		if (!app?.id || typeof window === 'undefined') return;
+
+		const key = "docker_ninja_recently_viewed";
+		let stored: unknown[] = [];
+		try {
+			const raw = localStorage.getItem(key);
+			if (raw) stored = JSON.parse(raw);
+		} catch {
+			stored = [];
+		}
+
+		const entry = {
+			id: app.id,
+			slug: app.slug,
+			name: app.name,
+			category: app.category || safeCategory || "",
+			icon_url: app.icon_url,
+			description: app.description,
+		};
+
+		const filtered = stored.filter((a) => String((a as { id: unknown }).id) !== String(entry.id));
+		const updated = [entry, ...filtered].slice(0, 8);
+		localStorage.setItem(key, JSON.stringify(updated));
+	}, [app?.id, app?.slug, app?.name, app?.category, safeCategory, app?.icon_url, app?.description]);
 
 	const categoryAppsQuery = useQuery({
 		queryKey: ["category-apps-for-slug-page", safeCategory],
