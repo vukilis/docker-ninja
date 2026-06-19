@@ -1,28 +1,40 @@
 import { Metadata } from 'next';
-import { redirect } from 'next/navigation';
+import AppPageClient from './app-client';
 import { fetchAllApps } from '../../actions';
+import { notFound } from 'next/navigation';
+
+const findAppBySlug = (apps: Awaited<ReturnType<typeof fetchAllApps>>, slug: string) => {
+    const normalizedSlug = slug.toLowerCase();
+    const exactMatch = apps.find((a) => a.slug === slug || a.slug.toLowerCase() === normalizedSlug || String(a.id) === slug);
+    return exactMatch || null;
+};
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const { slug } = await params;
     const apps = await fetchAllApps();
-    const app = apps.find((a) => a.slug === slug || String(a.id) === slug);
+    const app = findAppBySlug(apps, slug);
+    const canonicalSlug = app?.slug || slug;
     const name = app?.name || 'Container Preview';
     const imageUrl = '/page_preview.png';
+    const appUrl = `https://dockerninja.org/app/${encodeURIComponent(canonicalSlug)}`;
 
     return {
-        title: `Previewing ${name} | Docker Ninja`,
-        description: `Read configuration steps, settings, and deployment details for ${name}.`,
+        title: `${name} | Docker Ninja`,
+        description: app?.description || `Read configuration steps, settings, and deployment details for ${name}.`,
+        alternates: {
+            canonical: appUrl,
+        },
         openGraph: {
-        title: `Previewing ${name} | Docker Ninja`,
-        description: `Read configuration steps, settings, and deployment details for ${name}.`,
-        url: `https://dockerninja.org/app/${encodeURIComponent(slug)}`,
-        type: 'website',
-        images: [{ url: imageUrl, width: 1200, height: 630, alt: name }],
+            title: `${name} | Docker Ninja`,
+            description: app?.description || `Read configuration steps, settings, and deployment details for ${name}.`,
+            url: appUrl,
+            type: 'website',
+            images: [{ url: imageUrl, width: 1200, height: 630, alt: name }],
         },
         twitter: {
             card: 'summary_large_image',
-            title: `Previewing ${name} | Docker Ninja`,
-            description: `Read configuration steps, settings, and deployment details for ${name}.`,
+            title: `${name} | Docker Ninja`,
+            description: app?.description || `Read configuration steps, settings, and deployment details for ${name}.`,
             images: [imageUrl],
         },
     };
@@ -30,5 +42,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function AppSlugPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
-    redirect(`/containers?preview=${encodeURIComponent(slug)}`);
+    const apps = await fetchAllApps();
+    const initialApp = findAppBySlug(apps, slug);
+
+    if (!initialApp) {
+        notFound();
+    }
+
+    return <AppPageClient slug={slug} initialApp={initialApp} />;
 }
