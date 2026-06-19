@@ -8,13 +8,8 @@ interface SitemapUrl {
   lastmod: string;
   priority: string;
   changefreq: string;
-  name?: string;
-  description?: string;
   image?: string;
 }
-
-const escapeXml = (value: string) =>
-  value.replace(/[<>&'"]/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[char] ?? char));
 
 export async function GET() {
   const baseUrl = 'https://dockerninja.org';
@@ -30,18 +25,14 @@ export async function GET() {
     { loc: `${baseUrl}/sponsoring`, lastmod: '2026-06-11', priority: '0.6', changefreq: 'monthly' },
   ];
 
-  const appUrls: (SitemapUrl & { name: string; description: string; image: string })[] = apps.map((app) => {
+  const appUrls: (SitemapUrl & { image: string })[] = apps.map((app) => {
     const lastmod = typeof app.updated_at === 'string' && app.updated_at ? app.updated_at : '2026-06-11';
-    const name = escapeXml(typeof app.name === 'string' ? app.name : '');
-    const description = escapeXml(typeof app.description === 'string' ? app.description : '');
     const iconUrl = typeof app.icon_url === 'string' && app.icon_url.length > 0 ? app.icon_url : `${baseUrl}/favicon-32x32.png`;
     return {
       loc: `${baseUrl}/app/${encodeURIComponent(app.slug || String(app.id))}`,
       lastmod,
       priority: '0.7',
       changefreq: 'weekly',
-      name,
-      description,
       image: iconUrl,
     };
   });
@@ -57,8 +48,6 @@ ${urls
     <lastmod>${url.lastmod}</lastmod>
     <priority>${url.priority}</priority>
     <changefreq>${url.changefreq}</changefreq>
-    ${url.name ? `<name>${url.name}</name>` : ''}
-    ${url.description ? `<description>${url.description}</description>` : ''}
     ${url.image ? `<image:image><image:loc>${url.image}</image:loc></image:image>` : ''}
   </url>`)
   .join('\n')}
