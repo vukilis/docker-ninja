@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { fetchAppDetail, getComposeContent, getGlobalStats, toggleAppLike, checkHasDeviceLiked } from "../actions";
 import SearchInput from "./SearchInput";
 import { Counter } from "../utils/Counter";
@@ -9,6 +10,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CopyButton } from "./CopyButton";
 import { ExportButton } from "./ExportButton";
 import { ShareButton } from "./ShareButton";
+import { CodeExpansionModal } from "./ComposeCodeModal";
 import { useAppsGlobal } from "../context/AppsContext";
 import { useShortcutKeys } from "./useShortcutKeys";
 
@@ -177,21 +179,24 @@ export function RequestSearchOverlay({ allApps, onClose, onAppSelect }: { allApp
 }
 
 // --- EXTRACTED COMPONENTS ---
-const WarningNotice = ({ show, onClick, className = "" }: { show: boolean; onClick: () => void; className?: string }) => (
-	<button
-		onClick={onClick}
-		className={`relative flex items-center justify-center w-10 h-10 rounded-full border transition-all cursor-pointer ${
-			show
-				? "border-orange-500 bg-orange-500 text-slate-200 dark:text-orange-500 dark:bg-orange-600/20"
-				: "sm:border-slate-200 border-orange-500 dark:border-orange-500/20 sm:dark:border-slate-500/20 text-orange-500 sm:text-slate-500 hover:border-orange-500/50 sm:dark:bg-slate-950/10 hover:bg-orange-500/5 hover:text-orange-500"
-		} ${className}`}
-		aria-label={show ? "Hide security notice" : "Show security notice"}
-	>
-		<svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3" stroke="currentColor">
+export const WarningNotice = ({ show, onClick, className = "", label }: { show: boolean; onClick: () => void; className?: string; label?: string }) => {
+	const warningState = show
+		? "border-orange-500 bg-orange-500 text-slate-200 dark:text-orange-500 dark:bg-orange-600/20"
+		: "group md:border-slate-400 border-orange-500 dark:border-orange-500/20 md:dark:border-slate-500/20 text-orange-500 md:text-slate-500 hover:border-orange-500/50 md:dark:bg-slate-950/10 hover:bg-orange-500/5 hover:text-orange-500";
+
+	return (
+		<button
+			onClick={onClick}
+			className={`relative flex items-center justify-center w-10 h-10 rounded-full border transition-all cursor-pointer ${warningState} ${className}`}
+			aria-label={show ? "Hide security notice" : "Show security notice"}
+		>
+		<svg className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="3" stroke="currentColor">
 			<path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
 		</svg>
+		{label && <span className="hidden lg:inline whitespace-nowrap">{label}</span>}
 	</button>
-);
+	);
+};
 
 const CloseButton = ({ onClick, className = "", children }: { onClick: () => void; className?: string; children?: React.ReactNode }) => (
 	<button
@@ -199,7 +204,7 @@ const CloseButton = ({ onClick, className = "", children }: { onClick: () => voi
 		className={`group relative flex items-center justify-center w-10 h-10 rounded-full border transition-all duration-300 cursor-pointer ${className}`}
 	>
 		{children || (
-			<svg className="w-4 h-4 text-slate-500 group-hover:text-red-500 group-hover:rotate-90 transition-all duration-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+			<svg className="w-4 h-4 text-slate-500 group-hover:text-red-500 group-hover:rotate-90 group-hover:scale-110 transition-all duration-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
 				<line x1="18" y1="6" x2="6" y2="18" />
 				<line x1="6" y1="6" x2="18" y2="18" />
 			</svg>
@@ -220,6 +225,8 @@ const TabButton = ({ isActive, onClick, children }: { isActive: boolean; onClick
 	</button>
 );
 
+export { TabButton };
+
 const FormattingUtils = {
 	formatCompactNumber: (number: number): string => {
 		if (isNaN(number)) return "0";
@@ -235,6 +242,8 @@ const FormattingUtils = {
 		return tag.replace(/^(version\/|v|release\/)/i, "");
 	},
 };
+
+export { FormattingUtils };
 
 // --- MODAL CONTENT COMPONENT ---
 interface ModalContentProps {
@@ -252,6 +261,10 @@ interface ModalContentProps {
 	isLiked: boolean;
 	likesCount: number;
 	isSyncing: boolean;
+	showExpandedCompose: boolean;
+	setShowExpandedCompose: (val: boolean) => void;
+	showEnvCode: boolean;
+	setShowEnvCode: (val: boolean) => void;
 }
 
 function ModalContent({
@@ -269,10 +282,15 @@ function ModalContent({
 	isLiked,
 	likesCount,
 	isSyncing,
+	setShowEnvCode,
+	setShowExpandedCompose,
 }: ModalContentProps) {
 	const [composeTab, setComposeTab] = useState<"run" | "update" | "env">("run");
 	const [cliTab, setCliTab] = useState<"cli" | "update" | "bash">("cli");
-	const [showWarning, setShowWarning] = useState(() => (typeof window !== "undefined" ? localStorage.getItem("docker_ninja_warning") !== "true" : true));
+	const [showWarning, setShowWarning] = useState(true);
+	useEffect(() => {
+		setShowWarning(localStorage.getItem("docker_ninja_warning") !== "true");
+	}, []);
 
 	if (!app) return null;
 
@@ -292,7 +310,8 @@ function ModalContent({
 	const bashCommand = app.bash_command?.trim() || "";
 	const updateCommand = app.update_command?.trim() || "";
 	const cliUpdateCommand = app.cli_update_command?.trim() || "";
-	const envFile = app.env_file?.trim() || "";
+	const rawEnv = typeof app.env_file === "string" ? app.env_file : "";
+	const envFile = rawEnv.trim();
 
 	const getCopyText = () => {
 		if (composeTab === "update" && updateCommand) return updateCommand;
@@ -310,107 +329,138 @@ function ModalContent({
 		<div className="flex flex-col h-full">
 			{/* HEADER */}
 			<div className="flex flex-col md:flex-row md:justify-between md:items-center p-4 md:p-8 pb-4 border-b border-[#B7C7CD] dark:border-slate-800/50 z-30 dark:bg-[#0d1117] select-none gap-4">
-				<div className="flex justify-between items-start md:block">
-					<div className="flex flex-col gap-1 min-w-0">
-						<div className="flex items-center gap-3 flex-wrap max-w-full">
-							<h2 className="text-xl md:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter truncate">
-								{app.name}
-							</h2>
+                <div className="flex justify-between items-start md:block">
+                    <div className="flex flex-col gap-1 min-w-0">
+                        <div className="flex items-center gap-3 flex-wrap max-w-full">
+                            <h2 className="text-xl md:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter truncate">
+                                {app.name}
+                            </h2>
 
-							{/* LIKE BUTTON */}
-							<button
-								onClick={handleLikeToggle}
-								className={`inline-flex items-center justify-center gap-1 transition-all duration-200 cursor-pointer select-none ${
-									isLiked ? "text-rose-500" : "text-slate-500 dark:text-slate-400 hover:text-rose-500"
-								} ${isSyncing ? "opacity-80" : ""} ${isSyncing ? "" : "cursor-pointer"}`}
-							>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									viewBox="0 0 24 24"
-									fill={isLiked ? "currentColor" : "none"}
-									stroke="currentColor"
-									strokeWidth="2.5"
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									className={`w-4 h-4 md:w-4.5 md:h-4.5 pb-0.5 shrink-0 transition-transform duration-300 ${
-										isLiked ? "animate-in zoom-in-75 duration-200 scale-110" : "group-hover:scale-110"
-									}`}
-								>
-									<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                            {/* LIKE BUTTON */}
+                            <button
+                                onClick={handleLikeToggle}
+                                className={`inline-flex items-center justify-center gap-1 transition-all duration-200 cursor-pointer select-none ${
+                                    isLiked ? "text-rose-500" : "text-slate-500 dark:text-slate-400 hover:text-rose-500"
+                                } ${isSyncing ? "opacity-80" : ""} ${isSyncing ? "" : "cursor-pointer"}`}
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill={isLiked ? "currentColor" : "none"}
+                                    stroke="currentColor"
+                                    strokeWidth="2.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className={`w-4 h-4 md:w-4.5 md:h-4.5 pb-0.5 shrink-0 transition-transform duration-300 ${
+                                        isLiked ? "animate-in zoom-in-75 duration-200 scale-110" : "group-hover:scale-110"
+                                    }`}
+                                >
+                                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                                </svg>
+                                <span className="tabular-nums text-[14px] font-black leading-none inline-flex items-center">
+                                    {likesCount !== null ? FormattingUtils.formatCompactNumber(likesCount) : ""}
+                                </span>
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="h-1 w-8 bg-blue-600 rounded-full" />
+                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em]">{app.category}</span>
+                        </div>
+                    </div>
+                <div className="flex items-center gap-2 md:hidden">
+                    <CloseButton onClick={onClose} className="border-red-700 dark:border-red-950">
+                        <svg className="w-4 h-4 text-red-700 dark:text-red-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </CloseButton>
+                </div>
+                </div>
+
+                <div className="flex items-center justify-between md:justify-end gap-2 shrink-0">
+                    <div className="flex items-center bg-slate-100 dark:bg-slate-900/50 rounded-full px-1 py-0.5 border border-slate-200 dark:border-blue-900/30">
+                        <button
+                            onClick={handlePrev}
+                            className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all text-slate-500 hover:text-blue-600 cursor-pointer"
+                        >
+                            <svg className="w-4 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                                <path d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <div className="flex items-center justify-center min-w-[3.5rem] sm:pt-0.5 font-mono">
+                            <span className="text-[12px] font-black text-slate-600 dark:text-slate-400 tabular-nums">
+                                {currentIndex} <span className="text-slate-300 dark:text-slate-700 mx-0.5">/</span> {totalApps}
+                            </span>
+                        </div>
+                        <button
+                            onClick={handleNext}
+                            className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all text-slate-500 hover:text-blue-600 cursor-pointer"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
+                                <path d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <a
+                            href={`${GITHUB_NEW_ISSUE_URL}?template=issue-report.md&title=${encodeURIComponent(`[BUG] ${app.name}`)}&labels=bug`}
+                            target="_blank"
+                            className="group lg:relative group flex items-center justify-center w-10 h-10 rounded-full border border-slate-200 dark:border-purple-600/30 hover:border-purple-500/60 bg-purple-100 dark:bg-purple-950/5 backdrop-blur-sm transition-all duration-300 cursor-pointer"
+                        >
+                            <div className="relative shrink-0 transition-transform duration-500 group-hover:rotate-12">
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-900 dark:group-hover:text-fuchsia-400 transition-colors duration-300 transition-transform group-hover:scale-110 drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
+									<rect width="8" height="14" x="8" y="6" rx="4" />
+									<path d="m19 7-3 2" />
+									<path d="m5 7 3 2" />
+									<path d="m19 19-3-2" />
+									<path d="m5 19 3-2" />
+									<path d="M20 13h-4" />
+									<path d="M4 13h4" />
+									<path d="m10 4 1 2" />
+									<path d="m14 4-1 2" />
 								</svg>
-								<span className="tabular-nums text-[14px] font-black leading-none inline-flex items-center">
-									{likesCount !== null ? FormattingUtils.formatCompactNumber(likesCount) : ""}
+								<span className="absolute -top-1 -right-1 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
+									<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-400 opacity-75"></span>
+									<span className="relative inline-flex rounded-full h-1 w-1 bg-fuchsia-300"></span>
 								</span>
-							</button>
-						</div>
-						<div className="flex items-center gap-2">
-							<div className="h-1 w-8 bg-blue-600 rounded-full" />
-							<span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-[0.2em]">{app.category}</span>
-						</div>
-					</div>
-				<div className="flex items-center gap-2 md:hidden">
-					<CloseButton onClick={onClose} className="border-red-700 dark:border-red-950">
-						<svg className="w-4 h-4 text-red-700 dark:text-red-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-							<line x1="18" y1="6" x2="6" y2="18" />
-							<line x1="6" y1="6" x2="18" y2="18" />
-						</svg>
-					</CloseButton>
-				</div>
-				</div>
+							</div>
+                        </a>
 
-				<div className="flex items-center justify-between md:justify-end gap-2 shrink-0">
-					<div className="flex items-center bg-slate-100 dark:bg-slate-900/50 rounded-full px-1 py-0.5 border border-slate-200 dark:border-blue-900/30">
-						<button
-							onClick={handlePrev}
-							className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all text-slate-500 hover:text-blue-600 cursor-pointer"
-						>
-							<svg className="w-4 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
-								<path d="M15 19l-7-7 7-7" />
-							</svg>
-						</button>
-						<div className="flex items-center justify-center min-w-[3.5rem] sm:pt-0.5 font-mono">
-							<span className="text-[12px] font-black text-slate-600 dark:text-slate-400 tabular-nums">
-								{currentIndex} <span className="text-slate-300 dark:text-slate-700 mx-0.5">/</span> {totalApps}
-							</span>
-						</div>
-						<button
-							onClick={handleNext}
-							className="p-2 hover:bg-white dark:hover:bg-slate-800 rounded-full transition-all text-slate-500 hover:text-blue-600 cursor-pointer"
-						>
-							<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3">
-								<path d="M9 5l7 7-7 7" />
-							</svg>
-						</button>
-					</div>
+                        <WarningNotice show={showWarning} onClick={toggleWarning} />
+						
+                        <ShareButton app={app} shouldTrack={false} />
 
-					<div className="flex items-center gap-2">
-						<a
-							href={`${GITHUB_NEW_ISSUE_URL}?template=issue-report.md&title=${encodeURIComponent(`[BUG] ${app.name}`)}&labels=bug`}
-							target="_blank"
-							className="lg:relative group flex items-center justify-center w-10 h-10 rounded-full border border-slate-200 dark:border-purple-600/30 hover:border-purple-500/60 bg-purple-100 dark:bg-purple-950/5 backdrop-blur-sm transition-all duration-300 cursor-pointer"
-						>
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-900 dark:group-hover:text-fuchsia-400 transition-colors duration-300 drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
-								<rect width="8" height="14" x="8" y="6" rx="4" />
-								<path d="m19 7-3 2" />
-								<path d="m5 7 3 2" />
-								<path d="m19 19-3-2" />
-								<path d="m5 19 3-2" />
-								<path d="M20 13h-4" />
-								<path d="M4 13h4" />
-								<path d="m10 4 1 2" />
-								<path d="m14 4-1 2" />
-							</svg>
-							<span className="absolute -top-1 -right-1 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
-								<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-400 opacity-75"></span>
-								<span className="relative inline-flex rounded-full h-1 w-1 bg-fuchsia-300"></span>
-							</span>
-						</a>
-						<WarningNotice show={showWarning} onClick={toggleWarning} />
-						<ShareButton app={app} shouldTrack={false} />
-						<CloseButton onClick={onClose} className="hidden md:flex border-slate-200 dark:border-slate-800 hover:border-red-600 dark:hover:border-red-800" />
-					</div>
-				</div>
-			</div>
+                        <Link
+                            href={`/app/${app.slug}`}
+                            className="group flex items-center justify-center gap-2 h-10 w-10 rounded-full border border-slate-400 dark:border-slate-800 hover:border-emerald-600 hover:dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20 hover:dark:bg-emerald-950/20 hover:bg-emerald-200/20 md:bg-transparent dark:md:bg-transparent text-slate-500 dark:text-emerald-600 md:dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-300 backdrop-blur-sm transition-all duration-300 cursor-pointer"
+                            title="Open full page"
+                        >
+                            <span className="hidden font-bold text-xs tracking-tight whitespace-nowrap">
+                                Open full page
+                            </span>
+                            <svg 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                width="15" 
+                                height="15" 
+                                viewBox="0 0 24 24" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                strokeWidth="2.5" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round" 
+                                className="shrink-0 transition-transform duration-200 group-hover:scale-110"
+                            >
+                                <path d="M15 3h6v6" />
+                                <path d="M10 14 21 3" />
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                            </svg>
+                        </Link>
+
+                        <CloseButton onClick={onClose} className="hidden md:flex border-slate-400 dark:border-slate-800 hover:border-red-600 dark:hover:border-red-800" />
+                    </div>
+                </div>
+            </div>
 
 			{/* BODY */}
 			<div className="overflow-y-auto p-4 md:p-8 flex-1">
@@ -436,8 +486,8 @@ function ModalContent({
 				)}
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-slate-900 dark:text-slate-200">
 					<div className="space-y-4 text-xs md:text-sm">
-						<div className="relative bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-blue-900/30 p-4 rounded-md">
-							<div className="absolute top-4 right-4 w-24 h-24 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+						<div className="relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white/70 p-5 shadow-xl shadow-slate-200/50 backdrop-blur-xl transition-all dark:border-slate-800/50 dark:bg-slate-950/40 dark:shadow-none sm:p-6">
+							<div className="absolute top-4 right-4 w-24 h-24 rounded-2xl flex items-center justify-center overflow-hidden flex-shrink-0 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/40 dark:border-slate-800/60 p-3">
 								{icon?.type === "url" && icon.src ? (
 									<Image
 										src={icon.src}
@@ -454,26 +504,112 @@ function ModalContent({
 								)}
 							</div>
 							<div className="w-full">
-								<h3 className="font-bold text-slate-900 dark:text-slate-400 uppercase text-xs mb-2 font-black tracking-widest">App Details</h3>
+								{/* Flex container holding the blue glowing bar right before the heading text */}
+								<div className="flex items-center gap-3 mb-2">
+									<div className="h-1.5 w-6 rounded-full bg-orange-500 shadow-[0_0_12px_rgba(249,115,22,0.4)] dark:bg-orange-400 dark:shadow-[0_0_16px_rgba(251,146,60,0.6)]" />
+									<h3 className="font-bold text-slate-500 dark:text-slate-400 uppercase text-xs font-black tracking-widest">
+										App Details
+									</h3>
+								</div>
+								
 								<div className="space-y-1 text-sm text-slate-700 dark:text-slate-300">
 									{app.website && (
-										<p>
-											Website: <a href={app.website} target="_blank" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Link</a>
+										<p className="flex items-center gap-1.5">
+											<span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Website:</span>{" "}
+											<a href={app.website} target="_blank" rel="noreferrer" className="group inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+												Link
+												<svg 
+													xmlns="http://www.w3.org/2000/svg" 
+													width="13" 
+													height="13" 
+													viewBox="0 0 24 24" 
+													fill="none" 
+													stroke="currentColor" 
+													strokeWidth="2.5" 
+													strokeLinecap="round" 
+													strokeLinejoin="round" 
+													className="shrink-0 transition-transform duration-200 group-hover:scale-110 opacity-80"
+												>
+													<path d="M15 3h6v6" />
+													<path d="M10 14 21 3" />
+													<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+												</svg>
+											</a>
 										</p>
 									)}
+
 									{app.github && (
-										<p>
-											GitHub: <a href={app.github} target="_blank" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Repo</a>
+										<p className="flex items-center gap-1.5">
+											<span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Github:</span>{" "}
+											<a href={app.github} target="_blank" rel="noreferrer" className="group inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+												Repo
+												<svg 
+													xmlns="http://www.w3.org/2000/svg" 
+													width="13" 
+													height="13" 
+													viewBox="0 0 24 24" 
+													fill="none" 
+													stroke="currentColor" 
+													strokeWidth="2.5" 
+													strokeLinecap="round" 
+													strokeLinejoin="round" 
+													className="shrink-0 transition-transform duration-200 group-hover:scale-110 opacity-80"
+												>
+													<path d="M15 3h6v6" />
+													<path d="M10 14 21 3" />
+													<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+												</svg>
+											</a>
 										</p>
 									)}
+
 									{app.docs && (
-										<p>
-											Docs: <a href={app.docs} target="_blank" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Link</a>
+										<p className="flex items-center gap-1.5">
+											<span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Docs:</span>{" "}
+											<a href={app.docs} target="_blank" rel="noreferrer" className="group inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+												Link
+												<svg 
+													xmlns="http://www.w3.org/2000/svg" 
+													width="13" 
+													height="13" 
+													viewBox="0 0 24 24" 
+													fill="none" 
+													stroke="currentColor" 
+													strokeWidth="2.5" 
+													strokeLinecap="round" 
+													strokeLinejoin="round" 
+													className="shrink-0 transition-transform duration-200 group-hover:scale-110 opacity-80"
+												>
+													<path d="M15 3h6v6" />
+													<path d="M10 14 21 3" />
+													<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+												</svg>
+											</a>
 										</p>
 									)}
+
 									{app.source && (
-										<p>
-											Docker Hub: <a href={app.source} target="_blank" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">Link</a>
+										<p className="flex items-center gap-1.5">
+											<span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Docker Hub:</span>{" "}
+											<a href={app.source} target="_blank" rel="noreferrer" className="group inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400 hover:underline">
+												Link
+												<svg 
+													xmlns="http://www.w3.org/2000/svg" 
+													width="13" 
+													height="13" 
+													viewBox="0 0 24 24" 
+													fill="none" 
+													stroke="currentColor" 
+													strokeWidth="2.5" 
+													strokeLinecap="round" 
+													strokeLinejoin="round" 
+													className="shrink-0 transition-transform duration-200 group-hover:scale-110 opacity-80"
+												>
+													<path d="M15 3h6v6" />
+													<path d="M10 14 21 3" />
+													<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+												</svg>
+											</a>
 										</p>
 									)}
 									<div className="py-2.5">
@@ -481,13 +617,13 @@ function ModalContent({
 									</div>
 									{app.version && (
 										<p>
-											Version:{" "}
+											<span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Version: </span>
 											<span className="font-semibold text-green-700 dark:text-green-300">{FormattingUtils.formatVersion(app.version)}</span>
 										</p>
 									)}
 									{app.updated_at && (
 										<p>
-											Latest Change: <span className="font-semibold text-green-700 dark:text-green-300">
+											<span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Last Changed:</span> <span className="font-semibold text-green-700 dark:text-green-300">
 												{new Date(app.updated_at).toLocaleDateString(undefined, {
 													year: "numeric",
 													month: "short",
@@ -497,107 +633,181 @@ function ModalContent({
 										</p>
 									)}
 									<p>
-										Category: <span className="text-blue-600 dark:text-blue-400 font-semibold">{app.category}</span>
+										<span className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">Category:</span> <span className="font-semibold text-slate-700 dark:text-slate-300">{app.category}</span>
 									</p>
 								</div>
 							</div>
 						</div>
-						<div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-blue-900/30 p-4 rounded-md">
-							<h3 className="font-bold text-slate-900 dark:text-slate-400 uppercase text-xs mb-2 tracking-widest font-black">About</h3>
-							<p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium">{app.description || "No description."}</p>
+						<div className="relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white/70 p-5 shadow-xl shadow-slate-200/50 backdrop-blur-xl transition-all dark:border-slate-800/50 dark:bg-slate-950/40 dark:shadow-none sm:p-6">
+							<div className="flex items-center gap-3 mb-2">
+								<div className="h-1.5 w-6 rounded-full bg-blue-500 shadow-[0_0_12px_rgba(211,52,110,0.4)] dark:bg-pink-400 dark:shadow-[0_0_16px_rgba(211,52,110,0.6)]" />
+								<h3 className="font-bold text-slate-500 dark:text-slate-400 uppercase text-xs tracking-widest font-black">
+									About
+								</h3>
+							</div>
+							<p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+								{app.description || "No description."}
+							</p>
 						</div>
 					</div>
 
 					<div className="flex flex-col gap-4 min-h-[300px]">
-						<div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-blue-900/30 p-4 flex flex-col flex-1 max-h-[400px] overflow-y-auto">
-							<h3 className="text-blue-600 dark:text-blue-400 mb-2 font-bold flex justify-between text-[10px] md:text-xs uppercase tracking-widest">
-								docker-compose.yml
-								<div className="flex items-center">
-									<ExportButton text={composeCode} shouldTrack={true} />
-									<CopyButton text={composeCode} shouldTrack={true} />
-								</div>
-							</h3>
-							<div onTouchStart={stopPropagation} className="code-container flex-1 overflow-auto bg-[#f6f4f0]/50 dark:bg-[#0d1117] rounded p-2 border border-slate-200 dark:border-slate-800">
-								<pre className="text-[10px] md:text-xs text-slate-700 dark:text-slate-300 whitespace-pre">{loading ? "Loading..." : composeCode}</pre>
-							</div>
-						</div>
-
-						<div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-blue-900/30 p-4 space-y-4 rounded-md">
 							{/* Compose Command */}
-							<div className="text-[10px] md:text-xs space-y-2">
-								<div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800/60 pb-1.5">
-									<div className="flex gap-1.5">
-										{envFile && (
-											<TabButton isActive={composeTab === "env"} onClick={() => setComposeTab("env")}>
-												.env
-											</TabButton>
-										)}
-										<TabButton isActive={composeTab === "run"} onClick={() => setComposeTab("run")}>
-											Run
-										</TabButton>
-										{updateCommand && (
-											<TabButton isActive={composeTab === "update"} onClick={() => setComposeTab("update")}>
-												Update
-											</TabButton>
-										)}
+							<div className="relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white/70 p-5 shadow-xl shadow-slate-200/50 backdrop-blur-xl transition-all dark:border-slate-800/50 dark:bg-slate-950/40 dark:shadow-none sm:p-6 flex flex-col gap-5 max-h-[700px]">
+								<div className="flex items-center justify-between gap-4 shrink-0">
+									<div className="flex items-center gap-3">
+										<div className="h-1.5 w-6 rounded-full bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.4)] dark:bg-blue-400 dark:shadow-[0_0_16px_rgba(96,165,250,0.6)]" />
+										<h2 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 font-mono">
+											compose.yml
+										</h2>
 									</div>
-									<div className="flex items-center">
-										{composeTab === "env" && envFile && <ExportButton text={envFile} filename=".env" shouldTrack={false} />}
-										<CopyButton text={getCopyText()} shouldTrack={false} />
+									<div className="flex items-center gap-1.5">
+										<ExportButton text={composeCode ?? ""} shouldTrack={true} />
+										<CopyButton text={composeCode ?? ""} shouldTrack={true} />
 									</div>
 								</div>
 
-								<div
-									onTouchStart={stopPropagation}
-									className="code-container max-h-[200px] overflow-y-auto overflow-x-auto bg-[#f6f4f0]/50 dark:bg-[#0d1117] p-3 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 whitespace-pre font-mono leading-relaxed"
-								>
-									{composeTab === "update" && updateCommand ? (
-										<span>
-											{updateCommand.split("\n").map((line, idx) => (
-												<span key={idx} className="block">
-													$ {line}
-												</span>
-											))}
-										</span>
-									) : composeTab === "env" && envFile ? (
-										<span>{envFile}</span>
-									) : (
-										<span>$ docker compose up -d</span>
-									)}
+								<div onTouchStart={stopPropagation} className="group relative flex-1 min-h-[180px] max-h-[300px] overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800/80 dark:bg-slate-900/40">
+									<button
+										onClick={() => setShowExpandedCompose(true)}
+										className="absolute top-3 right-3 z-10 inline-flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-1.5 text-gray-600 dark:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+										aria-label="Expand compose code in full screen"
+									>
+										<svg 
+											xmlns="http://www.w3.org/2000/svg" 
+											fill="none" 
+											viewBox="0 0 24 24" 
+											strokeWidth={2.5} 
+											stroke="currentColor" 
+											className="h-4 w-4"
+										>
+											<path 
+												strokeLinecap="round" 
+												strokeLinejoin="round" 
+												d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" 
+											/>
+										</svg>
+									</button>
+									<pre className="font-mono text-xs text-slate-700 dark:text-slate-300 whitespace-pre leading-relaxed select-text">
+										{composeCode ?? "Loading..."}
+									</pre>
+								</div>
+
+								<div className="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-900">
+									<div className="flex justify-between items-center gap-4">
+										<div className="inline-flex items-center p-0.5 rounded-lg gap-1">
+											{envFile && (
+												<TabButton isActive={composeTab === "env"} onClick={() => setComposeTab("env")}>
+													.env
+												</TabButton>
+											)}
+											<TabButton isActive={composeTab === "run"} onClick={() => setComposeTab("run")}>
+												Run
+											</TabButton>
+											{updateCommand && (
+												<TabButton isActive={composeTab === "update"} onClick={() => setComposeTab("update")}>
+													Update
+												</TabButton>
+											)}
+										</div>
+										<div className="flex items-center gap-1">
+											{composeTab === "env" && envFile && <ExportButton text={envFile} filename=".env" shouldTrack={false} />}
+											<CopyButton text={getCopyText()} shouldTrack={false} />
+										</div>
+									</div>
+
+									<div
+										onTouchStart={stopPropagation}
+										className="max-h-[160px] overflow-auto bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl text-xs text-slate-700 dark:text-blue-300 border border-slate-200 dark:border-slate-800/80 whitespace-pre font-mono leading-relaxed select-text"
+									>
+										{composeTab === "update" && updateCommand ? (
+											<div className="space-y-1">
+												{updateCommand.split("\n").map((line, idx) => (
+													<div key={idx} className="flex gap-2">
+														<span className="text-blue-800 dark:text-blue-300 select-none">$</span>
+														<span className="text-blue-800 dark:text-blue-300">{line}</span>
+													</div>
+												))}
+											</div>
+										) : composeTab === "env" && envFile ? (
+											<div className="group relative">
+												<button
+													onClick={() => setShowEnvCode(true)}
+													className="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-1 text-gray-600 dark:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+													aria-label="Expand .env code in full screen"
+												>
+													<svg 
+														xmlns="http://www.w3.org/2000/svg" 
+														fill="none" 
+														viewBox="0 0 24 24" 
+														strokeWidth={2.5} 
+														stroke="currentColor" 
+														className="h-4 w-4"
+													>
+														<path 
+															strokeLinecap="round" 
+															strokeLinejoin="round" 
+															d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" 
+														/>
+													</svg>
+												</button>
+												<div className="text-emerald-700 dark:text-emerald-400">{envFile}</div>
+											</div>
+										) : (
+											<div className="flex gap-2">
+												<span className="text-blue-800 dark:text-blue-300 select-none">$</span>
+												<span className="text-blue-800 dark:text-blue-300">docker compose up -d</span>
+											</div>
+										)}
+									</div>
 								</div>
 							</div>
 
 							{/* Docker CLI Section */}
 							{runCommand && (
-								<div className="text-[10px] md:text-xs space-y-2">
-									<div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800/60 pb-1.5">
-										<div className="flex gap-1.5">
-											{bashCommand && (
-												<TabButton isActive={cliTab === "bash"} onClick={() => setCliTab("bash")}>
-													Bash
-												</TabButton>
-											)}
-											<TabButton isActive={cliTab === "cli"} onClick={() => setCliTab("cli")}>
-												Docker CLI
-											</TabButton>
-											{cliUpdateCommand && (
-												<TabButton isActive={cliTab === "update"} onClick={() => setCliTab("update")}>
-													Update
-												</TabButton>
-											)}
-										</div>
-										<CopyButton text={getCliText()} shouldTrack={false} />
+								<div className="relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white/70 p-5 shadow-xl shadow-slate-200/50 backdrop-blur-xl transition-all dark:border-slate-800/50 dark:bg-slate-950/40 dark:shadow-none sm:p-6 flex flex-col gap-5">
+									<div className="flex items-center gap-3 shrink-0">
+										<div className="h-1.5 w-6 rounded-full bg-sky-500 shadow-[0_0_12px_rgba(14,165,233,0.4)] dark:bg-sky-400 dark:shadow-[0_0_16px_rgba(56,189,248,0.6)]" />
+										<h2 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 font-mono">
+											Docker CLI
+										</h2>
 									</div>
-
-									<div
-										onTouchStart={stopPropagation}
-										className="code-container max-h-[200px] overflow-y-auto overflow-x-auto bg-[#f6f4f0]/50 dark:bg-[#0d1117] p-3 rounded text-slate-800 dark:text-blue-300 border border-slate-200 dark:border-blue-900/50 whitespace-pre font-mono leading-relaxed"
-									>
-										$ {getCliText()}
+									<div className="space-y-3">
+										<div className="flex justify-between items-center gap-4">
+											<div className="inline-flex items-center p-0.5 rounded-lg gap-1">
+												{bashCommand && (
+													<TabButton isActive={cliTab === "bash"} onClick={() => setCliTab("bash")}>
+														Bash
+													</TabButton>
+												)}
+												<TabButton isActive={cliTab === "cli"} onClick={() => setCliTab("cli")}>
+													Docker CLI
+												</TabButton>
+												{cliUpdateCommand && (
+													<TabButton isActive={cliTab === "update"} onClick={() => setCliTab("update")}>
+														Update
+													</TabButton>
+												)}
+											</div>
+											<div className="flex items-center">
+												<CopyButton text={getCliText()} shouldTrack={false} />
+											</div>
+										</div>
+										<div 
+											onTouchStart={stopPropagation}
+											className="max-h-[200px] overflow-auto bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl text-xs text-slate-700 dark:text-blue-300 border border-slate-200 dark:border-slate-800/80 font-mono leading-relaxed select-text"
+										>
+											<div className="flex gap-2 items-start">
+												<span className="text-blue-800 dark:text-blue-300 select-none">$</span>
+												<span className="text-blue-800 dark:text-blue-300 break-all whitespace-pre">
+													{getCliText()}
+												</span>
+											</div>
+										</div>
 									</div>
 								</div>
 							)}
-						</div>
+
 
 						<div className="flex items-center justify-end gap-3 w-full">
 							<button
@@ -615,7 +825,7 @@ function ModalContent({
 											<path className="animate-pulse delay-75" d="M22 10l.5 1.5L24 12l-1.5.5L22 14l-.5-1.5L20 12l1.5-.5L22 10z" />
 										</svg>
 									</div>
-									<span className="hidden md:inline tracking-[0.2em] whitespace-nowrap font-sans">Surprise</span>
+									<span className="hidden lg:inline tracking-[0.2em] whitespace-nowrap font-sans">Surprise</span>
 								</div>
 							</button>
 
@@ -627,8 +837,8 @@ function ModalContent({
 								<div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-600/20 via-fuchsia-900/5 to-transparent" />
 								<div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-purple-400/10 to-transparent" />
 								<div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-900 dark:group-hover:text-fuchsia-400 transition-colors duration-300">
-									<div className="relative shrink-0">
-										<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
+									<div className="relative shrink-0 transition-transform duration-500 group-hover:rotate-12">
+										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-900 dark:group-hover:text-fuchsia-400 transition-colors duration-300 transition-transform group-hover:scale-110 drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
 											<rect width="8" height="14" x="8" y="6" rx="4" />
 											<path d="m19 7-3 2" />
 											<path d="m5 7 3 2" />
@@ -644,7 +854,7 @@ function ModalContent({
 											<span className="relative inline-flex rounded-full h-1 w-1 bg-fuchsia-300"></span>
 										</span>
 									</div>
-									<span className="hidden md:inline tracking-[0.2em] whitespace-nowrap font-sans">Report</span>
+									<span className="hidden lg:inline tracking-[0.2em] whitespace-nowrap font-sans">Report</span>
 								</div>
 								<div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(168,85,247,0.15)]" />
 							</a>
@@ -659,14 +869,18 @@ function ModalContent({
 								<div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-600/20 via-yellow-900/5 to-transparent" />
 								<div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-amber-400/10 to-transparent" />
 								<div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-amber-400 group-hover:text-yellow-900 dark:group-hover:text-yellow-400 transition-colors duration-300">
-									<div className="relative shrink-0">
-										<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]">
+									<div className="relative w-5 h-5 flex items-center justify-center shrink-0 text-amber-500 dark:text-amber-400 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
+										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(245,158,11,0.3)]">
 											<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" />
 											<path d="M9 18h6" />
 											<path d="M10 22h4" />
 										</svg>
+										<span className="absolute top-0 right-0 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
+											<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+											<span className="relative inline-flex rounded-full h-1 w-1 bg-amber-300" />
+										</span>
 									</div>
-									<span className="hidden md:inline tracking-[0.2em] whitespace-nowrap font-sans">Request</span>
+									<span className="hidden lg:inline tracking-[0.2em] whitespace-nowrap font-sans">Request</span>
 								</div>
 							</button>
 						</div>
@@ -686,12 +900,13 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
 	const composeCode = composeCache[app?.slug] ?? "Loading...";
 	const [loading, setLoading] = useState(!detailsCache[app?.slug]);
 	const [isRequesting, setIsRequesting] = useState(false);
+	const [showExpandedCompose, setShowExpandedCompose] = useState(false);
+	const [showEnvCode, setShowEnvCode] = useState(false);
 
 	const [dragOffset, setDragOffset] = useState(0);
 	const [isDragging, setIsDragging] = useState(false);
 	const [status, setStatus] = useState<"idle" | "exiting" | "entry-ready" | "entering">("idle");
 	const [swipeDir, setSwipeDir] = useState<"left" | "right" | null>(null);
-	const [entryOffset, setEntryOffset] = useState(0);
 
 	const SWIPE_ANIM_MS = 160;
 
@@ -919,9 +1134,27 @@ export function AppModal({ app, allApps, onAppChange, onClose, onRandom }: AppMo
 					isLiked={isLiked}
 					likesCount={likesCount}
 					isSyncing={isSyncing}
+					showExpandedCompose={showExpandedCompose}
+					setShowExpandedCompose={setShowExpandedCompose}
+					showEnvCode={showEnvCode}
+					setShowEnvCode={setShowEnvCode}
 				/>
+				<CodeExpansionModal
+					isOpen={showExpandedCompose}
+					onClose={() => setShowExpandedCompose(false)}
+					code={composeQuery.data ?? composeCode}
+					appName={displayApp.name}
+					filename="compose.yml"
+				/>
+				<CodeExpansionModal
+					isOpen={showEnvCode}
+					onClose={() => setShowEnvCode(false)}
+					code={typeof detailsQuery.data?.env_file === "string" ? detailsQuery.data.env_file : ""}
+					appName={displayApp.name}
+					filename=".env"
+				/>
+				{isRequesting && <RequestSearchOverlay allApps={allApps} onClose={() => setIsRequesting(false)} onAppSelect={onAppChange} />}
 			</div>
-			{isRequesting && <RequestSearchOverlay allApps={allApps} onClose={() => setIsRequesting(false)} onAppSelect={onAppChange} />}
 		</div>
 	);
 }
