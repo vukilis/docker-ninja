@@ -7,9 +7,11 @@ interface ShareButtonProps {
         name: string;
     };
     shouldTrack?: boolean;
+    label?: string;
+    className?: string;
 }
 
-export function ShareButton({ app, shouldTrack = false }: ShareButtonProps) {
+export function ShareButton({ app, shouldTrack = false, label, className = "" }: ShareButtonProps) {
     const { copied, handleCopy } = useClipboardCopy();
 
     const handleShareClick = async () => {
@@ -39,8 +41,8 @@ export function ShareButton({ app, shouldTrack = false }: ShareButtonProps) {
                 transition-all duration-300 ease-out active:scale-90
                 ${copied 
                     ? 'border-green-500 bg-green-500/10' 
-                    : 'border-blue-500 dark:border-blue-950 md:border-slate-200 md:dark:border-slate-800 md:hover:border-blue-500/50 md:hover:bg-blue-500/5'
-                }`}
+                    : 'border-blue-500 dark:border-blue-950 md:border-slate-400 md:dark:border-slate-800 md:hover:border-blue-500/50 md:hover:bg-blue-500/5'
+                } ${className} ${copied ? 'border-green-500 bg-green-500/10 text-green-100' : ''}`}
         >
             {copied ? (
                 <svg className="w-4 h-4 text-green-500 animate-in zoom-in spin-in-12 duration-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -55,6 +57,7 @@ export function ShareButton({ app, shouldTrack = false }: ShareButtonProps) {
                     <path d="M8.7 13.3l6.6 3.4"></path>
                 </svg>
             )}
+            {label && <span className="hidden lg:inline whitespace-nowrap">{label}</span>}
         </button>
     );
 }
