@@ -8,6 +8,7 @@ export interface AppRow {
     slug: string;
     name: string;
     category: string;
+    description?: string;
     icon_url?: string;
     [key: string]: unknown;
 }
