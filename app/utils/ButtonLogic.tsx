@@ -24,8 +24,10 @@ export const copyTextToClipboard = async (text: string): Promise<boolean> => {
 
 export const useClipboardCopy = (duration: number = 2000) => {
     const [copied, setCopied] = useState(false);
+    const [copying, setCopying] = useState(false);
 
     const handleCopy = async (text: string, shouldTrack: boolean = false) => {
+        setCopying(true);
         const success = await copyTextToClipboard(text);
         
         if (success) {
@@ -39,9 +41,10 @@ export const useClipboardCopy = (duration: number = 2000) => {
                 }
             }
         }
+        setCopying(false);
     };
 
-    return { copied, handleCopy };
+    return { copied, copying, handleCopy };
 };
 
 export const downloadTextFile = async (text: string, filename: string): Promise<boolean> => {
@@ -65,8 +68,10 @@ export const downloadTextFile = async (text: string, filename: string): Promise<
 
 export const useExportFile = (duration: number = 2000) => {
     const [exported, setExported] = useState(false);
+    const [exporting, setExporting] = useState(false);
 
     const handleExport = async (text: string, filename: string, shouldTrack: boolean = false) => {
+        setExporting(true);
         const success = await downloadTextFile(text, filename);
         
         if (success) {
@@ -80,7 +85,8 @@ export const useExportFile = (duration: number = 2000) => {
                 }
             }
         }
+        setExporting(false);
     };
 
-    return { exported, handleExport };
+    return { exported, exporting, handleExport };
 };
