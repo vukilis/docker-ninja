@@ -11,6 +11,9 @@ import { CopyButton } from "./CopyButton";
 import { ExportButton } from "./ExportButton";
 import { ShareButton } from "./ShareButton";
 import { CodeExpansionModal } from "./ComposeCodeModal";
+import { ReportButton } from "./ReportButton";
+import { RequestButton } from "./RequestButton";
+import { SurpriseButton } from "./SurpriseButton";
 import { useAppsGlobal } from "../context/AppsContext";
 import { useShortcutKeys } from "./useShortcutKeys";
 
@@ -55,7 +58,7 @@ interface AppModalProps {
 	onClose: () => void;
 	onLikeUpdate?: (slug: string, newCount: number) => void;
 	setIsRequesting?: (val: boolean) => void;
-	onRandom?: () => void;
+	onRandom: () => void;
 }
 
 // --- OVERLAY COMPONENT ---
@@ -256,7 +259,7 @@ interface ModalContentProps {
 	onClose: () => void;
 	stopPropagation: (e: React.SyntheticEvent) => void;
 	setIsRequesting: (val: boolean) => void;
-	onRandom?: () => void;
+	onRandom: () => void;
 	handleLikeToggle: (e: React.MouseEvent) => void;
 	isLiked: boolean;
 	likesCount: number;
@@ -403,29 +406,9 @@ function ModalContent({
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <a
-                            href={`${GITHUB_NEW_ISSUE_URL}?template=issue-report.md&title=${encodeURIComponent(`[BUG] ${app.name}`)}&labels=bug`}
-                            target="_blank"
-                            className="group lg:relative group flex items-center justify-center w-10 h-10 rounded-full border border-slate-200 dark:border-purple-600/30 hover:border-purple-500/60 bg-purple-100 dark:bg-purple-950/5 backdrop-blur-sm transition-all duration-300 cursor-pointer"
-                        >
-                            <div className="relative shrink-0 transition-transform duration-500 group-hover:rotate-12">
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-900 dark:group-hover:text-fuchsia-400 transition-colors duration-300 transition-transform group-hover:scale-110 drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
-									<rect width="8" height="14" x="8" y="6" rx="4" />
-									<path d="m19 7-3 2" />
-									<path d="m5 7 3 2" />
-									<path d="m19 19-3-2" />
-									<path d="m5 19 3-2" />
-									<path d="M20 13h-4" />
-									<path d="M4 13h4" />
-									<path d="m10 4 1 2" />
-									<path d="m14 4-1 2" />
-								</svg>
-								<span className="absolute -top-1 -right-1 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
-									<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-400 opacity-75"></span>
-									<span className="relative inline-flex rounded-full h-1 w-1 bg-fuchsia-300"></span>
-								</span>
-							</div>
-                        </a>
+                        <ReportButton
+							href={`${GITHUB_NEW_ISSUE_URL}?template=issue-report.md&title=${encodeURIComponent(`[BUG] ${app.name}`)}&labels=bug`}>
+						</ReportButton>
 
                         <WarningNotice show={showWarning} onClick={toggleWarning} />
 						
@@ -433,7 +416,7 @@ function ModalContent({
 
                         <Link
                             href={`/app/${app.slug}`}
-                            className="group flex items-center justify-center gap-2 h-10 w-10 rounded-full border border-slate-400 dark:border-slate-800 hover:border-emerald-600 hover:dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/20 hover:dark:bg-emerald-950/20 hover:bg-emerald-200/20 md:bg-transparent dark:md:bg-transparent text-slate-500 dark:text-emerald-600 md:dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-300 backdrop-blur-sm transition-all duration-300 cursor-pointer"
+                            className="group flex items-center justify-center gap-2 h-10 w-10 rounded-full border border-emerald-600 md:border-slate-400 dark:border-slate-800 hover:border-emerald-600 hover:dark:border-emerald-800 dark:bg-emerald-950/5 hover:dark:bg-emerald-950/20 hover:bg-emerald-200/20 md:bg-transparent dark:md:bg-transparent text-emerald-600 dark:text-emerald-600 md:text-slate-500 md:dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-300 backdrop-blur-sm transition-all duration-300 cursor-pointer"
                             title="Open full page"
                         >
                             <span className="hidden font-bold text-xs tracking-tight whitespace-nowrap">
@@ -487,7 +470,7 @@ function ModalContent({
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-slate-900 dark:text-slate-200">
 					<div className="space-y-4 text-xs md:text-sm">
 						<div className="relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white/70 p-5 shadow-xl shadow-slate-200/50 backdrop-blur-xl transition-all dark:border-slate-800/50 dark:bg-slate-950/40 dark:shadow-none sm:p-6">
-							<div className="absolute top-4 right-4 w-24 h-24 rounded-2xl flex items-center justify-center overflow-hidden flex-shrink-0 bg-slate-50/50 dark:bg-slate-900/50 border border-slate-200/40 dark:border-slate-800/60 p-3">
+							<div className="absolute top-4 right-4 w-24 h-24 rounded-2xl flex items-center justify-center overflow-hidden flex-shrink-0 bg-slate-200 dark:bg-slate-900 border border-slate-200/40 dark:border-slate-800/60 p-3">
 								{icon?.type === "url" && icon.src ? (
 									<Image
 										src={icon.src}
@@ -810,79 +793,21 @@ function ModalContent({
 
 
 						<div className="flex items-center justify-end gap-3 w-full">
-							<button
-								onClick={onRandom}
-								className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-emerald-600/30 hover:border-emerald-500/60 bg-emerald-100 dark:bg-emerald-950/5 backdrop-blur-sm cursor-pointer"
-							>
-								<div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-emerald-600/20 via-green-900/5 to-transparent" />
-								<div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-emerald-400/10 to-transparent" />
-								<div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-emerald-400 group-hover:text-emerald-900 dark:group-hover:text-emerald-300 transition-colors duration-300">
-									<div className="relative shrink-0 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
-										<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]">
-											<path d="m15 5 4 4" />
-											<path d="M11 9 2 18l4 4 9-9" />
-											<path className="animate-pulse" d="M15 1l.5 1.5L17 3l-1.5.5L15 5l-.5-1.5L13 3l1.5-.5L15 1z" />
-											<path className="animate-pulse delay-75" d="M22 10l.5 1.5L24 12l-1.5.5L22 14l-.5-1.5L20 12l1.5-.5L22 10z" />
-										</svg>
-									</div>
-									<span className="hidden lg:inline tracking-[0.2em] whitespace-nowrap font-sans">Surprise</span>
-								</div>
-							</button>
+							<SurpriseButton onClick={() => onRandom()} className="md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px]">
+								<span className="hidden lg:inline tracking-[0.2em] whitespace-nowrap font-sans">Surprise</span>
+							</SurpriseButton>
 
-							<a
+							<ReportButton
 								href={`${GITHUB_NEW_ISSUE_URL}?template=issue-report.md&title=${encodeURIComponent(`[BUG] ${app.name}`)}&labels=bug`}
-								target="_blank"
-								className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-purple-600/30 hover:border-purple-500/60 bg-purple-100 dark:bg-purple-950/5 backdrop-blur-sm"
-							>
-								<div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-600/20 via-fuchsia-900/5 to-transparent" />
-								<div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-purple-400/10 to-transparent" />
-								<div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-900 dark:group-hover:text-fuchsia-400 transition-colors duration-300">
-									<div className="relative shrink-0 transition-transform duration-500 group-hover:rotate-12">
-										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-900 dark:group-hover:text-fuchsia-400 transition-colors duration-300 transition-transform group-hover:scale-110 drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
-											<rect width="8" height="14" x="8" y="6" rx="4" />
-											<path d="m19 7-3 2" />
-											<path d="m5 7 3 2" />
-											<path d="m19 19-3-2" />
-											<path d="m5 19 3-2" />
-											<path d="M20 13h-4" />
-											<path d="M4 13h4" />
-											<path d="m10 4 1 2" />
-											<path d="m14 4-1 2" />
-										</svg>
-										<span className="absolute -top-1 -right-1 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
-											<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-400 opacity-75"></span>
-											<span className="relative inline-flex rounded-full h-1 w-1 bg-fuchsia-300"></span>
-										</span>
-									</div>
-									<span className="hidden lg:inline tracking-[0.2em] whitespace-nowrap font-sans">Report</span>
-								</div>
-								<div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(168,85,247,0.15)]" />
-							</a>
+								className="md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px]">
+								<span className="hidden lg:inline tracking-[0.2em] whitespace-nowrap font-sans">Report</span>
+							</ReportButton>
 
-							<button
-								onClick={(e) => {
-									e.preventDefault();
-									setIsRequesting(true);
-								}}
-								className="relative group flex items-center justify-center w-10 h-10 md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-amber-600/30 hover:border-amber-500/60 bg-amber-100 dark:bg-amber-950/5 backdrop-blur-sm cursor-pointer"
-							>
-								<div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-600/20 via-yellow-900/5 to-transparent" />
-								<div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-amber-400/10 to-transparent" />
-								<div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-amber-400 group-hover:text-yellow-900 dark:group-hover:text-yellow-400 transition-colors duration-300">
-									<div className="relative w-5 h-5 flex items-center justify-center shrink-0 text-amber-500 dark:text-amber-400 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
-										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(245,158,11,0.3)]">
-											<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" />
-											<path d="M9 18h6" />
-											<path d="M10 22h4" />
-										</svg>
-										<span className="absolute top-0 right-0 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
-											<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-											<span className="relative inline-flex rounded-full h-1 w-1 bg-amber-300" />
-										</span>
-									</div>
-									<span className="hidden lg:inline tracking-[0.2em] whitespace-nowrap font-sans">Request</span>
-								</div>
-							</button>
+							<RequestButton
+								onClick={() => setIsRequesting(true)}
+								className="md:w-auto md:min-w-[140px] gap-2 md:px-4 py-3 md:py-4 text-[8px] md:text-[10px]">
+								<span className="hidden lg:inline tracking-[0.2em] whitespace-nowrap font-sans">Request</span>
+							</RequestButton>
 						</div>
 					</div>
 				</div>
