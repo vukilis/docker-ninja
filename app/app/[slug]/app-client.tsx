@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import Image from "next/image";
@@ -15,6 +15,9 @@ import { TabButton, FormattingUtils, AppBase, AppDetail, RequestSearchOverlay, W
 import { CodeExpansionModal } from "../../components/ComposeCodeModal";
 import { ScrollToTop } from "../../components/ScrollToTop";
 import { ThemeSwitcher } from "../../components/ThemeSwitcher";
+import { RelatedApps } from "../../components/RelatedApps";
+import { ReportButton } from "../../components/ReportButton";
+import { RequestButton } from "../../components/RequestButton";
 
 const GITHUB_NEW_ISSUE_URL = "https://github.com/vukilis/docker-ninja/issues/new";
 
@@ -152,11 +155,8 @@ export default function AppPageClient({ slug, initialApp }: { slug: string; init
 
 	const relatedApps = useMemo(() => {
 		const others = allCategoryApps.filter((a) => a.slug !== app.slug);
-		if (others.length <= 4) return others;
-		if (!mounted) return others.slice(0, 4);
-		const shuffled = [...others].sort(() => Math.random() - 0.5);
-		return shuffled.slice(0, 4);
-	}, [allCategoryApps, app.slug, mounted]);
+		return others;
+	}, [allCategoryApps, app.slug]);
 
 	const likeMutation = useMutation({
 		mutationFn: async ({ appSlug, liked, deviceUuid }: { appSlug: string; liked: boolean; deviceUuid: string }) => {
@@ -228,8 +228,7 @@ export default function AppPageClient({ slug, initialApp }: { slug: string; init
 
 	const icon = getIcon(app.slug, app.icon_url);
 	const reportHref = `${GITHUB_NEW_ISSUE_URL}?template=issue-report.md&title=${encodeURIComponent(`[BUG] ${app.name}`)}&labels=bug`;
-	const [activeCardId, setActiveCardId] = React.useState<string | null>(null);
-	
+
 	return (
 		<div className="relative flex h-screen overflow-hidden dark:bg-[#0d1117] text-slate-100">
 			<main ref={scrollContainerRef} className="relative z-10 flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -274,49 +273,8 @@ export default function AppPageClient({ slug, initialApp }: { slug: string; init
 										<div className="flex items-center gap-3">
 											{/* LEFT SIDE BUTTONS */}
 											<div className="flex lg:hidden flex-col gap-4.5">
-												<a href={reportHref} target="_blank" rel="noreferrer" className="relative group flex items-center justify-center w-10 h-10 text-[8px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-purple-600/30 hover:border-purple-500/60 bg-purple-100 dark:bg-purple-950/5 backdrop-blur-sm">
-													<div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-600/20 via-fuchsia-900/5 to-transparent" />
-													<div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-purple-400/10 to-transparent" />
-														<div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-900 dark:group-hover:text-fuchsia-400 transition-colors duration-300">
-															<div className="relative shrink-0">
-																<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
-																	<rect width="8" height="14" x="8" y="6" rx="4" />
-																	<path d="m19 7-3 2" />
-																	<path d="m5 7 3 2" />
-																	<path d="m19 19-3-2" />
-																	<path d="m5 19 3-2" />
-																	<path d="M20 13h-4" />
-																	<path d="M4 13h4" />
-																	<path d="m10 4 1 2" />
-																	<path d="m14 4-1 2" />
-																</svg>
-																<span className="absolute -top-1 -right-1 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
-																	<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-400 opacity-75"></span>
-																	<span className="relative inline-flex rounded-full h-1 w-1 bg-fuchsia-300"></span>
-																</span>
-															</div>
-															<span className="sr-only">Report</span>
-														</div>
-													<div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(168,85,247,0.15)]" />
-												</a>
-
-												<button
-													onClick={() => setIsRequesting(true)}
-													className="relative group flex items-center justify-center w-10 h-10 gap-2 text-[8px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-slate-200 dark:border-amber-600/30 hover:border-amber-500/60 bg-amber-100 dark:bg-amber-950/5 backdrop-blur-sm cursor-pointer"
-												>
-													<div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-600/20 via-yellow-900/5 to-transparent" />
-													<div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-amber-400/10 to-transparent" />
-													<div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-amber-400 group-hover:text-yellow-900 dark:group-hover:text-yellow-400 transition-colors duration-300">
-														<div className="relative shrink-0">
-															<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(245,158,11,0.5)]">
-																<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" />
-																<path d="M9 18h6" />
-																<path d="M10 22h4" />
-															</svg>
-														</div>
-														<span className="sr-only">Request</span>
-													</div>
-												</button>
+												<ReportButton href={reportHref} />
+												<RequestButton onClick={() => setIsRequesting(true)} />
 											</div>
 
 											{/* APP ICON CONTAINER */}
@@ -753,126 +711,14 @@ export default function AppPageClient({ slug, initialApp }: { slug: string; init
 
 							<div className="hidden lg:flex relative overflow-hidden rounded-2xl border border-slate-200/50 bg-white/70 p-5 shadow-xl shadow-slate-200/50 backdrop-blur-xl transition-all dark:border-slate-800/50 dark:bg-slate-950/40 dark:shadow-none items-center justify-center gap-8 sm:p-6">
 								<div className="absolute inset-0 -z-10 bg-gradient-to-br from-slate-500/5 to-transparent dark:from-slate-400/5" />
-								
-								{/* Report Link */}
-								<a href={reportHref} target="_blank" rel="noreferrer" className="relative group flex items-center justify-center w-10 h-10 text-[8px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-purple-600 dark:border-purple-600/30 hover:border-purple-500/60 bg-purple-100 dark:bg-purple-950/5 backdrop-blur-sm">
-									<div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-600/20 via-fuchsia-900/5 to-transparent" />
-									<div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-purple-400/10 to-transparent" />
-									<div className="relative flex items-center justify-center gap-2 text-slate-500 dark:text-purple-400 group-hover:text-fuchsia-900 dark:group-hover:text-fuchsia-400 transition-colors duration-300">
-										<div className="relative shrink-0 transition-transform duration-500 group-hover:rotate-12">
-											<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(168,85,247,0.5)] transition-transform group-hover:scale-110">
-												<rect width="8" height="14" x="8" y="6" rx="4" />
-												<path d="m19 7-3 2" />
-												<path d="m5 7 3 2" />
-												<path d="m19 19-3-2" />
-												<path d="m5 19 3-2" />
-												<path d="M20 13h-4" />
-												<path d="M4 13h4" />
-												<path d="m10 4 1 2" />
-												<path d="m14 4-1 2" />
-											</svg>
-											<span className="absolute -top-1 -right-1 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
-												<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-fuchsia-400 opacity-75"></span>
-												<span className="relative inline-flex rounded-full h-1 w-1 bg-fuchsia-300"></span>
-											</span>
-										</div>
-										<span className="sr-only">Report</span>
-									</div>
-									<div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[inset_0_0_15px_rgba(168,85,247,0.15)]" />
-								</a>
-
-								{/* Request Button */}
-								<button
-									onClick={() => setIsRequesting(true)}
-									className="group relative group flex items-center justify-center w-10 h-10 gap-2 text-[8px] font-black uppercase tracking-[0.15em] transition-all duration-500 overflow-hidden rounded-full border border-amber-600 dark:border-amber-600/30 hover:border-amber-500/60 bg-amber-100 dark:bg-amber-950/5 backdrop-blur-sm cursor-pointer"
-								>
-									<div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-600/15 via-transparent to-transparent" />
-								<div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-amber-400/10 to-transparent" />
-								<div className="w-12 xl:w-[64px] flex items-center justify-center shrink-0 relative z-10">
-									<div className="relative w-5 h-5 flex items-center justify-center shrink-0 text-amber-500 dark:text-amber-400 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
-										<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_0_5px_rgba(245,158,11,0.3)]">
-											<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5" />
-											<path d="M9 18h6" />
-											<path d="M10 22h4" />
-										</svg>
-										<span className="absolute top-0 right-0 flex h-2 w-2 opacity-0 group-hover:opacity-100 transition-opacity">
-											<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-											<span className="relative inline-flex rounded-full h-1 w-1 bg-amber-300" />
-										</span>
-									</div>
-								</div>
-								</button>
+								<ReportButton href={reportHref}/>
+								<RequestButton onClick={() => setIsRequesting(true)}/>
 								<WarningNotice show={showWarning} onClick={toggleWarning} />
 								<ShareButton app={app} shouldTrack={false} />
 							</div>
 						</aside>
-										
-						{relatedApps.length > 0 && (
-							<section className="order-4 relative w-full overflow-hidden rounded-2xl border border-slate-200/50 bg-white/70 p-6 mb-20 shadow-xl shadow-slate-200/50 backdrop-blur-xl transition-all dark:border-slate-800/50 dark:bg-slate-950/40 dark:shadow-none sm:p-8">
-								<div className="absolute inset-0 -z-10 bg-gradient-to-br from-emerald-500/5 via-transparent to-blue-500/5 dark:from-pink-500/10 dark:to-blue-500/10" />
-								<div className="mb-6 flex items-center gap-3">
-									<div className="h-1.5 w-6 rounded-full bg-pink-500 shadow-[0_0_12px_rgba(211,52,110,0.4)] dark:bg-pink-400 dark:shadow-[0_0_16px_rgba(211,52,110,0.6)]" />
-									<h2 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-										You might also like
-									</h2>
-								</div>
-								<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-									{relatedApps.map((relatedApp) => {
-										const relatedIcon = getIcon(relatedApp.slug, relatedApp.icon_url);
-										const cardId = String(relatedApp.slug || relatedApp.id);
-										const isActive = activeCardId === cardId;
-										return (
-											<Link
-												key={relatedApp.slug ?? relatedApp.id}
-												href={`/app/${encodeURIComponent(cardId)}`}
-												style={{ 
-													WebkitTouchCallout: 'none', 
-													WebkitTapHighlightColor: 'transparent' 
-												}} 
-												onTouchStart={() => setActiveCardId(cardId)}
-												
-												className={`group flex items-center gap-3.5 rounded-2xl border border-slate-400/30 p-3.5 select-none
-													transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)]
-													
-													${isActive 
-														? 'scale-[0.98] border-blue-500/30 bg-blue-500/[0.03] dark:border-blue-400/30 dark:bg-blue-400/[0.03]' 
-														: 'border-slate-200/50 bg-white/30 dark:border-slate-800/50 dark:bg-slate-900/20'
-													}
-													
-													/* Clean Desktop Hover */
-													hover:border-blue-600 dark:hover:border-slate-700 hover:bg-blue-500/[0.03] dark:hover:bg-slate-700/20
-													
-													/* Subtle Keyboard Accessibility */
-													focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500/50`}
-												>
-												<div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200/60 bg-white p-2 shadow-sm dark:border-slate-800/80 dark:bg-slate-900">
-													<div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500/5 rounded-xl to-purple-500/5 dark:from-blue-400/10 dark:to-purple-400/10" />
-													{relatedIcon?.type === "url" && relatedIcon.src ? (
-														<Image src={relatedIcon.src} alt={relatedApp.name} width={36} height={36} unoptimized className="h-full w-full object-contain" />
-													) : relatedIcon?.svg ? (
-														<div dangerouslySetInnerHTML={{ __html: relatedIcon.svg }} className="h-full w-full fill-slate-700 dark:fill-slate-300" />
-													) : (
-														<span className="text-sm font-bold text-slate-700 dark:text-slate-300">{relatedApp.name.charAt(0)}</span>
-													)}
-												</div>
-												
-												<div className="min-w-0 flex-1">
-													<h3 className={`truncate text-sm font-medium transition-colors
-														${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-800 dark:text-slate-200'}
-													`}>
-														{relatedApp.name}
-													</h3>
-													<p className="mt-0.5 line-clamp-3 text-xs text-blue-700 dark:text-slate-500">
-														{relatedApp.description ? String(relatedApp.description) : `Explore ${relatedApp.name}`}
-													</p>
-												</div>
-											</Link>
-										);
-									})}
-								</div>
-							</section>
-						)}
 					</div>
+					<RelatedApps apps={relatedApps} currentSlug={app.slug} />
 				</div>
 			</main>
 
