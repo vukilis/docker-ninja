@@ -5,7 +5,7 @@ async function syncVersions() {
     const key = process.env.CLIENT_KEY;
 
     // Fetch apps
-    const appsRes = await fetch(`${url}/rest/v1/apps?select=id,github`, {
+    const appsRes = await fetch(`${url}/rest/v1/apps?select=id,github,version`, {
         headers: { 
             'apikey': key, 
             'Authorization': `Bearer ${key}`,
@@ -44,8 +44,8 @@ async function syncVersions() {
 
             const data = await res.json();
             
-            // Update Supabase
-            if (data.tag_name) {
+            // Update Supabase only if version changed
+            if (data.tag_name && data.tag_name !== app.version) {
                 await fetch(`${url}/rest/v1/apps?id=eq.${app.id}`, {
                     method: 'PATCH',
                     headers: { 
@@ -57,6 +57,8 @@ async function syncVersions() {
                     body: JSON.stringify({ version: data.tag_name })
                 });
                 console.log(`✅ Updated ${repo} to ${data.tag_name}`);
+            } else if (data.tag_name === app.version) {
+                console.log(`⏭️ Skipping ${repo}: version unchanged (${data.tag_name})`);
             }
 
             // Wait 500ms between requests
