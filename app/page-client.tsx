@@ -18,6 +18,8 @@ import dynamic from 'next/dynamic';
 import { useShortcutKeys } from "./components/useShortcutKeys";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { MainSidebar, SidebarViewMode, formatVersion, useLatestVersion, Logo } from "./components/MainSidebar";
+import { useRecentlyViewed, RecentlyViewedEntry } from "./hooks/useRecentlyViewed";
+import ActivityTabs from "./components/ActivityTabs"
 
 const NetworkBackground = dynamic(
 	() => import('./components/NetworkMap').then((mod) => mod.NetworkBackground),
@@ -117,15 +119,7 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 		return localStorage.getItem("ninja_activeSubCategory");
 	});
 
-	const [recentlyViewed, setRecentlyViewed] = useState<AppData[]>(() => {
-		if (typeof window === "undefined") return [];
-		const saved = localStorage.getItem("docker_ninja_recently_viewed");
-		try {
-			return saved ? JSON.parse(saved) : [];
-		} catch {
-			return [];
-		}
-	});
+	const { recentlyViewed, addToRecentlyViewed } = useRecentlyViewed();
 
 	// UI States
 	const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -283,6 +277,16 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 		}
 	}, [filteredApps, sortBy]);
 
+	// RECENTLY VIEWED PERSISTENCE
+	useEffect(() => {
+		if (selectedApp) {
+			addToRecentlyViewed({
+				...selectedApp,
+				category: selectedApp.category || "",
+			} as RecentlyViewedEntry);
+		}
+	}, [selectedApp, addToRecentlyViewed]);
+
 	// Ensure a subcategory is always active when "categories" is selected
 	useEffect(() => {
 		if (currentView === "categories" && !activeSubCategory && sortedCategories.length > 0) {
@@ -304,21 +308,6 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 			});
 		}
 	}, [search, currentView, activeSubCategory]);
-
-	// RECENTLY VIEWED PERSISTENCE
-	useEffect(() => {
-		if (selectedApp) {
-			document.body.style.overflow = "hidden";
-			setRecentlyViewed((prev) => {
-				const filtered = prev.filter((a) => a.id !== selectedApp.id);
-				const updated = [selectedApp, ...filtered].slice(0, 8);
-				localStorage.setItem("docker_ninja_recently_viewed", JSON.stringify(updated));
-				return updated;
-			});
-		} else {
-			document.body.style.overflow = "unset";
-		}
-	}, [selectedApp]);
 
 	// DYNAMIC PAGINATION PER BREAKPOINT
 	useEffect(() => {
@@ -354,6 +343,32 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 
 	useGlobalScrollbar();
 
+	const recentlyAdded = useMemo(() => {
+		return [...apps]
+			.filter((a): a is typeof a & { created_at: string } => typeof (a as Record<string, unknown>).created_at === 'string')
+			.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+			.slice(0, 8);
+	}, [apps]);
+
+	const recentlyUpdated = useMemo(() => {
+		return [...apps]
+			.filter((a): a is typeof a & { updated_at: string } => typeof (a as Record<string, unknown>).updated_at === 'string')
+			.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''))
+			.slice(0, 8);
+	}, [apps]);
+
+	const popularApps = useMemo(() => {
+		return [...apps]
+			.filter((a) => (globalLikes[a.slug || ""] || 0) > 0)
+			.sort((a, b) => {
+				const countA = globalLikes[a.slug || ""] || 0;
+				const countB = globalLikes[b.slug || ""] || 0;
+				if (countB !== countA) return countB - countA;
+				return a.name.localeCompare(b.name);
+			})
+			.slice(0, 8);
+	}, [apps, globalLikes]);
+
 	const handleAppSelect = (app: AppData) => {
 		setSelectedApp(app);
 		if (["about", "community", "sponsoring", "docs"].includes(currentView)) {
@@ -381,46 +396,6 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 	};
 
 	// --- RENDER HELPERS ---
-	const renderRecentlyViewed = () => {
-		if (recentlyViewed.length === 0 || currentView === "categories") return null;
-
-		return (
-			<div className="mb-12 relative group/section">
-				<div className="flex items-center gap-3 mb-6">
-					<div className="relative">
-						<div className="p-2 bg-blue-600/5 dark:bg-blue-600/10 rounded-lg border border-blue-500/20">
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-blue-500">
-								<path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-							</svg>
-						</div>
-						<div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full blur-[2px] shadow-[0_0_8px_#3b82f6]" />
-					</div>
-					<h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Recent Activity</h3>
-				</div>
-
-				<div className="grid grid-cols-4 sm:grid-cols-8 md:grid-cols-8 lg:grid-cols-8 xl:grid-cols-8 gap-2 md:gap-4 relative z-0">
-					{recentlyViewed.map((app, index) => (
-						<div key={`recent-${app.id}`} className="relative group">
-							{index < recentlyViewed.length - 1 && (
-								<div className="hidden md:block absolute top-1/2 -right-4 w-4 h-[1px] bg-slate-200 dark:bg-slate-800 group-hover:bg-blue-500/50 transition-colors duration-500" />
-							)}
-
-							<div
-								className="relative z-10 transition-transform duration-300 cursor-pointer transform origin-top max-xl:[&_h3]:hidden max-xl:[&_p]:hidden max-xl:[&_span:not(.icon-span)]:hidden max-md:flex max-md:justify-center"
-								onClick={() => setSelectedApp(app)}
-							>
-								<AppCard app={app} onClick={() => setSelectedApp(app)} />
-							</div>
-						</div>
-					))}
-				</div>
-				<div className="mt-6 md:mt-10 relative">
-					<div className="h-[1px] w-full bg-[#B7C7CD] dark:bg-slate-800/50" />
-				</div>
-			</div>
-		);
-	};
-
 	const renderDashboard = () => {
 		const categoryKey = currentView === "categories" ? (activeSubCategory ?? "categories") : "all-apps";
 		const activePage = paginationState[categoryKey] || 1;
@@ -657,7 +632,19 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 							) : (
 								<div className="p-4 sm:p-6 lg:p-10">
 									<div className="max-w-[1600px] mx-auto">
-										{currentView === "dashboard" && renderRecentlyViewed()}
+									{currentView === "dashboard" && (
+							<ActivityTabs
+								newApps={recentlyAdded}
+								viewed={recentlyViewed}
+								updatedApps={recentlyUpdated}
+								popularApps={popularApps}
+								globalLikes={globalLikes}
+								onSelectNew={handleAppSelect}
+								onSelectViewed={setSelectedApp as (app: RecentlyViewedEntry) => void}
+								onSelectUpdated={handleAppSelect}
+								onSelectPopular={handleAppSelect}
+							/>
+									)}
 										<div className="mb-6 mt-4 sm:mb-10 sm:mt-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
 											<div className="flex flex-row items-center justify-between w-full gap-4 mb-6">
 												<div className="flex-1 min-w-0">
