@@ -10,11 +10,13 @@ export interface AppRow {
     category: string;
     description?: string;
     icon_url?: string;
+    created_at?: string;
+    updated_at?: string;
     [key: string]: unknown;
 }
 
 export async function fetchAllApps(category?: string, search?: string, minimal: boolean = false): Promise<AppRow[]> {
-    const fields = minimal ? 'id, name, slug, icon_url' : 'id, name, slug, category, icon_url, updated_at, description';
+    const fields = minimal ? 'id, name, slug, icon_url' : 'id, name, slug, category, icon_url, updated_at, description, created_at';
     const supabase = getSupabase();
     if (!supabase) return [];
 
