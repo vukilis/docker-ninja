@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import Image from "next/image";
@@ -120,7 +120,7 @@ export default function AppPageClient({ slug, initialApp }: { slug: string; init
 		const updated = [entry, ...filtered].slice(0, 8);
 		localStorage.setItem(key, JSON.stringify(updated));
 	}, [app?.id, app?.slug, app?.name, app?.category, safeCategory, app?.icon_url, app?.description]);
-
+	
 	const categoryAppsQuery = useQuery({
 		queryKey: ["category-apps-for-slug-page", safeCategory],
 		queryFn: () => fetchAllApps(safeCategory),
