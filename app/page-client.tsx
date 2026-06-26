@@ -351,11 +351,12 @@ export default function Home({ initialView = "dashboard", initialAppSlug }: { in
 	}, [apps]);
 
 	const recentlyUpdated = useMemo(() => {
+		const addedIds = new Set(recentlyAdded.map(a => a.id));
 		return [...apps]
-			.filter((a): a is typeof a & { updated_at: string } => typeof (a as Record<string, unknown>).updated_at === 'string')
+			.filter((a): a is typeof a & { updated_at: string } => typeof (a as Record<string, unknown>).updated_at === 'string' && !addedIds.has(a.id))
 			.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''))
 			.slice(0, 8);
-	}, [apps]);
+	}, [apps, recentlyAdded]);
 
 	const popularApps = useMemo(() => {
 		return [...apps]
