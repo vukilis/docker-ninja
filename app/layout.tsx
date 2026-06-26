@@ -69,22 +69,41 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 	const [apps, likes] = await Promise.all([fetchAllApps(), fetchAllActiveLikes()]);
 	return (
 		<html lang="en" suppressHydrationWarning>
-  	  <body className="my-custom-background text-slate-900 dark:text-slate-200">
-				<ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-					<QueryProvider>
-						<AppsProvider initialApps={apps} initialGlobalLikes={likes}>
-							<Preloader />
-							{children}
-						</AppsProvider>
-					</QueryProvider>
-				</ThemeProvider>
-        <Script
-          defer
-          src="https://static.cloudflareinsights.com/beacon.min.js"
-          crossOrigin="anonymous"
-          data-cf-beacon='{"token":"51e8e00a7c2847b5b7203f2f5b5ce676","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}'
-        />
-			</body>
+			<head>
+				<script defer src="https://cloud.umami.is/script.js" data-website-id="8b9d3362-9641-41ac-ae0c-3d080b7a4b12"></script>
+        
+      </head>
+        <body className="my-custom-background text-slate-900 dark:text-slate-200">
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+            <QueryProvider>
+              <AppsProvider initialApps={apps} initialGlobalLikes={likes}>
+                <Preloader />
+                {children}
+              </AppsProvider>
+            </QueryProvider>
+          </ThemeProvider>
+          <Script
+            defer
+            src="https://static.cloudflareinsights.com/beacon.min.js"
+            crossOrigin="anonymous"
+            data-cf-beacon='{"token":"51e8e00a7c2847b5b7203f2f5b5ce676","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}'
+          />
+          <Script
+            id="outbound-link-tracking"
+            strategy="afterInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `(() => {
+                const eventName = 'outbound-link-click';
+                document.querySelectorAll('a').forEach((linkEl) => {
+                  if (linkEl.host !== window.location.host && !linkEl.getAttribute('data-umami-event')) {
+                    linkEl.setAttribute('data-umami-event', eventName);
+                    linkEl.setAttribute('data-umami-event-url', linkEl.href);
+                  }
+                });
+              })();`,
+            }}
+          />
+        </body>
 		</html>
 	);
 }
