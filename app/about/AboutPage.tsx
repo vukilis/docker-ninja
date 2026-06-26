@@ -1,10 +1,48 @@
 import { useAppsGlobal } from '../context/AppsContext';
+import AnalyticsUmami from '../components/AnalyticsUmami';
+import AnalyticsModal from '../components/AnalyticsModal';
+import { useState } from 'react';
+
+const UmamiBadge = () => (
+    <a 
+        href="https://umami.is" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="group inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/50 hover:border-blue-500/40 backdrop-blur-md transition-all duration-300 shadow-sm hover:shadow-[0_0_15px_-3px_rgba(59,130,246,0.3)]"
+    >
+        <span className="text-[9px] sm:text-[10px] font-medium text-slate-500 group-hover:text-slate-400 transition-colors uppercase tracking-widest mt-px">
+            Powered by
+        </span>
+        <div className="flex items-center gap-1.5">
+            <span className="text-xs sm:text-sm font-bold bg-gradient-to-br from-blue-400 to-indigo-400 bg-clip-text text-transparent drop-shadow-sm">
+                umami
+            </span>
+            <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="13" 
+                height="13" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className="shrink-0 transition-all duration-200 group-hover:scale-110 opacity-80 text-slate-400 group-hover:text-blue-400"
+            >
+                <path d="M15 3h6v6" />
+                <path d="M10 14 21 3" />
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+            </svg>
+        </div>
+    </a>
+);
 
 // AboutPage Component
 export default function AboutPage() {
 
     const { totalCount, loading } = useAppsGlobal();
-    
+    const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+
     const initiatives = [
         {
             service: "central-registry",
@@ -102,7 +140,7 @@ export default function AboutPage() {
                 </div>
 
                 {/* Stats / Impact Board */}
-                <div className="bg-slate-900 rounded-[2.5rem] p-8 md:p-12 border border-slate-800 shadow-inner overflow-hidden relative">
+                <div className="bg-slate-900 rounded-[2.5rem] p-8 md:p-12 mb-16 border border-slate-800 shadow-inner overflow-hidden relative">
                     {/* Decorative Grid background */}
                     <div 
                         className="absolute inset-0 opacity-[0.03] pointer-events-none" 
@@ -157,6 +195,87 @@ export default function AboutPage() {
                     </div>
                 </div>
 
+                {/* Analytics Card */}
+                <div className="bg-slate-900 rounded-[2.5rem] p-6 md:p-12 border border-slate-800 shadow-2xl overflow-hidden relative">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                    <div className="flex flex-col gap-5 mb-6 border-b border-slate-800/80 pb-6 font-mono relative z-10">
+                        <div className="flex flex-row items-center justify-between gap-4">
+                            <div>
+                                <div className="flex items-center gap-2 mb-1.5">
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                                    </span>
+                                    <span className="text-blue-500 text-[10px] sm:text-xs font-bold uppercase tracking-widest block">
+                                        system.telemetry
+                                    </span>
+                                </div>
+                                <h4 className="text-base sm:text-lg font-black text-slate-100 dark:text-white uppercase italic tracking-tight">
+                                    Live Platform Traffic
+                                </h4>
+                            </div>
+
+                            {/* Desktop Only: Fancy Powered By Badge */}
+                            <div className="hidden sm:block">
+                                <UmamiBadge />
+                            </div>
+                        </div>
+
+                        {/* Mobile Only Button - Native App Style */}
+                        <button
+                            onClick={() => setShowAnalyticsModal(true)}
+                            className="md:hidden w-full group relative inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-b from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 text-slate-200 font-mono text-sm font-medium rounded-2xl border border-slate-700 hover:border-slate-600 shadow-[0_4px_20px_-5px_rgba(0,0,0,0.5)] cursor-pointer transition-all active:scale-[0.98] overflow-hidden"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={2}
+                                stroke="currentColor"
+                                className="h-4 w-4 text-blue-400"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"
+                                />
+                            </svg>
+                            <span>Show Analytics</span>
+                        </button>
+                    </div>
+                    {/* Mobile Only: Fancy Powered By Badge */}
+                    <div className="flex sm:hidden justify-center w-full mt-2">
+                        <UmamiBadge />
+                    </div>
+
+                    {/* iframe Section */}
+                    <div className="hidden md:flex w-full h-[400px] rounded-[1.5rem] overflow-hidden relative bg-[#0d1117] border border-slate-800 shadow-inner group">
+                        <button
+                            onClick={() => setShowAnalyticsModal(true)}
+                            className="absolute top-4 right-4 z-10 inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-900/80 backdrop-blur-sm p-2 text-slate-300 hover:text-white hover:bg-slate-800 hover:border-slate-600 opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer shadow-lg"
+                            aria-label="Expand analytics in full screen"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={2.5}
+                                stroke="currentColor"
+                                className="h-4 w-4"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"
+                                />
+                            </svg>
+                        </button>
+                        <AnalyticsUmami />
+                    </div>
+                </div>
+
                 {/* Personal Signature */}
                 <div className="mt-20 text-center font-mono text-center pt-8 border-t border-slate-200 dark:border-slate-900 font-mono">
                     <p className="text-slate-600 dark:text-slate-500 uppercase text-xs italic mb-4">
@@ -168,6 +287,10 @@ export default function AboutPage() {
                     </div>
                 </div>
             </div>
+            <AnalyticsModal
+                isOpen={showAnalyticsModal}
+                onClose={() => setShowAnalyticsModal(false)}
+            />
         </div>
     );
 }
